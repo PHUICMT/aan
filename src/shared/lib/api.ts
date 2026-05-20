@@ -371,6 +371,22 @@ export async function importEpub(input: EpubImportArgs): Promise<ImportedEpub> {
   });
 }
 
+export type CustomFont = { family: string; filename: string; path: string; bytes: number };
+
+export async function listCustomFonts(): Promise<CustomFont[]> {
+  return await invoke<CustomFont[]>('list_custom_fonts');
+}
+export async function installFont(srcPath: string): Promise<CustomFont> {
+  return await invoke<CustomFont>('install_font', { srcPath });
+}
+export async function removeCustomFont(filename: string): Promise<void> {
+  await invoke('remove_custom_font', { filename });
+}
+export async function readCustomFontBytes(filename: string): Promise<Uint8Array> {
+  const arr = await invoke<number[]>('read_custom_font', { filename });
+  return new Uint8Array(arr);
+}
+
 export async function importImageFolder(input: ArchiveImportArgs): Promise<ImportedChapter> {
   return await invoke<ImportedChapter>('import_image_folder', {
     args: {

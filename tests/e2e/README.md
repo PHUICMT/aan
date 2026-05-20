@@ -25,7 +25,7 @@ npm run e2e:report                     # open the HTML report
 
 ## Test catalogue
 
-> 28 tests across 14 spec files. Runtime ≈ 28 seconds.
+> 30 tests across 15 spec files. Runtime ≈ 28 seconds.
 
 ### `smoke.spec.ts`
 Sanity that the suite is wired right.
@@ -93,6 +93,13 @@ Opens the SeriesEditModal on series 1001 and either reverts the edit or, for cha
 - **rename a series and see the hero update** — edits name through the form, asserts the hero text changed. `afterEach` resets the name to `Test Manga Alpha`.
 - **blank name shows an error and does not save** — fills `   `, save is blocked, modal stays open, original name unchanged.
 - **inline chapter title edit persists** — imports a throwaway series, clicks the chapter row's edit icon, retypes the title, presses Enter; cleanup deletes the throwaway series.
+
+### `custom-fonts.spec.ts` *(mutates — cleans up in afterEach)*
+
+Native file picker can't be driven from Playwright, so the install path is exercised via the `install_font` Tauri command directly (same pattern as import specs). Cleanup removes the font + the tmp source dir.
+
+- **install_font registers the family and read_custom_font returns bytes** — writes a fake `Bookerly-Regular.ttf` stub, invokes `install_font`, asserts the family stem strips `-Regular`, then reads the bytes back through `read_custom_font`.
+- **remove_custom_font drops the entry from the list** — installs a throwaway font then removes it, asserts `list_custom_fonts` no longer contains it.
 
 ### `watch-folder.spec.ts` *(mutates — full teardown in afterEach)*
 

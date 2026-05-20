@@ -1,6 +1,7 @@
 pub mod bookmark;
 pub mod chapter;
 pub mod data_folder;
+pub mod fonts;
 pub mod import;
 pub mod series;
 pub mod shell;

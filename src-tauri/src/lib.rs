@@ -181,6 +181,10 @@ pub fn run() {
             commands::watch::list_watch_folders,
             commands::watch::add_watch_folder,
             commands::watch::remove_watch_folder,
+            commands::fonts::list_custom_fonts,
+            commands::fonts::install_font,
+            commands::fonts::remove_custom_font,
+            commands::fonts::read_custom_font,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

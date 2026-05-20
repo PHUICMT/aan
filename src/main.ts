@@ -22,4 +22,10 @@ const app = mount(root, {
   target: document.getElementById('app')!,
 })
 
+// Only the main window cares about custom fonts; the tray menu doesn't
+// render novel content, so skip the scan there to keep startup snappy.
+if (!win) {
+  import('./shared/lib/custom-fonts.svelte').then((m) => m.refreshCustomFonts()).catch(() => {});
+}
+
 export default app

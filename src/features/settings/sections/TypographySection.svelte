@@ -12,6 +12,51 @@
   } from '../../../shared/lib/store.svelte';
   import { UI_FONTS, NOVEL_FONTS, FONT_SIZE_UI, FONT_SIZE_NOVEL } from '../../../shared/lib/constants';
   import FontPicker from '../FontPicker.svelte';
+  import { customFonts, refreshCustomFonts } from '../../../shared/lib/custom-fonts.svelte';
+  import { installFont, removeCustomFont } from '../../../shared/lib/api';
+  import { open as openDialog } from '@tauri-apps/plugin-dialog';
+
+  // CSS family value for a custom font — wrap in quotes so multi-word
+  // names work, then fall back to a generic so legacy text doesn't go
+  // to Times New Roman the instant the font fails to load.
+  function cssFor(family: string): string {
+    return `"${family.replace(/"/g, '\\"')}", system-ui, sans-serif`;
+  }
+
+  const customUiOptions = $derived(customFonts.list.map((f) => ({
+    value: cssFor(f.family), label: `${f.family} (custom)`,
+  })));
+  const customNovelOptions = $derived(customFonts.list.map((f) => ({
+    value: cssFor(f.family).replace('system-ui', 'serif'), label: `${f.family} (custom)`,
+  })));
+  const uiFontOptions = $derived([...UI_FONTS, ...customUiOptions]);
+  const novelFontOptions = $derived([...NOVEL_FONTS, ...customNovelOptions]);
+
+  let installing = $state(false);
+  let installError = $state<string | null>(null);
+
+  async function pickAndInstallFont() {
+    installError = null;
+    installing = true;
+    try {
+      const picked = await openDialog({
+        multiple: false,
+        filters: [{ name: 'Fonts', extensions: ['ttf', 'otf', 'woff', 'woff2'] }],
+      });
+      if (typeof picked !== 'string') return;
+      await installFont(picked);
+      await refreshCustomFonts();
+    } catch (e) {
+      installError = String(e);
+    } finally {
+      installing = false;
+    }
+  }
+
+  async function removeFont(filename: string) {
+    await removeCustomFont(filename);
+    await refreshCustomFonts();
+  }
 
   type Props = {
     open: boolean;
@@ -48,7 +93,7 @@
               <div class="title">{t('settings.font.ui.title')}</div>
               <div class="desc">{t('settings.font.ui.desc')}</div>
             </div>
-            <FontPicker options={UI_FONTS} value={app.fontUi} onChange={setFontUi} />
+            <FontPicker options={uiFontOptions} value={app.fontUi} onChange={setFontUi} />
           </div>
         {/if}
 
@@ -76,7 +121,7 @@
               <div class="title">{t('settings.font.novel.title')}</div>
               <div class="desc">{t('settings.font.novel.desc')}</div>
             </div>
-            <FontPicker options={NOVEL_FONTS} value={app.fontNovel} onChange={setFontNovel} />
+            <FontPicker options={novelFontOptions} value={app.fontNovel} onChange={setFontNovel} />
           </div>
         {/if}
 
@@ -99,6 +144,45 @@
         {/if}
 
         {#if !searching}
+          <div class="row custom-fonts-row" data-test="custom-fonts">
+            <div class="label">
+              <div class="title">{t('settings.font.custom.title')}</div>
+              <div class="desc">{t('settings.font.custom.desc')}</div>
+            </div>
+            <button
+              type="button"
+              class="install-btn"
+              onclick={pickAndInstallFont}
+              disabled={installing}
+              data-test="custom-fonts-install"
+            >
+              <Icon name="plus" size={12} />
+              {installing ? t('settings.font.custom.installing') : t('settings.font.custom.install')}
+            </button>
+          </div>
+          {#if installError}
+            <div class="font-error" transition:slide={{ duration: 180, easing: cubicOut }}>{installError}</div>
+          {/if}
+          {#if customFonts.list.length > 0}
+            <ul class="font-list" data-test="custom-fonts-list">
+              {#each customFonts.list as f (f.filename)}
+                <li class="font-chip">
+                  <span class="font-name" style:font-family={cssFor(f.family)}>{f.family}</span>
+                  <span class="font-file">{f.filename}</span>
+                  <button
+                    type="button"
+                    class="font-del"
+                    onclick={() => removeFont(f.filename)}
+                    aria-label="Remove {f.family}"
+                    data-test="custom-font-remove"
+                    data-font-filename={f.filename}
+                  >
+                    <Icon name="trash" size={12} />
+                  </button>
+                </li>
+              {/each}
+            </ul>
+          {/if}
           <div class="preview" style:font-family={app.fontNovel || app.fontUi || undefined} style:font-size="{app.fontNovelSize}px">
             {t('settings.font.preview')}
           </div>
@@ -138,5 +222,45 @@
     background: var(--accent); border: none;
     box-shadow: 0 0 0 4px var(--accent-dim);
     cursor: pointer;
+  }
+
+  .install-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 9999px;
+    background: var(--accent-dim); color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    font-size: 12px; font-weight: 600;
+    transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out), transform 0.15s var(--ease-out);
+  }
+  .install-btn:hover:not(:disabled) { background: var(--accent); color: #fff; transform: translateY(-1px); }
+  .install-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .font-list {
+    list-style: none; margin: 8px 0 0; padding: 0;
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .font-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 6px 6px 12px; border-radius: 9999px;
+    background: var(--hover-bg);
+    border: 1px solid var(--border);
+    transition: border-color 0.15s var(--ease-out);
+  }
+  .font-chip:hover { border-color: var(--accent); }
+  .font-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .font-file { font-size: 10px; color: var(--text3); font-family: var(--font-mono); }
+  .font-del {
+    width: 24px; height: 24px; border-radius: 9999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; color: var(--text3);
+    transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+  }
+  .font-del:hover { background: rgba(239,68,68,0.18); color: #ef4444; }
+
+  .font-error {
+    margin-top: 8px; padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.32);
+    color: #fca5a5; font-size: 11px;
   }
 </style>
