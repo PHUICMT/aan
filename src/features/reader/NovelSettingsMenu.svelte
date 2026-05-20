@@ -62,6 +62,7 @@
     onclick={() => (open = !open)}
     use:tooltip={t('reader.settings')}
     aria-label={t('reader.settings')}
+    data-test="novel-settings-toggle"
   >
     <Icon name="settings" size={13} />
   </button>
@@ -74,6 +75,7 @@
       transition:popMenu
       use:portal
       use:closeOnOutside={() => (open = false)}
+      data-test="novel-settings-menu"
     >
       <!-- Layout -->
       <div class="set-row layout-row">
@@ -84,8 +86,8 @@
         </div>
         <div class="set-seg seg-2" style:--active-idx={app.novelLayout === 'scroll' ? 0 : 1}>
           <span class="seg-indicator" aria-hidden="true"></span>
-          <button class="seg-btn" class:active={app.novelLayout === 'scroll'} onclick={() => setNovelLayout('scroll' as NovelLayout)}>{t('novel.layout.scroll')}</button>
-          <button class="seg-btn" class:active={app.novelLayout === 'paged'} onclick={() => setNovelLayout('paged' as NovelLayout)}>{t('novel.layout.paged')}</button>
+          <button class="seg-btn" class:active={app.novelLayout === 'scroll'} onclick={() => setNovelLayout('scroll' as NovelLayout)} data-test="novel-layout-scroll">{t('novel.layout.scroll')}</button>
+          <button class="seg-btn" class:active={app.novelLayout === 'paged'} onclick={() => setNovelLayout('paged' as NovelLayout)} data-test="novel-layout-paged">{t('novel.layout.paged')}</button>
         </div>
       </div>
 
@@ -105,6 +107,7 @@
               onclick={() => setNovelTheme(th.id)}
               aria-label={t(th.labelKey)}
               use:tooltip={t(th.labelKey)}
+              data-test="novel-theme-{th.id}"
             ></button>
           {/each}
         </div>

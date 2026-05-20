@@ -25,7 +25,7 @@ npm run e2e:report                     # open the HTML report
 
 ## Test catalogue
 
-> 25 tests across 13 spec files. Runtime ≈ 25 seconds.
+> 27 tests across 14 spec files. Runtime ≈ 26 seconds.
 
 ### `smoke.spec.ts`
 Sanity that the suite is wired right.
@@ -58,6 +58,12 @@ PDF rendering through `pdfjs-dist`.
 
 ### `novel-reader.spec.ts`
 - **novel chapter renders and is scrollable** — HTML chapter loads into the iframe and scrolls.
+
+### `novel-reader-modes.spec.ts`
+Per-reader display settings (layout + theme), driven through the settings menu.
+
+- **switching to paged layout shows page indicator and arrow keys flip pages** — clicks `Paged` in the settings menu, asserts `data-novel-layout="paged"`, then if the chapter spans more than one column, presses ←/→ and watches `data-novel-page-idx` advance and rewind.
+- **theme swatch updates root and persists across reload** — clicks the sepia swatch, asserts `data-novel-theme="sepia"` + the matching `localStorage` key, reloads the app, re-opens the chapter, confirms sepia stuck.
 
 ### `pick-random.spec.ts`
 - **pick random opens modal, reroll changes content, read opens series** — the random picker on Home cycles a different pick across rerolls and the Read button lands on series detail. (Asserts the new card via `.last()` to ride out the cross-fade.)

@@ -361,6 +361,11 @@
   style:--novel-max-w="{app.novelMaxWidth}px"
   style:--novel-lh="{app.novelLineHeight}"
   use:attachScroll
+  data-test="novel-root"
+  data-novel-theme={app.novelTheme}
+  data-novel-layout={app.novelLayout}
+  data-novel-page-idx={pageIdx}
+  data-novel-page-count={pageCount}
 >
 {#if error}
   <div class="err">{error}</div>
