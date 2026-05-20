@@ -6,3 +6,4 @@ pub mod series;
 pub mod shell;
 pub mod stats;
 pub mod tray;
+pub mod watch;

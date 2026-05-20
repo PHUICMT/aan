@@ -10,6 +10,9 @@ pub struct AppConfig {
     /// Absolute path to the data folder; overrides the default `<project_root>/data`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub data_root: Option<String>,
+    /// Folders to monitor for newly dropped files (PDF/CBZ/EPUB/TXT).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub watch_folders: Vec<String>,
 }
 
 static CACHE: RwLock<Option<AppConfig>> = RwLock::new(None);
@@ -138,7 +141,7 @@ mod tests {
 
     #[test]
     fn test_serde_roundtrip_with_path() {
-        let cfg = AppConfig { data_root: Some("/foo/bar".into()) };
+        let cfg = AppConfig { data_root: Some("/foo/bar".into()), ..AppConfig::default() };
         let s = serde_json::to_string(&cfg).unwrap();
         let back: AppConfig = serde_json::from_str(&s).unwrap();
         assert_eq!(back.data_root.as_deref(), Some("/foo/bar"));

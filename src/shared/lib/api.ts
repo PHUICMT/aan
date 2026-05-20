@@ -255,6 +255,20 @@ export async function readCoverSource(path: string): Promise<Uint8Array> {
   return new Uint8Array(bytes);
 }
 
+// ── Watch folders ──────────────────────────────────────────────────────
+
+export async function listWatchFolders(): Promise<string[]> {
+  return await invoke<string[]>('list_watch_folders');
+}
+
+export async function addWatchFolder(path: string): Promise<void> {
+  await invoke('add_watch_folder', { path });
+}
+
+export async function removeWatchFolder(path: string): Promise<void> {
+  await invoke('remove_watch_folder', { path });
+}
+
 export type ChapterPatch = { title?: string; chapterNo?: number };
 
 export async function updateChapter(chapterId: string, patch: ChapterPatch): Promise<void> {

@@ -4,6 +4,7 @@ mod data_move;
 mod db;
 mod pdf;
 mod tray_window;
+mod watcher;
 
 #[cfg(test)]
 mod test_util;
@@ -79,8 +80,13 @@ pub fn run() {
             app.manage(data_move::MoveState::new());
             // Default off; frontend syncs localStorage via set_close_to_tray.
             app.manage(CloseToTray(AtomicBool::new(false)));
+            app.manage(watcher::WatchManager::new());
 
             tray_window::setup_tray(app)?;
+
+            // Rehydrate watcher state from disk so previously-added
+            // folders resume monitoring on launch.
+            commands::watch::restore_persisted(app.handle());
 
             // close-to-tray hides; otherwise exit fully. Tauri's default
             // keeps the event loop alive while a tray icon exists, which
@@ -172,6 +178,9 @@ pub fn run() {
             commands::import::import_image_folder,
             commands::import::import_epub,
             commands::import::read_import_pdf,
+            commands::watch::list_watch_folders,
+            commands::watch::add_watch_folder,
+            commands::watch::remove_watch_folder,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

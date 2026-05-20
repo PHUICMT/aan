@@ -9,15 +9,16 @@
   import AppearanceSection from './sections/AppearanceSection.svelte';
   import TypographySection from './sections/TypographySection.svelte';
   import TraySection from './sections/TraySection.svelte';
+  import WatchFoldersSection from './sections/WatchFoldersSection.svelte';
   import ResetSection from './sections/ResetSection.svelte';
 
   //───── Collapse + search ─────
   type SectionId =
     | 'general' | 'appearance' | 'typography'
-    | 'datafolder' | 'auto' | 'reset';
+    | 'datafolder' | 'watch' | 'auto' | 'reset';
   const SECTION_IDS: SectionId[] = [
     'general', 'appearance', 'typography',
-    'datafolder', 'auto', 'reset',
+    'datafolder', 'watch', 'auto', 'reset',
   ];
 
   function loadCollapsed(): Record<SectionId, boolean> {
@@ -64,6 +65,7 @@
   const visFontNovel = $derived(matches(t('settings.font.novel.title'), t('settings.font.novel.desc')));
   const visFontNovelSize = $derived(matches(t('settings.font.novel.size')));
   const visDataFolder = $derived(matches(t('settings.section.data_folder'), 'ย้ายข้อมูล', 'data folder', 'path'));
+  const visWatch = $derived(matches(t('settings.section.watch'), t('settings.watch.desc'), 'watch', 'monitor', 'เฝ้า'));
   const visTray = $derived(matches(t('settings.tray.close_to_tray.title'), t('settings.tray.close_to_tray.desc')));
   const visReset = $derived(matches(t('settings.reset.title'), t('settings.reset.desc')));
 
@@ -71,6 +73,7 @@
   const secVisAppearance = $derived(!searching || visTheme);
   const secVisTypography = $derived(!searching || (visFontUi || visFontUiSize || visFontNovel || visFontNovelSize));
   const secVisDataFolder = $derived(!searching || visDataFolder);
+  const secVisWatch      = $derived(!searching || visWatch);
   const secVisAuto       = $derived(!searching || visTray);
   const secVisReset      = $derived(!searching || visReset);
 
@@ -79,13 +82,14 @@
   const openAppearance = $derived(searching || !collapsed.appearance);
   const openTypography = $derived(searching || !collapsed.typography);
   const openDataFolder = $derived(searching || !collapsed.datafolder);
+  const openWatch      = $derived(searching || !collapsed.watch);
   const openAuto       = $derived(searching || !collapsed.auto);
   const openReset      = $derived(searching || !collapsed.reset);
 
   const anyVisible = $derived(
     !searching ||
     secVisGeneral || secVisAppearance || secVisTypography ||
-    secVisDataFolder || secVisAuto || secVisReset,
+    secVisDataFolder || secVisWatch || secVisAuto || secVisReset,
   );
 </script>
 
@@ -152,6 +156,15 @@
         </div>
       {/if}
     </section>
+  {/if}
+
+  {#if secVisWatch}
+    <WatchFoldersSection
+      open={openWatch}
+      {searching}
+      query={q}
+      onToggle={() => toggle('watch')}
+    />
   {/if}
 
   <TraySection

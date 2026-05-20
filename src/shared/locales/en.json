@@ -29,6 +29,13 @@
   "series.edit.replacing_cover": "Replacing cover…",
   "series.edit.chapter": "Edit chapter",
   "series.edit.chapter_title": "Chapter title",
+
+  "settings.section.watch": "Watch folders",
+  "settings.watch.desc": "Auto-import files dropped into these folders (PDF / CBZ / EPUB / TXT).",
+  "settings.watch.none": "No folders being watched.",
+  "settings.watch.add": "Add folder…",
+  "settings.watch.remove": "Stop watching",
+  "settings.watch.recent": "Recently imported",
   "library.import.busy_title": "Importing…",
   "library.import.done_title": "Import complete",
   "library.import.imported_suffix": "files imported",
