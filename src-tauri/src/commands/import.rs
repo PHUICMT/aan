@@ -1,6 +1,7 @@
 use crate::{data_root, db};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 #[derive(Deserialize)]
@@ -245,6 +246,320 @@ pub(crate) fn import_pdf(args: PdfImportArgs) -> Result<ImportedChapter, String>
     import_pdf_inner(&conn, &root, args)
 }
 
+#[derive(Deserialize)]
+pub(crate) struct CbzImportArgs {
+    pub src_path: String,
+    pub series_name: String,
+    pub kind: String,
+    pub chapter_no: f64,
+    pub chapter_title: String,
+}
+
+#[derive(Deserialize)]
+pub(crate) struct TxtImportArgs {
+    pub src_path: String,
+    pub series_name: String,
+    pub kind: String,
+    pub chapter_no: f64,
+    pub chapter_title: String,
+}
+
+const IMAGE_EXTS: &[&str] = &["jpg", "jpeg", "png", "webp"];
+
+fn is_image_name(name: &str) -> Option<&'static str> {
+    let lower = name.to_ascii_lowercase();
+    for &ext in IMAGE_EXTS {
+        if lower.ends_with(&format!(".{ext}")) {
+            return Some(ext);
+        }
+    }
+    None
+}
+
+/// Re-encode the first image into a JPEG cover. Source may be PNG/WEBP
+/// from the CBZ; the existing cover pipeline serves bytes as `image/jpeg`
+/// so we normalize at write time.
+fn write_cover_jpeg(dest: &Path, bytes: &[u8]) -> Result<(), String> {
+    if dest.exists() {
+        return Ok(());
+    }
+    let img = image::load_from_memory(bytes).map_err(|e| format!("decode cover: {e}"))?;
+    let max_w = 480u32;
+    let scaled = if img.width() > max_w {
+        img.resize(max_w, u32::MAX, image::imageops::FilterType::Triangle)
+    } else {
+        img
+    };
+    if let Some(parent) = dest.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    let mut out = std::fs::File::create(dest).map_err(|e| e.to_string())?;
+    scaled
+        .to_rgb8()
+        .write_with_encoder(image::codecs::jpeg::JpegEncoder::new_with_quality(&mut out, 85))
+        .map_err(|e| format!("encode cover: {e}"))
+}
+
+pub(crate) fn import_cbz_inner(
+    conn: &Connection,
+    data_root: &Path,
+    args: CbzImportArgs,
+) -> Result<ImportedChapter, String> {
+    let kind = normalize_kind(&args.kind)?;
+    let src = PathBuf::from(&args.src_path);
+    if !src.exists() {
+        return Err(format!("source not found: {}", args.src_path));
+    }
+    let name = args.series_name.trim();
+    if name.is_empty() {
+        return Err("series_name is empty".into());
+    }
+
+    let file = std::fs::File::open(&src).map_err(|e| e.to_string())?;
+    let mut zip = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
+
+    // Collect image entries, sorted by filename so chapter order is stable.
+    let mut entries: Vec<(String, &'static str)> = (0..zip.len())
+        .filter_map(|i| {
+            let f = zip.by_index(i).ok()?;
+            if f.is_dir() {
+                return None;
+            }
+            let name = f.name().to_string();
+            let ext = is_image_name(&name)?;
+            Some((name, ext))
+        })
+        .collect();
+    entries.sort_by(|a, b| natord_cmp(&a.0, &b.0));
+    if entries.is_empty() {
+        return Err("cbz has no images".into());
+    }
+
+    let now = now_iso();
+    let (pid, created_series) = find_or_create_series(conn, name, kind, &now)?;
+    let base_id = chapter_id_for(pid, args.chapter_no);
+    let chapter_id = unique_chapter_id(conn, &base_id)?;
+
+    let chapter_dir = data_root.join("manga").join(pid.to_string()).join(&chapter_id);
+    std::fs::create_dir_all(&chapter_dir).map_err(|e| e.to_string())?;
+
+    let mut first_bytes: Option<Vec<u8>> = None;
+    for (idx, (zname, ext)) in entries.iter().enumerate() {
+        let mut entry = zip.by_name(zname).map_err(|e| e.to_string())?;
+        let mut buf = Vec::with_capacity(entry.size() as usize);
+        entry.read_to_end(&mut buf).map_err(|e| e.to_string())?;
+        // Renumber to keep lexical sort matching reading order regardless
+        // of the source archive's naming quirks.
+        let out_name = format!("{:04}.{ext}", idx + 1);
+        std::fs::write(chapter_dir.join(&out_name), &buf).map_err(|e| e.to_string())?;
+        if first_bytes.is_none() {
+            first_bytes = Some(buf);
+        }
+    }
+
+    if let Some(bytes) = first_bytes {
+        let cover_path = data_root.join("covers").join(format!("{pid}.jpg"));
+        let _ = write_cover_jpeg(&cover_path, &bytes);
+    }
+
+    let stored_dir = format!("manga/{pid}/{chapter_id}");
+    let page_count = entries.len() as i64;
+
+    conn.execute(
+        "INSERT INTO chapters (chapter_id, pid, chapter_no, title, is_downloaded,
+                                pdf_path, page_count, update_date)
+         VALUES (?1, ?2, ?3, ?4, 1, ?5, ?6, ?7)",
+        params![
+            chapter_id,
+            pid,
+            args.chapter_no,
+            args.chapter_title.trim(),
+            stored_dir,
+            page_count,
+            now
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let cover_rel = format!("covers/{pid}.jpg");
+    conn.execute(
+        "UPDATE series
+         SET chapter_count       = (SELECT COUNT(*) FROM chapters WHERE pid=?1),
+             local_chapter_count = (SELECT COUNT(*) FROM chapters WHERE pid=?1 AND is_downloaded=1),
+             last_chapter_no     = (SELECT COALESCE(MAX(chapter_no), 0) FROM chapters WHERE pid=?1),
+             last_updated        = ?2,
+             cover_path          = CASE WHEN COALESCE(cover_path,'')='' THEN ?3 ELSE cover_path END
+         WHERE pid=?1",
+        params![pid, now, cover_rel],
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(ImportedChapter {
+        pid,
+        chapter_id,
+        created_series,
+    })
+}
+
+#[tauri::command]
+pub(crate) fn import_cbz(args: CbzImportArgs) -> Result<ImportedChapter, String> {
+    let root = data_root();
+    let conn = db::open(&root)?;
+    import_cbz_inner(&conn, &root, args)
+}
+
+/// Natural-order comparator: "page2" sorts before "page10". Falls back
+/// to byte order outside of digit runs.
+fn natord_cmp(a: &str, b: &str) -> std::cmp::Ordering {
+    let (mut ai, mut bi) = (a.bytes(), b.bytes());
+    let (mut ap, mut bp) = (ai.next(), bi.next());
+    loop {
+        match (ap, bp) {
+            (None, None) => return std::cmp::Ordering::Equal,
+            (None, _) => return std::cmp::Ordering::Less,
+            (_, None) => return std::cmp::Ordering::Greater,
+            (Some(x), Some(y)) if x.is_ascii_digit() && y.is_ascii_digit() => {
+                // Compare full integer runs.
+                let mut an: u64 = (x - b'0') as u64;
+                let mut bn: u64 = (y - b'0') as u64;
+                ap = ai.next();
+                while let Some(c) = ap {
+                    if !c.is_ascii_digit() {
+                        break;
+                    }
+                    an = an.saturating_mul(10).saturating_add((c - b'0') as u64);
+                    ap = ai.next();
+                }
+                bp = bi.next();
+                while let Some(c) = bp {
+                    if !c.is_ascii_digit() {
+                        break;
+                    }
+                    bn = bn.saturating_mul(10).saturating_add((c - b'0') as u64);
+                    bp = bi.next();
+                }
+                match an.cmp(&bn) {
+                    std::cmp::Ordering::Equal => continue,
+                    other => return other,
+                }
+            }
+            (Some(x), Some(y)) => {
+                match x.cmp(&y) {
+                    std::cmp::Ordering::Equal => {
+                        ap = ai.next();
+                        bp = bi.next();
+                    }
+                    other => return other,
+                }
+            }
+        }
+    }
+}
+
+pub(crate) fn import_txt_inner(
+    conn: &Connection,
+    data_root: &Path,
+    args: TxtImportArgs,
+) -> Result<ImportedChapter, String> {
+    let kind = normalize_kind(&args.kind)?;
+    if kind != KIND_NOVEL && kind != KIND_ORIGINAL_NOVEL {
+        return Err("text import only supports novel/original_novel".into());
+    }
+    let src = PathBuf::from(&args.src_path);
+    if !src.exists() {
+        return Err(format!("source not found: {}", args.src_path));
+    }
+    let name = args.series_name.trim();
+    if name.is_empty() {
+        return Err("series_name is empty".into());
+    }
+
+    let raw = std::fs::read(&src).map_err(|e| e.to_string())?;
+    // Strip BOM, decode as UTF-8 lossily — Thai novels from various
+    // sources sometimes carry stray bytes that strict decode would reject.
+    let text = strip_utf8_bom(&raw);
+    let body = String::from_utf8_lossy(text);
+    let html = wrap_text_as_html(&args.chapter_title, body.as_ref());
+
+    let now = now_iso();
+    let (pid, created_series) = find_or_create_series(conn, name, kind, &now)?;
+    let base_id = chapter_id_for(pid, args.chapter_no);
+    let chapter_id = unique_chapter_id(conn, &base_id)?;
+
+    let chapter_dir = data_root.join("novel").join(pid.to_string());
+    std::fs::create_dir_all(&chapter_dir).map_err(|e| e.to_string())?;
+    let dest = chapter_dir.join(format!("{chapter_id}.html"));
+    std::fs::write(&dest, html.as_bytes()).map_err(|e| e.to_string())?;
+    let stored_path = format!("novel/{pid}/{chapter_id}.html");
+
+    conn.execute(
+        "INSERT INTO chapters (chapter_id, pid, chapter_no, title, is_downloaded,
+                                pdf_path, page_count, update_date)
+         VALUES (?1, ?2, ?3, ?4, 1, ?5, 0, ?6)",
+        params![
+            chapter_id,
+            pid,
+            args.chapter_no,
+            args.chapter_title.trim(),
+            stored_path,
+            now
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    conn.execute(
+        "UPDATE series
+         SET chapter_count       = (SELECT COUNT(*) FROM chapters WHERE pid=?1),
+             local_chapter_count = (SELECT COUNT(*) FROM chapters WHERE pid=?1 AND is_downloaded=1),
+             last_chapter_no     = (SELECT COALESCE(MAX(chapter_no), 0) FROM chapters WHERE pid=?1),
+             last_updated        = ?2
+         WHERE pid=?1",
+        params![pid, now],
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(ImportedChapter {
+        pid,
+        chapter_id,
+        created_series,
+    })
+}
+
+#[tauri::command]
+pub(crate) fn import_txt(args: TxtImportArgs) -> Result<ImportedChapter, String> {
+    let root = data_root();
+    let conn = db::open(&root)?;
+    import_txt_inner(&conn, &root, args)
+}
+
+fn strip_utf8_bom(b: &[u8]) -> &[u8] {
+    if b.starts_with(&[0xEF, 0xBB, 0xBF]) { &b[3..] } else { b }
+}
+
+fn wrap_text_as_html(title: &str, body: &str) -> String {
+    let mut html = String::with_capacity(body.len() + 256);
+    html.push_str("<!doctype html><html><head><meta charset=\"utf-8\"><title>");
+    html.push_str(&html_escape(title));
+    html.push_str("</title></head><body>");
+    for para in body.split("\n\n") {
+        let trimmed = para.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        html.push_str("<p>");
+        html.push_str(&html_escape(trimmed).replace('\n', "<br>"));
+        html.push_str("</p>");
+    }
+    html.push_str("</body></html>");
+    html
+}
+
+fn html_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
 /// Read a PDF picked by the file dialog into bytes so the frontend can
 /// hand it to pdf.js for page-count + thumbnail extraction. Refuses
 /// anything that doesn't look like a PDF path — the caller controls the
@@ -403,5 +718,132 @@ mod tests {
         let conn = fresh_db(&root);
         let a = args(&root.join("nope.pdf"), "S", 1.0);
         assert!(import_pdf_inner(&conn, &root, a).is_err());
+    }
+
+    // ── CBZ ────────────────────────────────────────────────────────────
+
+    fn build_cbz(root: &Path, name: &str, entries: &[(&str, &[u8])]) -> PathBuf {
+        let path = root.join(name);
+        let file = fs::File::create(&path).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        let opts: zip::write::SimpleFileOptions = zip::write::SimpleFileOptions::default();
+        for (n, bytes) in entries {
+            zip.start_file::<_, ()>(*n, opts).unwrap();
+            std::io::Write::write_all(&mut zip, bytes).unwrap();
+        }
+        zip.finish().unwrap();
+        path
+    }
+
+    fn cbz_args(src: &Path, series: &str, ch: f64) -> CbzImportArgs {
+        CbzImportArgs {
+            src_path: src.to_string_lossy().into_owned(),
+            series_name: series.into(),
+            kind: "manga".into(),
+            chapter_no: ch,
+            chapter_title: format!("Ch {ch}"),
+        }
+    }
+
+    #[test]
+    fn cbz_extracts_images_in_natural_order() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        let jpeg = tiny_jpeg();
+        let src = build_cbz(
+            &root,
+            "ch.cbz",
+            &[
+                ("page10.jpg", &jpeg),
+                ("page2.jpg", &jpeg),
+                ("page1.jpg", &jpeg),
+                ("readme.txt", b"ignored"),
+            ],
+        );
+        let out = import_cbz_inner(&conn, &root, cbz_args(&src, "CBZ Series", 1.0)).unwrap();
+
+        let dir = root.join("manga").join(out.pid.to_string()).join(&out.chapter_id);
+        let mut names: Vec<_> = fs::read_dir(&dir).unwrap()
+            .map(|e| e.unwrap().file_name().into_string().unwrap())
+            .collect();
+        names.sort();
+        assert_eq!(names, vec!["0001.jpg", "0002.jpg", "0003.jpg"]);
+        assert!(root.join("covers").join(format!("{}.jpg", out.pid)).exists());
+
+        let pc: i64 = conn
+            .query_row(
+                "SELECT page_count FROM chapters WHERE chapter_id=?1",
+                params![out.chapter_id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(pc, 3);
+    }
+
+    #[test]
+    fn cbz_with_no_images_is_rejected() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        let src = build_cbz(&root, "empty.cbz", &[("note.txt", b"x")]);
+        assert!(import_cbz_inner(&conn, &root, cbz_args(&src, "S", 1.0)).is_err());
+    }
+
+    // ── TXT ────────────────────────────────────────────────────────────
+
+    fn txt_args(src: &Path, series: &str, ch: f64) -> TxtImportArgs {
+        TxtImportArgs {
+            src_path: src.to_string_lossy().into_owned(),
+            series_name: series.into(),
+            kind: "novel".into(),
+            chapter_no: ch,
+            chapter_title: format!("Ch {ch}"),
+        }
+    }
+
+    #[test]
+    fn txt_wraps_to_html() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        let src = root.join("ch.txt");
+        fs::write(&src, "First paragraph.\nSecond line.\n\nNext paragraph.").unwrap();
+        let out = import_txt_inner(&conn, &root, txt_args(&src, "Novel A", 1.0)).unwrap();
+
+        let dest = root.join("novel").join(out.pid.to_string()).join(format!("{}.html", out.chapter_id));
+        let body = fs::read_to_string(&dest).unwrap();
+        assert!(body.contains("<p>First paragraph.<br>Second line.</p>"));
+        assert!(body.contains("<p>Next paragraph.</p>"));
+    }
+
+    #[test]
+    fn txt_strips_utf8_bom() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        let src = root.join("ch.txt");
+        let mut bytes = vec![0xEF, 0xBB, 0xBF];
+        bytes.extend_from_slice(b"hello");
+        fs::write(&src, bytes).unwrap();
+        let out = import_txt_inner(&conn, &root, txt_args(&src, "S", 1.0)).unwrap();
+        let dest = root.join("novel").join(out.pid.to_string()).join(format!("{}.html", out.chapter_id));
+        let body = fs::read_to_string(&dest).unwrap();
+        assert!(body.contains("<p>hello</p>"));
+        assert!(!body.contains('\u{FEFF}'));
+    }
+
+    #[test]
+    fn txt_rejects_manga_kind() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        let src = root.join("ch.txt");
+        fs::write(&src, "x").unwrap();
+        let mut a = txt_args(&src, "S", 1.0);
+        a.kind = "manga".into();
+        assert!(import_txt_inner(&conn, &root, a).is_err());
+    }
+
+    #[test]
+    fn natord_orders_numerically() {
+        assert_eq!(natord_cmp("page2.jpg", "page10.jpg"), std::cmp::Ordering::Less);
+        assert_eq!(natord_cmp("a.jpg", "b.jpg"), std::cmp::Ordering::Less);
+        assert_eq!(natord_cmp("1.jpg", "1.jpg"), std::cmp::Ordering::Equal);
     }
 }

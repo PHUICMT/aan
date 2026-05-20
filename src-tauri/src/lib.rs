@@ -161,6 +161,8 @@ pub fn run() {
             commands::data_folder::cancel_move_data,
             commands::data_folder::finalize_move_data,
             commands::import::import_pdf,
+            commands::import::import_cbz,
+            commands::import::import_txt,
             commands::import::read_import_pdf,
         ])
         .run(tauri::generate_context!())

@@ -252,3 +252,35 @@ export async function importPdf(input: PdfImportArgs): Promise<ImportedChapter> 
     },
   });
 }
+
+export type ArchiveImportArgs = {
+  srcPath: string;
+  seriesName: string;
+  kind: 'manga' | 'comic' | 'novel' | 'original_novel';
+  chapterNo: number;
+  chapterTitle: string;
+};
+
+export async function importCbz(input: ArchiveImportArgs): Promise<ImportedChapter> {
+  return await invoke<ImportedChapter>('import_cbz', {
+    args: {
+      src_path: input.srcPath,
+      series_name: input.seriesName,
+      kind: input.kind,
+      chapter_no: input.chapterNo,
+      chapter_title: input.chapterTitle,
+    },
+  });
+}
+
+export async function importTxt(input: ArchiveImportArgs): Promise<ImportedChapter> {
+  return await invoke<ImportedChapter>('import_txt', {
+    args: {
+      src_path: input.srcPath,
+      series_name: input.seriesName,
+      kind: input.kind,
+      chapter_no: input.chapterNo,
+      chapter_title: input.chapterTitle,
+    },
+  });
+}

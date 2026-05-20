@@ -24,6 +24,8 @@ tauri-plugin-dialog = "2"
 rusqlite = { version = "0.32", features = ["bundled"] }
 parking_lot = "0.12"
 pdf-writer = "0.13"
+zip = { version = "2", default-features = false, features = ["deflate", "deflate64"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 
 [dev-dependencies]
 tempfile = "3"

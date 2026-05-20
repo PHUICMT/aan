@@ -3,7 +3,7 @@
   "common.close": "Close",
 
   "library.import.label": "Import",
-  "library.import.tooltip": "Import PDF files into your library",
+  "library.import.tooltip": "Import PDF / CBZ / TXT into your library",
   "library.import.busy_title": "Importing…",
   "library.import.done_title": "Import complete",
   "library.import.imported_suffix": "files imported",

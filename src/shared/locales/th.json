@@ -2,7 +2,7 @@
   "common.cancel": "ยกเลิก",
   "common.close": "ปิด",
   "library.import.label": "นำเข้า",
-  "library.import.tooltip": "นำเข้าไฟล์ PDF เข้าสู่คลัง",
+  "library.import.tooltip": "นำเข้าไฟล์ PDF / CBZ / TXT เข้าสู่คลัง",
   "library.import.busy_title": "กำลังนำเข้า…",
   "library.import.done_title": "นำเข้าเสร็จสิ้น",
   "library.import.imported_suffix": "ไฟล์",

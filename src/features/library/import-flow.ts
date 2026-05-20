@@ -1,10 +1,16 @@
-// Bulk PDF import: read each file via pdfjs to grab page count + a cover
-// thumbnail, hand off to the Rust `import_pdf` command, and surface progress.
+// Bulk import: dispatches by extension. PDFs need pdf.js up-front for the
+// page count + thumbnail; CBZ and TXT push the heavy lifting to Rust.
 
 import * as pdfjs from 'pdfjs-dist';
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { parseImportFilename } from '../../shared/lib/import-parser';
-import { importPdf, readImportPdf, type ImportedChapter } from '../../shared/lib/api';
+import {
+  importPdf,
+  importCbz,
+  importTxt,
+  readImportPdf,
+  type ImportedChapter,
+} from '../../shared/lib/api';
 
 if (typeof pdfjs.GlobalWorkerOptions !== 'undefined') {
   pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
@@ -20,10 +26,19 @@ export type ImportProgress = {
   imported: ImportedChapter[];
 };
 
+type Ext = 'pdf' | 'cbz' | 'txt';
+
 function fileBaseName(p: string): string {
   const norm = p.replace(/\\/g, '/');
   const tail = norm.slice(norm.lastIndexOf('/') + 1);
   return tail || p;
+}
+
+function detectExt(path: string): Ext | null {
+  const m = path.toLowerCase().match(/\.([a-z0-9]{1,5})$/);
+  if (!m) return null;
+  const ext = m[1];
+  return ext === 'pdf' || ext === 'cbz' || ext === 'txt' ? (ext as Ext) : null;
 }
 
 async function renderCoverBytes(doc: pdfjs.PDFDocumentProxy): Promise<number[] | null> {
@@ -48,7 +63,47 @@ async function renderCoverBytes(doc: pdfjs.PDFDocumentProxy): Promise<number[] |
   }
 }
 
-export async function importPdfFiles(
+async function importOnePdf(path: string, filename: string): Promise<ImportedChapter> {
+  const bytes = await readImportPdf(path);
+  const doc = await pdfjs.getDocument({ data: bytes }).promise;
+  const pageCount = doc.numPages;
+  const cover = await renderCoverBytes(doc);
+  try { doc.destroy(); } catch { /* pdfjs occasionally throws on early destroy */ }
+  const parsed = parseImportFilename(filename);
+  return importPdf({
+    srcPath: path,
+    seriesName: parsed.suggestedSeries,
+    kind: 'manga',
+    chapterNo: parsed.chapterNo,
+    chapterTitle: parsed.chapterTitle,
+    pageCount,
+    coverBytes: cover,
+  });
+}
+
+async function importOneCbz(path: string, filename: string): Promise<ImportedChapter> {
+  const parsed = parseImportFilename(filename);
+  return importCbz({
+    srcPath: path,
+    seriesName: parsed.suggestedSeries,
+    kind: 'manga',
+    chapterNo: parsed.chapterNo,
+    chapterTitle: parsed.chapterTitle,
+  });
+}
+
+async function importOneTxt(path: string, filename: string): Promise<ImportedChapter> {
+  const parsed = parseImportFilename(filename);
+  return importTxt({
+    srcPath: path,
+    seriesName: parsed.suggestedSeries,
+    kind: 'novel',
+    chapterNo: parsed.chapterNo,
+    chapterTitle: parsed.chapterTitle,
+  });
+}
+
+export async function importFiles(
   paths: string[],
   onProgress?: (p: ImportProgress) => void,
 ): Promise<ImportProgress> {
@@ -67,22 +122,12 @@ export async function importPdfFiles(
     onProgress?.({ ...progress });
 
     try {
-      const bytes = await readImportPdf(path);
-      const doc = await pdfjs.getDocument({ data: bytes }).promise;
-      const pageCount = doc.numPages;
-      const cover = await renderCoverBytes(doc);
-      const parsed = parseImportFilename(filename);
-      try { doc.destroy(); } catch { /* pdfjs sometimes throws on early destroy */ }
-
-      const imported = await importPdf({
-        srcPath: path,
-        seriesName: parsed.suggestedSeries,
-        kind: 'manga',
-        chapterNo: parsed.chapterNo,
-        chapterTitle: parsed.chapterTitle,
-        pageCount,
-        coverBytes: cover,
-      });
+      const ext = detectExt(path);
+      if (!ext) throw new Error(`unsupported extension: ${filename}`);
+      const imported =
+        ext === 'pdf' ? await importOnePdf(path, filename) :
+        ext === 'cbz' ? await importOneCbz(path, filename) :
+        await importOneTxt(path, filename);
       progress.imported.push(imported);
     } catch (e) {
       progress.errors.push({ file: filename, error: String(e) });
@@ -96,3 +141,6 @@ export async function importPdfFiles(
   onProgress?.({ ...progress });
   return progress;
 }
+
+// Back-compat alias — old call sites keep working until they migrate.
+export const importPdfFiles = importFiles;

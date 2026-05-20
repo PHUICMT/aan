@@ -6,7 +6,7 @@
   import { tooltip } from '../../shared/lib/tooltip';
   import { t } from '../../shared/lib/i18n.svelte';
   import { bumpSeriesMutation } from '../../shared/lib/store.svelte';
-  import { importPdfFiles, type ImportProgress } from './import-flow';
+  import { importFiles, type ImportProgress } from './import-flow';
   import { portal } from '../../shared/lib/portal';
 
   let busy = $state(false);
@@ -18,7 +18,12 @@
     if (busy) return;
     const picked = await openDialog({
       multiple: true,
-      filters: [{ name: 'PDF', extensions: ['pdf'] }],
+      filters: [
+        { name: 'Supported', extensions: ['pdf', 'cbz', 'txt'] },
+        { name: 'PDF', extensions: ['pdf'] },
+        { name: 'CBZ (Comic archive)', extensions: ['cbz'] },
+        { name: 'Text (novel)', extensions: ['txt'] },
+      ],
     });
     if (!picked) return;
     const paths = Array.isArray(picked) ? picked : [picked];
@@ -27,7 +32,7 @@
     busy = true;
     progress = { total: paths.length, done: 0, current: '', errors: [], imported: [] };
     try {
-      const final = await importPdfFiles(paths, (p) => { progress = { ...p }; });
+      const final = await importFiles(paths, (p) => { progress = { ...p }; });
       summary = final;
       showSummary = final.imported.length > 0 || final.errors.length > 0;
       if (final.imported.length > 0) bumpSeriesMutation();
