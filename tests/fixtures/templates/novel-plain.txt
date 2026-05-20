@@ -1,0 +1,7 @@
+Test Novel Two — Chapter 1
+
+A plain text chapter that exercises the .txt fallback path in the novel reader.
+
+No markup, no styling. Just lines and paragraphs.
+
+End of file.

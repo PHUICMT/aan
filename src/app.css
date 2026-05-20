@@ -1,0 +1,385 @@
+/* NekoVault DS — extracted from /design/shared/styles.css */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Register palette tokens as <color> so Chromium can INTERPOLATE them inside
+   gradients during the theme swap. Without these, gradient backgrounds (e.g.
+   the radial-gradient on `.root`) snap instantly even though `transition`
+   is set — Chromium treats var() references inside gradients as opaque
+   strings and doesn't animate them. Registering them upgrades the property
+   to a typed value that participates in CSS transitions. */
+@property --bg          { syntax: '<color>'; inherits: true; initial-value: #111827; }
+@property --bg-2        { syntax: '<color>'; inherits: true; initial-value: #0b1220; }
+@property --accent      { syntax: '<color>'; inherits: true; initial-value: #8b5cf6; }
+@property --accent-dim  { syntax: '<color>'; inherits: true; initial-value: rgba(139,92,246,0.15); }
+@property --accent-glow { syntax: '<color>'; inherits: true; initial-value: rgba(139,92,246,0.45); }
+@property --surface     { syntax: '<color>'; inherits: true; initial-value: #1f2937; }
+@property --surface2    { syntax: '<color>'; inherits: true; initial-value: #374151; }
+@property --text        { syntax: '<color>'; inherits: true; initial-value: #f9fafb; }
+@property --text2       { syntax: '<color>'; inherits: true; initial-value: #9ca3af; }
+@property --text3       { syntax: '<color>'; inherits: true; initial-value: #6b7280; }
+@property --border      { syntax: '<color>'; inherits: true; initial-value: #374151; }
+@property --heading-grad-from { syntax: '<color>'; inherits: true; initial-value: #f9fafb; }
+@property --heading-grad-to   { syntax: '<color>'; inherits: true; initial-value: #a78bfa; }
+@property --chrome-bg   { syntax: '<color>'; inherits: true; initial-value: rgba(15,23,42,0.78); }
+@property --chrome-bg-2 { syntax: '<color>'; inherits: true; initial-value: rgba(8,14,26,0.72); }
+@property --menu-bg     { syntax: '<color>'; inherits: true; initial-value: rgba(17,24,39,0.96); }
+@property --hover-bg    { syntax: '<color>'; inherits: true; initial-value: rgba(255,255,255,0.06); }
+@property --reader-bg   { syntax: '<color>'; inherits: true; initial-value: #161826; }
+
+:root {
+  /* Palette */
+  --bg:           #111827;
+  --bg-2:         #0b1220;
+  --surface:      #1f2937;
+  --surface2:     #374151;
+  --surface3:     #4b5563;
+  --accent:       #8b5cf6;
+  --accent-hover: #7c3aed;
+  --accent-dim:   rgba(139,92,246,0.15);
+  --accent-glow:  rgba(139,92,246,0.45);
+  --text:         #f9fafb;
+  --text2:        #9ca3af;
+  --text3:        #6b7280;
+  --sidebar:      #0f172a;
+  --sidebar-text: #94a3b8;
+  --sidebar-hi:   #a78bfa;
+  --danger:       #f87171;
+  --danger-dim:   rgba(248,113,113,0.15);
+  --success:      #4ade80;
+  --success-dim:  rgba(74,222,128,0.15);
+  --warning:      #fbbf24;
+  --border:       #374151;
+  --border-soft:  rgba(255,255,255,0.06);
+
+  --radius-sm:    6px;
+  --radius-md:    8px;
+  --radius-lg:    12px;
+  --radius-xl:    16px;
+
+  --font:         "IBM Plex Sans Thai", "Segoe UI", system-ui, sans-serif;
+  --font-novel:   "Sarabun", "Noto Serif Thai", serif;
+  --font-mono:    "IBM Plex Mono", "Cascadia Code", "Fira Code", monospace;
+
+  --glass-bg:     rgba(31, 41, 55, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.10);
+  --glass-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  --mica-bg:      rgba(15, 23, 42, 0.78);
+  --mica-border:  rgba(255, 255, 255, 0.07);
+
+  /* Chrome surfaces (sidebar, titlebar) — translucent over Mica */
+  --chrome-bg:    rgba(15, 23, 42, 0.78);
+  --chrome-bg-2:  rgba(8, 14, 26, 0.72);
+  --hover-bg:     rgba(255, 255, 255, 0.06);
+  /* Dropdown/popover background — more opaque than chrome surfaces so
+     options stay readable over busy content underneath. */
+  --menu-bg:      rgba(17, 24, 39, 0.96);
+
+  /* Heading gradient (hero h1 across pages) */
+  --heading-grad-from: #f9fafb;
+  --heading-grad-to:   #a78bfa;
+
+  /* Type chip colors (manga/comic/novel/original_novel) */
+  --chip-manga-bg:    rgba(139,92,246,0.25);
+  --chip-manga-fg:    #c4b5fd;
+  --chip-comic-bg:    rgba(59,130,246,0.25);
+  --chip-comic-fg:    #93c5fd;
+  --chip-novel-bg:    rgba(16,185,129,0.25);
+  --chip-novel-fg:    #6ee7b7;
+  --chip-original-bg: rgba(245,158,11,0.25);
+  --chip-original-fg: #fcd34d;
+
+  /* Genre/tag chips */
+  --genre-chip-bg:     rgba(139, 92, 246, 0.12);
+  --genre-chip-fg:     #c4b5fd;
+  --genre-chip-border: rgba(139, 92, 246, 0.25);
+
+  /* Format chips (PDF/IMG/HTML) */
+  --fmt-pdf-bg:  rgba(244, 63, 94, 0.18);
+  --fmt-pdf-fg:  #fda4af;
+  --fmt-img-bg:  rgba(59, 130, 246, 0.18);
+  --fmt-img-fg:  #93c5fd;
+  --fmt-html-bg: rgba(16, 185, 129, 0.18);
+  --fmt-html-fg: #6ee7b7;
+
+  /* Toast */
+  --toast-bg: rgba(20, 24, 40, 0.92);
+  --toast-fg: #f9fafb;
+
+  /* Reader background (manga + novel) */
+  --reader-bg: #161826;
+
+  /* Skeleton shimmer */
+  --shimmer-bg: linear-gradient(135deg, #262635 0%, #2d2d40 100%);
+  --shimmer-band: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.07) 45%,
+    rgba(167,139,250,0.13) 50%,
+    rgba(255,255,255,0.07) 55%,
+    transparent 100%
+  );
+
+  --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:  cubic-bezier(0.65, 0, 0.35, 1);
+
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg:           #f8f7f2;
+  --bg-2:         #ebe7da;
+  --surface:      #ffffff;
+  --surface2:     #e5e4dc;
+  --surface3:     #cfceca;
+  --accent:       #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-dim:   rgba(124,58,237,0.12);
+  --accent-glow:  rgba(124,58,237,0.30);
+  --text:         #1f2230;
+  --text2:        #5b6273;
+  --text3:        #8b91a3;
+  --sidebar:      #ffffff;
+  --sidebar-text: #5b6273;
+  --sidebar-hi:   #6d28d9;
+  --border:       #d6d3c8;
+  --border-soft:  rgba(0,0,0,0.06);
+  --glass-bg:     rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(0,0,0,0.08);
+  --mica-bg:      rgba(255, 255, 255, 0.78);
+  --mica-border:  rgba(0,0,0,0.06);
+  --chrome-bg:    rgba(255, 255, 255, 0.82);
+  --chrome-bg-2:  rgba(248, 247, 242, 0.78);
+  --hover-bg:     rgba(0, 0, 0, 0.05);
+  --menu-bg:      rgba(255, 255, 255, 0.97);
+  --heading-grad-from: #1f2230;
+  --heading-grad-to:   #6d28d9;
+  --shimmer-bg: linear-gradient(135deg, #e8e6dc 0%, #dcd9cc 100%);
+  --shimmer-band: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.55) 45%,
+    rgba(124,58,237,0.18) 50%,
+    rgba(255,255,255,0.55) 55%,
+    transparent 100%
+  );
+  /* Light-mode chip colors: solid darker fg + softer bg for legibility on cream */
+  --chip-manga-bg:    rgba(124,58,237,0.16);
+  --chip-manga-fg:    #5b21b6;
+  --chip-comic-bg:    rgba(37,99,235,0.16);
+  --chip-comic-fg:    #1e40af;
+  --chip-novel-bg:    rgba(5,150,105,0.18);
+  --chip-novel-fg:    #065f46;
+  --chip-original-bg: rgba(217,119,6,0.18);
+  --chip-original-fg: #92400e;
+  --genre-chip-bg:     rgba(124, 58, 237, 0.10);
+  --genre-chip-fg:     #5b21b6;
+  --genre-chip-border: rgba(124, 58, 237, 0.40);
+  --fmt-pdf-bg:  rgba(190, 18, 60, 0.14);
+  --fmt-pdf-fg:  #9f1239;
+  --fmt-img-bg:  rgba(37, 99, 235, 0.14);
+  --fmt-img-fg:  #1e40af;
+  --fmt-html-bg: rgba(5, 150, 105, 0.16);
+  --fmt-html-fg: #065f46;
+  --toast-bg: rgba(255, 255, 255, 0.95);
+  --toast-fg: #1f2230;
+  --reader-bg: #f3f1ea;
+  color-scheme: light;
+}
+
+/* Sepia — warm parchment palette, easy on the eyes for long sessions */
+:root[data-theme="sepia"] {
+  --bg:           #f3ead7;
+  --bg-2:         #e8dcc1;
+  --surface:      #fbf4e3;
+  --surface2:     #e1d4b6;
+  --surface3:     #c9bb98;
+  --accent:       #8b5a2b;
+  --accent-hover: #6b3e15;
+  --accent-dim:   rgba(139,90,43,0.14);
+  --accent-glow:  rgba(139,90,43,0.32);
+  --text:         #3a2f1a;
+  --text2:        #6b5a3e;
+  --text3:        #9a8765;
+  --sidebar:      #fbf4e3;
+  --sidebar-text: #6b5a3e;
+  --sidebar-hi:   #6b3e15;
+  --border:       #d4c4a0;
+  --border-soft:  rgba(0,0,0,0.08);
+  --glass-bg:     rgba(251,244,227,0.82);
+  --glass-border: rgba(0,0,0,0.10);
+  --chrome-bg:    rgba(251,244,227,0.86);
+  --chrome-bg-2:  rgba(232,220,193,0.82);
+  --hover-bg:     rgba(0,0,0,0.06);
+  --menu-bg:      rgba(251,244,227,0.97);
+  --heading-grad-from: #3a2f1a;
+  --heading-grad-to:   #6b3e15;
+  --shimmer-bg:   linear-gradient(135deg, #e6d8b6 0%, #d4c39c 100%);
+  --shimmer-band: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.55) 45%, rgba(139,90,43,0.18) 50%, rgba(255,255,255,0.55) 55%, transparent 100%);
+  --reader-bg:    #ede2c4;
+  color-scheme: light;
+}
+
+/* OLED — pure black for AMOLED screens, deep contrast */
+:root[data-theme="oled"] {
+  --bg:           #000000;
+  --bg-2:         #050507;
+  --surface:      #0a0a0e;
+  --surface2:     #16161c;
+  --surface3:     #24242c;
+  --accent:       #a78bfa;
+  --accent-hover: #c4b5fd;
+  --accent-dim:   rgba(167,139,250,0.18);
+  --accent-glow:  rgba(167,139,250,0.55);
+  --text:         #f0f0f5;
+  --text2:        #8b8b9a;
+  --text3:        #5a5a6a;
+  --sidebar:      #000000;
+  --sidebar-text: #8b8b9a;
+  --sidebar-hi:   #c4b5fd;
+  --border:       #1a1a22;
+  --border-soft:  rgba(255,255,255,0.05);
+  --glass-bg:     rgba(0,0,0,0.86);
+  --glass-border: rgba(255,255,255,0.06);
+  --chrome-bg:    rgba(0,0,0,0.86);
+  --chrome-bg-2:  rgba(0,0,0,0.74);
+  --hover-bg:     rgba(255,255,255,0.05);
+  --menu-bg:      rgba(8,8,12,0.98);
+  --heading-grad-from: #f0f0f5;
+  --heading-grad-to:   #c4b5fd;
+  --reader-bg:    #000000;
+  color-scheme: dark;
+}
+
+/* Dim — softer than dark, less contrast for low-light reading */
+:root[data-theme="dim"] {
+  --bg:           #1e1e2a;
+  --bg-2:         #181822;
+  --surface:      #2a2a38;
+  --surface2:     #383848;
+  --surface3:     #4a4a5c;
+  --accent:       #a78bfa;
+  --accent-hover: #c4b5fd;
+  --accent-dim:   rgba(167,139,250,0.14);
+  --accent-glow:  rgba(167,139,250,0.40);
+  --text:         #d8d8e0;
+  --text2:        #95959f;
+  --text3:        #6b6b76;
+  --sidebar:      #181822;
+  --sidebar-text: #95959f;
+  --sidebar-hi:   #c4b5fd;
+  --border:       #38384a;
+  --border-soft:  rgba(255,255,255,0.05);
+  --chrome-bg:    rgba(24,24,34,0.82);
+  --chrome-bg-2:  rgba(18,18,28,0.74);
+  --hover-bg:     rgba(255,255,255,0.05);
+  --menu-bg:      rgba(30,30,42,0.97);
+  --heading-grad-from: #d8d8e0;
+  --heading-grad-to:   #c4b5fd;
+  --reader-bg:    #14141e;
+  color-scheme: dark;
+}
+
+html, body, #app {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* App-wide smooth scrolling. Affects anchor jumps, scrollTo() / scrollIntoView()
+   and scrollToPage in the reader — wheel/trackpad scrolling stays native
+   (the OS already handles wheel inertia better than CSS could). */
+html { scroll-behavior: smooth; }
+*:not(.reader-root *) { scroll-behavior: smooth; }
+/* Reader pages stay instant — programmatic page jumps shouldn't animate
+   through the whole chapter, and immediate snap matches how page-turn
+   reading feels in physical media. */
+.reader-root, .reader-root * { scroll-behavior: auto; }
+
+/* Theme-swap fade. The `setTheme()` store helper toggles
+   `:root[data-theme-anim]` on for ~420ms so every element animates its
+   palette swap together. Limiting transitions to known palette properties
+   (and only while the flag is set) avoids the usual "everything jiggles
+   when you tab between fields" issue of a blanket `* { transition }`. */
+:root[data-theme-anim] {
+  /* Animate the registered <color> tokens directly on :root — every
+     element that references these vars (in gradients, borders, fills) will
+     repaint with interpolated values for the duration. */
+  transition:
+    --bg 0.75s var(--ease-in-out),
+    --bg-2 0.75s var(--ease-in-out),
+    --accent 0.75s var(--ease-in-out),
+    --accent-dim 0.75s var(--ease-in-out),
+    --accent-glow 0.75s var(--ease-in-out),
+    --surface 0.75s var(--ease-in-out),
+    --surface2 0.75s var(--ease-in-out),
+    --text 0.75s var(--ease-in-out),
+    --text2 0.75s var(--ease-in-out),
+    --text3 0.75s var(--ease-in-out),
+    --border 0.75s var(--ease-in-out),
+    --heading-grad-from 0.75s var(--ease-in-out),
+    --heading-grad-to 0.75s var(--ease-in-out),
+    --chrome-bg 0.75s var(--ease-in-out),
+    --chrome-bg-2 0.75s var(--ease-in-out),
+    --hover-bg 0.75s var(--ease-in-out),
+    --menu-bg 0.75s var(--ease-in-out),
+    --reader-bg 0.75s var(--ease-in-out) !important;
+}
+/* No element-level transitions during theme swap. With @property-registered
+   <color> vars animating on :root, every dependent element repaints with
+   the interpolated value live — all in lockstep. Adding an extra
+   background-color/color transition on each element would chain on top
+   and desync elements with literal colors vs gradient/var-based ones. */
+
+/* App-wide UI scale driven by Settings → Typography → App font size.
+   Apply via transform on #app + size compensation so the scaled content
+   always fills the viewport (no black gaps at zoom < 1, no clipped scroll
+   at zoom > 1). Chromium handles fractional sizes cleanly. */
+#app {
+  position: fixed;
+  top: 0; left: 0;
+  transform-origin: top left;
+  /* Width/height + transform are set via JS in store.svelte.ts so the
+     compensation tracks both --ui-zoom changes and window resizes. */
+}
+
+body {
+  font-family: var(--font);
+  font-size: var(--app-font-size, 13px);
+  line-height: 1.5;
+  color: var(--text);
+  background: transparent; /* let Mica show through */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+input {
+  font-family: inherit;
+  color: inherit;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+/* Shared keyframes used by multiple components */
+@keyframes shimmer-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

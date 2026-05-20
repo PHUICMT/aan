@@ -1,0 +1,43 @@
+# Node
+node_modules/
+dist/
+.vite/
+
+# Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Env / local config
+.env
+.env.local
+*.local
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Runtime data (user library, never commit)
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+npm-debug.log*
+
+# Playwright artifacts
+qa/test-results/
+qa/playwright-report/
+qa/.playwright-cache/
+test-results/
+tests/e2e/.report/
+tests/e2e/.playwright-cache/
+
+# Generated test fixtures
+tests/fixtures/build/
+
+# Vitest coverage
+coverage/

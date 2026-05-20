@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7c7ff5"/>
+      <stop offset="1" stop-color="#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="44" ry="44" fill="url(#bg)"/>
+  <text x="100" y="138" text-anchor="middle"
+        style="font: 700 100px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; fill: #fff; letter-spacing: -.04em;">Aa</text>
+</svg>
