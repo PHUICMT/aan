@@ -1,4 +1,5 @@
 import type { Chapter, Lang, PageId, ReadingStatus } from '../types';
+import { loadNovelPrefs, type NovelLayout, type NovelTheme } from './novel-reader.svelte';
 
 //───── Last-reader persistence ─────
 
@@ -104,6 +105,8 @@ export function applyFonts(uiFont: string, uiSize: number, novelFont: string, no
 
 applyFonts(initialFontUi, initialFontUiSize, initialFontNovel, initialFontNovelSize);
 
+const initialNovel = loadNovelPrefs();
+
 function loadFavGenres(): string[] {
   try {
     const raw = localStorage.getItem('aan.fav_genres');
@@ -153,6 +156,10 @@ export const app = $state({
   readerBrightness: clampFloat(localStorage.getItem('aan.reader.brightness'), 0.3, 1, 1),
   /** 0..0.6 — amber tint strength, composes with brightness. */
   readerWarmth: clampFloat(localStorage.getItem('aan.reader.warmth'), 0, 0.6, 0),
+  novelLayout: initialNovel.layout as NovelLayout,
+  novelTheme: initialNovel.theme as NovelTheme,
+  novelLineHeight: initialNovel.lineHeight,
+  novelMaxWidth: initialNovel.maxWidth,
 });
 
 /** Reader registers a flush callback while mounted; goBack() awaits it

@@ -323,5 +323,19 @@
   "shortcuts.hint": "กด ? ที่ใดก็ได้เพื่อเปิดหน้านี้",
   "shortcuts.resume": "อ่านตอนล่าสุดต่อ",
   "continue.resume": "อ่านต่อ",
-  "continue.dismiss": "ปิด"
+  "continue.dismiss": "ปิด",
+
+  "novel.layout.title": "รูปแบบการอ่าน",
+  "novel.layout.desc": "เลื่อนยาวหรือพลิกหน้าทีละหน้า",
+  "novel.layout.scroll": "เลื่อน",
+  "novel.layout.paged": "พลิกหน้า",
+  "novel.theme.title": "ธีมการอ่าน",
+  "novel.theme.desc": "สีพื้นและสีตัวอักษร",
+  "novel.theme.light": "สว่าง",
+  "novel.theme.sepia": "ซีเปีย",
+  "novel.theme.dark": "มืด",
+  "novel.theme.black": "ดำสนิท",
+  "novel.font_size.title": "ขนาดตัวอักษร",
+  "novel.line_height.title": "ระยะบรรทัด",
+  "novel.max_width.title": "ความกว้างหน้า"
 }

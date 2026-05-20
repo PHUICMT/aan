@@ -346,5 +346,19 @@
   "shortcuts.resume": "Resume last chapter",
 
   "continue.resume": "Continue reading",
-  "continue.dismiss": "Dismiss"
+  "continue.dismiss": "Dismiss",
+
+  "novel.layout.title": "Layout",
+  "novel.layout.desc": "Scroll a long page or flip page-by-page like a book",
+  "novel.layout.scroll": "Scroll",
+  "novel.layout.paged": "Paged",
+  "novel.theme.title": "Reader theme",
+  "novel.theme.desc": "Background and text colours for the page",
+  "novel.theme.light": "Light",
+  "novel.theme.sepia": "Sepia",
+  "novel.theme.dark": "Dark",
+  "novel.theme.black": "Black",
+  "novel.font_size.title": "Font size",
+  "novel.line_height.title": "Line height",
+  "novel.max_width.title": "Page width"
 }

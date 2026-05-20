@@ -2,14 +2,14 @@
   import Icon from '../../shared/components/Icon.svelte';
   import { tooltip } from '../../shared/lib/tooltip';
   import Shimmer from '../../shared/components/Shimmer.svelte';
-  import BrightnessControls from './BrightnessControls.svelte';
+  import NovelSettingsMenu from './NovelSettingsMenu.svelte';
   import { setChapterProgress } from '../../shared/lib/api';
   import { takeChapterBytes, prefetchChapterBytes, hasPrefetched } from '../../shared/lib/prefetch';
   import { startReadingTimer, type ReadingTimer } from '../../shared/lib/reading-time';
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
-  import { app, readerHasNext, readerHasPrev, readerNext, readerPrev, peekNextDownloadedChapter, setFontNovelSize } from '../../shared/lib/store.svelte';
+  import { app, readerHasNext, readerHasPrev, readerNext, readerPrev, peekNextDownloadedChapter } from '../../shared/lib/store.svelte';
 
   type Props = { pdfPath: string; chapterId?: string };
   let { pdfPath, chapterId }: Props = $props();
@@ -17,18 +17,12 @@
   let html = $state<string>('');
   let loading = $state(true);
   let error = $state<string | null>(null);
-  let bg = $state<'dark' | 'light'>(loadBg());
 
-  function loadBg(): 'dark' | 'light' {
-    try {
-      const v = localStorage.getItem('aan.reader.bg');
-      return v === 'light' ? 'light' : 'dark';
-    } catch { return 'dark'; }
-  }
-  function toggleBg() {
-    bg = bg === 'dark' ? 'light' : 'dark';
-    try { localStorage.setItem('aan.reader.bg', bg); } catch {}
-  }
+  // `bg` is derived from the active theme. Light + sepia look light to chrome
+  // (e.g. brightness popover dressing), dark + black look dark.
+  const bg = $derived<'light' | 'dark'>(
+    app.novelTheme === 'light' || app.novelTheme === 'sepia' ? 'light' : 'dark',
+  );
   $effect(() => {
     document.documentElement.dataset.readerBg = bg;
     return () => { delete document.documentElement.dataset.readerBg; };
@@ -120,34 +114,53 @@
     queueMicrotask(() => rebuildToc()); // wait for @html to commit
   });
 
-  // ── Brightness popover ─────────────────────────────────────────────
-  // Portal'd because .page-wrap has will-change:transform, which kills
-  // backdrop-filter for descendants.
-  let brightnessOpen = $state(false);
-  let brightBtnEl = $state<HTMLButtonElement | null>(null);
-  let brightPos = $state({ top: 0, right: 16 });
-  $effect(() => {
-    if (!brightnessOpen || !brightBtnEl) return;
-    const r = brightBtnEl.getBoundingClientRect();
-    brightPos = {
-      top: Math.round(r.bottom + 8),
-      right: Math.round(window.innerWidth - r.right),
-    };
-  });
-  // Local portal — predates lib/portal.ts util.
+  // Portal action — used for find bar + TOC panel.
   function portal(node: HTMLElement) {
     document.body.appendChild(node);
     return { destroy() { node.remove(); } };
   }
-  function closeOnOutside(node: HTMLElement, onOutside: () => void) {
-    function handler(e: MouseEvent) {
-      const target = e.target as Node;
-      if (node.contains(target)) return;
-      if (brightBtnEl && brightBtnEl.contains(target)) return;
-      onOutside();
+
+  // ── Paged layout (CSS multi-columns) ───────────────────────────────
+  // In paged mode the article uses `column-width` to flow content into
+  // page-sized columns, then we translateX between them. `pageCount` and
+  // `pageIdx` reset when html / layout / typography changes.
+  let articleW = $state(0);
+  let pageCount = $state(1);
+  let pageIdx = $state(0);
+  function recomputePages() {
+    if (!bodyEl) { pageCount = 1; pageIdx = 0; return; }
+    const w = bodyEl.clientWidth;
+    articleW = w;
+    if (app.novelLayout !== 'paged' || w <= 0) {
+      pageCount = 1;
+      pageIdx = 0;
+      return;
     }
-    setTimeout(() => document.addEventListener('mousedown', handler), 0);
-    return { destroy() { document.removeEventListener('mousedown', handler); } };
+    // scrollWidth in column mode == total flow width, even though only
+    // one page is visible. Round up because trailing fractional columns
+    // are still a navigable page.
+    const sw = bodyEl.scrollWidth;
+    pageCount = Math.max(1, Math.ceil(sw / w));
+    pageIdx = Math.min(pageIdx, pageCount - 1);
+  }
+  $effect(() => {
+    // re-measure on the things that affect layout
+    html;
+    app.novelLayout;
+    app.novelMaxWidth;
+    app.novelLineHeight;
+    app.fontNovelSize;
+    queueMicrotask(async () => { await tick(); recomputePages(); });
+  });
+  function nextPage() {
+    if (app.novelLayout !== 'paged') return false;
+    if (pageIdx < pageCount - 1) { pageIdx += 1; return true; }
+    return false;
+  }
+  function prevPage() {
+    if (app.novelLayout !== 'paged') return false;
+    if (pageIdx > 0) { pageIdx -= 1; return true; }
+    return false;
   }
 
   // ── In-chapter search (Ctrl+F) ──────────────────────────────────────
@@ -279,6 +292,17 @@
       closeFind();
       return;
     }
+    // Paged mode: arrows flip pages within the chapter; at the edges
+    // they fall through to chapter nav.
+    if (app.novelLayout === 'paged' && !findOpen) {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        if (nextPage()) { e.preventDefault(); return; }
+        if (readerHasNext()) { e.preventDefault(); readerNext(); return; }
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        if (prevPage()) { e.preventDefault(); return; }
+        if (readerHasPrev()) { e.preventDefault(); readerPrev(); return; }
+      }
+    }
   }
   function onFindInputKey(e: KeyboardEvent) {
     if (e.key === 'Enter') {
@@ -289,14 +313,19 @@
     else if (e.key === 'Escape') { e.preventDefault(); closeFind(); }
   }
 
+  let ro: ResizeObserver | null = null;
   onMount(() => {
     readingTimer = startReadingTimer(chapterId, app.readerChapter?.pid ?? null);
     window.addEventListener('keydown', onKeyDown);
+    ro = new ResizeObserver(() => recomputePages());
+    if (bodyEl) ro.observe(bodyEl);
   });
   onDestroy(() => {
     readingTimer?.stop();
     readingTimer = null;
     window.removeEventListener('keydown', onKeyDown);
+    ro?.disconnect();
+    ro = null;
   });
 
   function attachScroll(node: HTMLElement) {
@@ -320,7 +349,19 @@
   }
 </script>
 
-<div class="novel-root" class:bg-light={bg === 'light'} class:bg-dark={bg === 'dark'} use:attachScroll>
+<div
+  class="novel-root"
+  class:bg-light={bg === 'light'}
+  class:bg-dark={bg === 'dark'}
+  class:theme-light={app.novelTheme === 'light'}
+  class:theme-sepia={app.novelTheme === 'sepia'}
+  class:theme-dark={app.novelTheme === 'dark'}
+  class:theme-black={app.novelTheme === 'black'}
+  class:layout-paged={app.novelLayout === 'paged'}
+  style:--novel-max-w="{app.novelMaxWidth}px"
+  style:--novel-lh="{app.novelLineHeight}"
+  use:attachScroll
+>
 {#if error}
   <div class="err">{error}</div>
 {:else if loading}
@@ -348,10 +389,9 @@
       </button>
     </div>
     <div class="right-ctrls">
-      <button class="bg-toggle" onclick={toggleBg} use:tooltip={"Background"}>
-        <Icon name={bg === 'dark' ? 'moon' : 'sun'} size={12} />
-        {bg === 'dark' ? 'Dark' : 'Light'}
-      </button>
+      {#if app.novelLayout === 'paged' && pageCount > 1}
+        <span class="page-ind" aria-label="page indicator">{pageIdx + 1} / {pageCount}</span>
+      {/if}
       {#if toc.length > 0}
         <button
           class="bg-toggle"
@@ -366,32 +406,7 @@
       <button class="bg-toggle" onclick={openFind} use:tooltip={"Search (Ctrl+F)"} aria-label="Search">
         <Icon name="search" size={12} />
       </button>
-      <button
-        bind:this={brightBtnEl}
-        class="bg-toggle"
-        class:on={brightnessOpen}
-        onclick={() => (brightnessOpen = !brightnessOpen)}
-        use:tooltip={"Brightness / warmth"}
-        aria-label="Brightness"
-      >
-        <Icon name="sun" size={12} />
-      </button>
-      {#if brightnessOpen}
-        <div
-          class="bright-popover"
-          style:top="{brightPos.top}px"
-          style:right="{brightPos.right}px"
-          use:portal
-          use:closeOnOutside={() => (brightnessOpen = false)}
-        >
-          <BrightnessControls />
-        </div>
-      {/if}
-      <div class="font-ctrls">
-        <button onclick={() => setFontNovelSize(app.fontNovelSize - 1)} use:tooltip={"Smaller"}>A−</button>
-        <span class="size">{app.fontNovelSize}px</span>
-        <button onclick={() => setFontNovelSize(app.fontNovelSize + 1)} use:tooltip={"Larger"}>A+</button>
-      </div>
+      <NovelSettingsMenu />
     </div>
   </div>
   {#if findOpen}
@@ -420,6 +435,8 @@
     <article
       class="body"
       style:font-size="{app.fontNovelSize}px"
+      style:line-height={app.novelLineHeight}
+      style:--page-idx={pageIdx}
       bind:this={bodyEl}
       in:fly={{ y: 18, duration: 320, easing: cubicOut }}
     >{@html html}</article>
@@ -439,6 +456,7 @@
       </ul>
     </aside>
   {/if}
+  {#if app.novelLayout !== 'paged'}
   <footer class="bottom-nav">
     <button
       class="ch-btn big"
@@ -457,6 +475,7 @@
       <Icon name="chevron_right" size={14} />
     </button>
   </footer>
+  {/if}
 {/if}
 </div>
 
@@ -465,8 +484,11 @@
     min-height: 100%;
     transition: background-color 0.2s var(--ease-out), color 0.2s var(--ease-out);
   }
-  .novel-root.bg-dark  { background: #161826; color: #e6e2d5; }
-  .novel-root.bg-light { background: #f3f1ea; color: #1f2233; }
+  /* Four themes — light (paperwhite), sepia, dark (slate), black (OLED). */
+  .novel-root.theme-light { background: #f3f1ea; color: #1f2233; }
+  .novel-root.theme-sepia { background: #f1e7d0; color: #4b3a23; }
+  .novel-root.theme-dark  { background: #161826; color: #e6e2d5; }
+  .novel-root.theme-black { background: #000;    color: #c8c4b7; }
 
   .toolbar {
     position: sticky; top: 0; z-index: 2;
@@ -475,8 +497,10 @@
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border-soft);
   }
-  .novel-root.bg-dark  .toolbar { background: rgba(8, 14, 26, 0.78); }
-  .novel-root.bg-light .toolbar { background: rgba(255,255,255,0.82); border-bottom-color: rgba(0,0,0,0.08); }
+  .novel-root.theme-dark  .toolbar { background: rgba(8, 14, 26, 0.78); }
+  .novel-root.theme-black .toolbar { background: rgba(0, 0, 0, 0.85); border-bottom-color: rgba(255,255,255,0.06); }
+  .novel-root.theme-light .toolbar { background: rgba(255,255,255,0.82); border-bottom-color: rgba(0,0,0,0.08); }
+  .novel-root.theme-sepia .toolbar { background: rgba(241, 231, 208, 0.85); border-bottom-color: rgba(75,58,35,0.10); }
   .ch-nav { display: inline-flex; gap: 6px; }
   .right-ctrls { display: inline-flex; align-items: center; gap: 10px; }
   .ch-btn {
@@ -485,9 +509,9 @@
     font-size: 11px; font-weight: 600;
     transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
   }
-  .novel-root.bg-dark  .ch-btn { background: rgba(255,255,255,0.04); color: #9ca3af; }
+  .novel-root.bg-dark .ch-btn { background: rgba(255,255,255,0.04); color: #9ca3af; }
   .novel-root.bg-light .ch-btn { background: rgba(0,0,0,0.05);     color: #4b5263; }
-  .novel-root.bg-dark  .ch-btn:hover:not(:disabled) { background: var(--accent-dim); color: #f9fafb; }
+  .novel-root.bg-dark .ch-btn:hover:not(:disabled) { background: var(--accent-dim); color: #f9fafb; }
   .novel-root.bg-light .ch-btn:hover:not(:disabled) { background: rgba(124,58,237,0.14); color: #1f2233; }
   .ch-btn:disabled { opacity: 0.35; cursor: not-allowed; }
   .ch-btn.big { padding: 10px 18px; font-size: 12px; border-radius: 10px; }
@@ -535,11 +559,38 @@
   .novel-root.bg-dark  .size { color: #6b7280; }
   .novel-root.bg-light .size { color: #8b91a3; }
   .body {
-    max-width: 760px; margin: 0 auto;
+    max-width: var(--novel-max-w, 760px);
+    margin: 0 auto;
     padding: 40px 16px 24px;
     font-family: var(--font-novel);
-    line-height: 1.9;
     color: inherit;
+  }
+  /* Paged layout: split flow into column-width pages, then translateX
+     between them. Hide overflow on the root so scroll is trapped. */
+  .novel-root.layout-paged { height: 100%; overflow: hidden; }
+  .novel-root.layout-paged .body {
+    column-width: var(--novel-max-w, 760px);
+    column-gap: 60px;
+    column-fill: auto;
+    height: calc(100vh - 56px - 60px);
+    padding: 30px 32px 30px;
+    max-width: none;
+    transform: translateX(calc(var(--page-idx, 0) * -100%));
+    transition: transform 0.32s var(--ease-out);
+    -webkit-column-break-inside: avoid;
+  }
+  .novel-root.layout-paged .body :global(img),
+  .novel-root.layout-paged .body :global(h1),
+  .novel-root.layout-paged .body :global(h2),
+  .novel-root.layout-paged .body :global(h3) {
+    break-inside: avoid;
+  }
+  .page-ind {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text2);
+    padding: 0 8px;
+    opacity: 0.8;
   }
   .body :global(p) { margin-bottom: 1.3em; }
   .body :global(img) {

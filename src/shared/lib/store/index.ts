@@ -10,3 +10,4 @@ export * from './reader.svelte';
 export * from './library-filters.svelte';
 export * from './tray.svelte';
 export * from './sidebar.svelte';
+export * from './novel-reader.svelte';
