@@ -284,3 +284,15 @@ export async function importTxt(input: ArchiveImportArgs): Promise<ImportedChapt
     },
   });
 }
+
+export async function importImageFolder(input: ArchiveImportArgs): Promise<ImportedChapter> {
+  return await invoke<ImportedChapter>('import_image_folder', {
+    args: {
+      src_path: input.srcPath,
+      series_name: input.seriesName,
+      kind: input.kind,
+      chapter_no: input.chapterNo,
+      chapter_title: input.chapterTitle,
+    },
+  });
+}

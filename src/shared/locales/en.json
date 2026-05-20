@@ -3,7 +3,9 @@
   "common.close": "Close",
 
   "library.import.label": "Import",
-  "library.import.tooltip": "Import PDF / CBZ / TXT into your library",
+  "library.import.tooltip": "Import files or folders into your library",
+  "library.import.menu_files": "Choose files (PDF / CBZ / TXT)…",
+  "library.import.menu_folder": "Choose folder of images…",
   "library.import.busy_title": "Importing…",
   "library.import.done_title": "Import complete",
   "library.import.imported_suffix": "files imported",

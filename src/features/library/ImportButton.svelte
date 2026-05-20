@@ -6,15 +6,32 @@
   import { tooltip } from '../../shared/lib/tooltip';
   import { t } from '../../shared/lib/i18n.svelte';
   import { bumpSeriesMutation } from '../../shared/lib/store.svelte';
-  import { importFiles, type ImportProgress } from './import-flow';
+  import { importFiles, importFolders, type ImportProgress } from './import-flow';
   import { portal } from '../../shared/lib/portal';
 
   let busy = $state(false);
   let progress = $state<ImportProgress | null>(null);
   let showSummary = $state(false);
   let summary = $state<ImportProgress | null>(null);
+  let menuOpen = $state(false);
+  let triggerEl: HTMLButtonElement | undefined = $state();
 
-  async function onImport() {
+  async function runImport(run: () => Promise<ImportProgress>, total: number) {
+    busy = true;
+    progress = { total, done: 0, current: '', errors: [], imported: [] };
+    try {
+      const final = await run();
+      summary = final;
+      showSummary = final.imported.length > 0 || final.errors.length > 0;
+      if (final.imported.length > 0) bumpSeriesMutation();
+    } finally {
+      busy = false;
+      progress = null;
+    }
+  }
+
+  async function pickFiles() {
+    menuOpen = false;
     if (busy) return;
     const picked = await openDialog({
       multiple: true,
@@ -28,33 +45,75 @@
     if (!picked) return;
     const paths = Array.isArray(picked) ? picked : [picked];
     if (paths.length === 0) return;
+    await runImport(() => importFiles(paths, (p) => { progress = { ...p }; }), paths.length);
+  }
 
-    busy = true;
-    progress = { total: paths.length, done: 0, current: '', errors: [], imported: [] };
-    try {
-      const final = await importFiles(paths, (p) => { progress = { ...p }; });
-      summary = final;
-      showSummary = final.imported.length > 0 || final.errors.length > 0;
-      if (final.imported.length > 0) bumpSeriesMutation();
-    } finally {
-      busy = false;
-      progress = null;
+  async function pickFolder() {
+    menuOpen = false;
+    if (busy) return;
+    const picked = await openDialog({ multiple: true, directory: true });
+    if (!picked) return;
+    const paths = Array.isArray(picked) ? picked : [picked];
+    if (paths.length === 0) return;
+    await runImport(() => importFolders(paths, (p) => { progress = { ...p }; }), paths.length);
+  }
+
+  function closeMenuOnOutside(node: HTMLElement) {
+    function handle(e: MouseEvent) {
+      const tgt = e.target as Node | null;
+      if (!tgt) return;
+      if (node.contains(tgt)) return;
+      if (triggerEl && triggerEl.contains(tgt)) return;
+      menuOpen = false;
     }
+    setTimeout(() => document.addEventListener('mousedown', handle), 0);
+    return { destroy() { document.removeEventListener('mousedown', handle); } };
   }
 </script>
 
-<button
-  type="button"
-  class="import-btn"
-  class:busy
-  onclick={onImport}
-  disabled={busy}
-  use:tooltip={t('library.import.tooltip')}
-  data-test="library-import"
->
-  <Icon name="plus" size={14} />
-  <span>{t('library.import.label')}</span>
-</button>
+<div class="wrap">
+  <button
+    bind:this={triggerEl}
+    type="button"
+    class="import-btn"
+    class:busy
+    class:open={menuOpen}
+    onclick={() => (menuOpen = !menuOpen)}
+    disabled={busy}
+    aria-haspopup="menu"
+    aria-expanded={menuOpen}
+    use:tooltip={t('library.import.tooltip')}
+    data-test="library-import"
+  >
+    <Icon name="plus" size={14} />
+    <span>{t('library.import.label')}</span>
+    <span class="caret" class:flip={menuOpen}>
+      <Icon name="chevron_down" size={12} />
+    </span>
+  </button>
+
+  {#if menuOpen}
+    <ul
+      class="menu"
+      role="menu"
+      transition:scale={{ duration: 140, start: 0.94, easing: cubicOut }}
+      use:closeMenuOnOutside
+    >
+      <li>
+        <button type="button" class="menu-item" onclick={pickFiles} role="menuitem">
+          <Icon name="plus" size={12} />
+          <span>{t('library.import.menu_files')}</span>
+        </button>
+      </li>
+      <li>
+        <button type="button" class="menu-item" onclick={pickFolder} role="menuitem">
+          <Icon name="inbox" size={12} />
+          <span>{t('library.import.menu_folder')}</span>
+        </button>
+      </li>
+    </ul>
+  {/if}
+</div>
 
 {#if progress && busy}
   <div class="overlay" transition:fade={{ duration: 140 }} use:portal>
@@ -112,6 +171,45 @@
 {/if}
 
 <style>
+  .wrap { position: relative; display: inline-block; }
+  .caret {
+    display: inline-flex;
+    margin-left: 2px;
+    transition: transform 160ms var(--ease-out, ease-out);
+  }
+  .caret.flip { transform: rotate(180deg); }
+  .menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 50;
+    list-style: none;
+    margin: 0;
+    padding: 4px;
+    min-width: 200px;
+    background: var(--menu-bg, #1a1530);
+    border: 1px solid var(--border, rgba(255,255,255,0.12));
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+    transform-origin: top right;
+  }
+  .menu li { margin: 0; }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    background: transparent;
+    border: none;
+    color: var(--text, #fff);
+    font-size: 12.5px;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 120ms;
+  }
+  .menu-item:hover { background: color-mix(in srgb, var(--accent, #7c5cff) 18%, transparent); }
   .import-btn {
     display: inline-flex;
     align-items: center;

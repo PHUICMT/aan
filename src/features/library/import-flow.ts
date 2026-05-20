@@ -8,6 +8,7 @@ import {
   importPdf,
   importCbz,
   importTxt,
+  importImageFolder,
   readImportPdf,
   type ImportedChapter,
 } from '../../shared/lib/api';
@@ -131,6 +132,48 @@ export async function importFiles(
       progress.imported.push(imported);
     } catch (e) {
       progress.errors.push({ file: filename, error: String(e) });
+    }
+
+    progress.done += 1;
+    onProgress?.({ ...progress });
+  }
+
+  progress.current = '';
+  onProgress?.({ ...progress });
+  return progress;
+}
+
+/** Import each picked folder as a single chapter; folder name supplies the heuristic. */
+export async function importFolders(
+  paths: string[],
+  onProgress?: (p: ImportProgress) => void,
+): Promise<ImportProgress> {
+  const progress: ImportProgress = {
+    total: paths.length,
+    done: 0,
+    current: '',
+    errors: [],
+    imported: [],
+  };
+  onProgress?.(progress);
+
+  for (const path of paths) {
+    const folderName = fileBaseName(path);
+    progress.current = folderName;
+    onProgress?.({ ...progress });
+
+    try {
+      const parsed = parseImportFilename(folderName);
+      const imported = await importImageFolder({
+        srcPath: path,
+        seriesName: parsed.suggestedSeries,
+        kind: 'manga',
+        chapterNo: parsed.chapterNo,
+        chapterTitle: parsed.chapterTitle,
+      });
+      progress.imported.push(imported);
+    } catch (e) {
+      progress.errors.push({ file: folderName, error: String(e) });
     }
 
     progress.done += 1;

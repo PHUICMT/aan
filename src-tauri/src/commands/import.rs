@@ -408,6 +408,118 @@ pub(crate) fn import_cbz(args: CbzImportArgs) -> Result<ImportedChapter, String>
     import_cbz_inner(&conn, &root, args)
 }
 
+#[derive(Deserialize)]
+pub(crate) struct FolderImportArgs {
+    pub src_path: String,
+    pub series_name: String,
+    pub kind: String,
+    pub chapter_no: f64,
+    pub chapter_title: String,
+}
+
+pub(crate) fn import_image_folder_inner(
+    conn: &Connection,
+    data_root: &Path,
+    args: FolderImportArgs,
+) -> Result<ImportedChapter, String> {
+    let kind = normalize_kind(&args.kind)?;
+    let src = PathBuf::from(&args.src_path);
+    if !src.is_dir() {
+        return Err(format!("not a directory: {}", args.src_path));
+    }
+    let name = args.series_name.trim();
+    if name.is_empty() {
+        return Err("series_name is empty".into());
+    }
+
+    let mut entries: Vec<(String, PathBuf, &'static str)> = std::fs::read_dir(&src)
+        .map_err(|e| e.to_string())?
+        .filter_map(|e| e.ok())
+        .filter_map(|e| {
+            let p = e.path();
+            if !p.is_file() {
+                return None;
+            }
+            let fname = p.file_name()?.to_string_lossy().into_owned();
+            let ext = is_image_name(&fname)?;
+            Some((fname, p, ext))
+        })
+        .collect();
+    entries.sort_by(|a, b| natord_cmp(&a.0, &b.0));
+    if entries.is_empty() {
+        return Err("folder has no images".into());
+    }
+
+    let now = now_iso();
+    let (pid, created_series) = find_or_create_series(conn, name, kind, &now)?;
+    let base_id = chapter_id_for(pid, args.chapter_no);
+    let chapter_id = unique_chapter_id(conn, &base_id)?;
+
+    let chapter_dir = data_root.join("manga").join(pid.to_string()).join(&chapter_id);
+    std::fs::create_dir_all(&chapter_dir).map_err(|e| e.to_string())?;
+
+    let mut first_path: Option<PathBuf> = None;
+    for (idx, (_fname, src_file, ext)) in entries.iter().enumerate() {
+        let out_name = format!("{:04}.{ext}", idx + 1);
+        std::fs::copy(src_file, chapter_dir.join(&out_name)).map_err(|e| e.to_string())?;
+        if first_path.is_none() {
+            first_path = Some(src_file.clone());
+        }
+    }
+
+    if let Some(p) = first_path {
+        if let Ok(bytes) = std::fs::read(&p) {
+            let cover_path = data_root.join("covers").join(format!("{pid}.jpg"));
+            let _ = write_cover_jpeg(&cover_path, &bytes);
+        }
+    }
+
+    let stored_dir = format!("manga/{pid}/{chapter_id}");
+    let page_count = entries.len() as i64;
+
+    conn.execute(
+        "INSERT INTO chapters (chapter_id, pid, chapter_no, title, is_downloaded,
+                                pdf_path, page_count, update_date)
+         VALUES (?1, ?2, ?3, ?4, 1, ?5, ?6, ?7)",
+        params![
+            chapter_id,
+            pid,
+            args.chapter_no,
+            args.chapter_title.trim(),
+            stored_dir,
+            page_count,
+            now
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let cover_rel = format!("covers/{pid}.jpg");
+    conn.execute(
+        "UPDATE series
+         SET chapter_count       = (SELECT COUNT(*) FROM chapters WHERE pid=?1),
+             local_chapter_count = (SELECT COUNT(*) FROM chapters WHERE pid=?1 AND is_downloaded=1),
+             last_chapter_no     = (SELECT COALESCE(MAX(chapter_no), 0) FROM chapters WHERE pid=?1),
+             last_updated        = ?2,
+             cover_path          = CASE WHEN COALESCE(cover_path,'')='' THEN ?3 ELSE cover_path END
+         WHERE pid=?1",
+        params![pid, now, cover_rel],
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(ImportedChapter {
+        pid,
+        chapter_id,
+        created_series,
+    })
+}
+
+#[tauri::command]
+pub(crate) fn import_image_folder(args: FolderImportArgs) -> Result<ImportedChapter, String> {
+    let root = data_root();
+    let conn = db::open(&root)?;
+    import_image_folder_inner(&conn, &root, args)
+}
+
 /// Natural-order comparator: "page2" sorts before "page10". Falls back
 /// to byte order outside of digit runs.
 fn natord_cmp(a: &str, b: &str) -> std::cmp::Ordering {
@@ -838,6 +950,51 @@ mod tests {
         let mut a = txt_args(&src, "S", 1.0);
         a.kind = "manga".into();
         assert!(import_txt_inner(&conn, &root, a).is_err());
+    }
+
+    // ── Image folder ───────────────────────────────────────────────────
+
+    fn folder_args(src: &Path, series: &str, ch: f64) -> FolderImportArgs {
+        FolderImportArgs {
+            src_path: src.to_string_lossy().into_owned(),
+            series_name: series.into(),
+            kind: "manga".into(),
+            chapter_no: ch,
+            chapter_title: format!("Ch {ch}"),
+        }
+    }
+
+    #[test]
+    fn folder_copies_images_in_natural_order() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        let jpeg = tiny_jpeg();
+        let chap = root.join("chapter1");
+        fs::create_dir_all(&chap).unwrap();
+        for n in ["page10.jpg", "page2.jpg", "page1.jpg"] {
+            fs::write(chap.join(n), &jpeg).unwrap();
+        }
+        fs::write(chap.join("note.txt"), b"skip me").unwrap();
+
+        let out = import_image_folder_inner(&conn, &root, folder_args(&chap, "Folder Series", 1.0)).unwrap();
+
+        let dir = root.join("manga").join(out.pid.to_string()).join(&out.chapter_id);
+        let mut names: Vec<_> = fs::read_dir(&dir).unwrap()
+            .map(|e| e.unwrap().file_name().into_string().unwrap())
+            .collect();
+        names.sort();
+        assert_eq!(names, vec!["0001.jpg", "0002.jpg", "0003.jpg"]);
+        assert!(root.join("covers").join(format!("{}.jpg", out.pid)).exists());
+    }
+
+    #[test]
+    fn folder_with_no_images_is_rejected() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        let empty = root.join("empty");
+        fs::create_dir_all(&empty).unwrap();
+        fs::write(empty.join("readme.txt"), b"x").unwrap();
+        assert!(import_image_folder_inner(&conn, &root, folder_args(&empty, "S", 1.0)).is_err());
     }
 
     #[test]
