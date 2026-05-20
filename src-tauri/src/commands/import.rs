@@ -546,6 +546,10 @@ struct OpfDoc {
     spine: Vec<String>,
     /// Either the `cover-image` property or fallback id from `<meta name="cover">`.
     cover_id: Option<String>,
+    /// EPUB 3 navigation document (`properties="nav"`).
+    nav_id: Option<String>,
+    /// EPUB 2 NCX TOC (media-type `application/x-dtbncx+xml`).
+    ncx_id: Option<String>,
 }
 
 #[derive(Default, Clone)]
@@ -623,6 +627,12 @@ fn parse_opf(opf_xml: &[u8]) -> Result<OpfDoc, String> {
                         if item.properties.contains("cover-image") {
                             doc.cover_id = Some(id.clone());
                         }
+                        if item.properties.split_whitespace().any(|p| p == "nav") {
+                            doc.nav_id = Some(id.clone());
+                        }
+                        if item.media_type == "application/x-dtbncx+xml" {
+                            doc.ncx_id = Some(id.clone());
+                        }
                         doc.manifest.insert(id, item);
                     }
                 }
@@ -653,6 +663,12 @@ fn parse_opf(opf_xml: &[u8]) -> Result<OpfDoc, String> {
                     if !id.is_empty() {
                         if item.properties.contains("cover-image") {
                             doc.cover_id = Some(id.clone());
+                        }
+                        if item.properties.split_whitespace().any(|p| p == "nav") {
+                            doc.nav_id = Some(id.clone());
+                        }
+                        if item.media_type == "application/x-dtbncx+xml" {
+                            doc.ncx_id = Some(id.clone());
                         }
                         doc.manifest.insert(id, item);
                     }
@@ -763,6 +779,116 @@ fn sanitize_chapter_html(xhtml: &str) -> String {
     out
 }
 
+/// Strip the `#fragment` portion from an href so it can be matched
+/// against manifest entries (which are page-level).
+fn strip_fragment(href: &str) -> &str {
+    href.split_once('#').map(|(h, _)| h).unwrap_or(href)
+}
+
+/// EPUB 3 nav.xhtml: collect every `<a href>label</a>` and key it by
+/// the absolute (OPF-relative) path of the target. Multiple `<nav>`
+/// sections (toc, landmarks, page-list) are merged — first writer wins,
+/// and the TOC section is typically first in the document, so its
+/// labels take precedence.
+fn parse_nav_titles(xhtml: &[u8], nav_path: &str) -> std::collections::HashMap<String, String> {
+    use quick_xml::events::Event;
+    let mut out: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let mut reader = quick_xml::Reader::from_reader(xhtml);
+    reader.config_mut().trim_text(true);
+    let mut buf = Vec::new();
+    let mut in_a = false;
+    let mut current_href = String::new();
+    let mut current_text = String::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(Event::Start(e)) => {
+                if local_name(&e.name().0) == b"a" {
+                    in_a = true;
+                    current_text.clear();
+                    current_href.clear();
+                    for attr in e.attributes().flatten() {
+                        if attr.key.as_ref() == b"href" {
+                            current_href = String::from_utf8_lossy(&attr.value).into_owned();
+                            break;
+                        }
+                    }
+                }
+            }
+            Ok(Event::Text(e)) if in_a => {
+                current_text.push_str(&String::from_utf8_lossy(e.as_ref()));
+            }
+            Ok(Event::End(e)) => {
+                if in_a && local_name(&e.name().0) == b"a" {
+                    in_a = false;
+                    let trimmed = current_text.trim();
+                    if !current_href.is_empty() && !trimmed.is_empty() {
+                        let abs = resolve_href(nav_path, strip_fragment(&current_href));
+                        out.entry(abs).or_insert_with(|| trimmed.to_string());
+                    }
+                }
+            }
+            Ok(Event::Eof) | Err(_) => break,
+            _ => {}
+        }
+        buf.clear();
+    }
+    out
+}
+
+/// EPUB 2 toc.ncx: walk navPoint → navLabel/text + content/@src.
+fn parse_ncx_titles(xml: &[u8], ncx_path: &str) -> std::collections::HashMap<String, String> {
+    use quick_xml::events::Event;
+    let mut out: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let mut reader = quick_xml::Reader::from_reader(xml);
+    reader.config_mut().trim_text(true);
+    let mut buf = Vec::new();
+    let mut in_nav_label = false;
+    let mut in_text = false;
+    let mut current_text = String::new();
+    let mut current_src = String::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(Event::Start(e)) => match local_name(&e.name().0) {
+                b"navPoint" => { current_text.clear(); current_src.clear(); }
+                b"navLabel" => in_nav_label = true,
+                b"text" if in_nav_label => { in_text = true; current_text.clear(); }
+                _ => {}
+            },
+            Ok(Event::Empty(e)) => {
+                if local_name(&e.name().0) == b"content" {
+                    for attr in e.attributes().flatten() {
+                        if attr.key.as_ref() == b"src" {
+                            current_src = String::from_utf8_lossy(&attr.value).into_owned();
+                            break;
+                        }
+                    }
+                }
+            }
+            Ok(Event::Text(e)) if in_text => {
+                current_text.push_str(&String::from_utf8_lossy(e.as_ref()));
+            }
+            Ok(Event::End(e)) => match local_name(&e.name().0) {
+                b"text" => in_text = false,
+                b"navLabel" => in_nav_label = false,
+                b"navPoint" => {
+                    let trimmed = current_text.trim().to_string();
+                    if !current_src.is_empty() && !trimmed.is_empty() {
+                        let abs = resolve_href(ncx_path, strip_fragment(&current_src));
+                        out.entry(abs).or_insert(trimmed);
+                    }
+                }
+                _ => {}
+            },
+            Ok(Event::Eof) | Err(_) => break,
+            _ => {}
+        }
+        buf.clear();
+    }
+    out
+}
+
 pub(crate) fn import_epub_inner(
     conn: &Connection,
     data_root: &Path,
@@ -790,6 +916,29 @@ pub(crate) fn import_epub_inner(
     if opf.spine.is_empty() {
         return Err("epub spine is empty".into());
     }
+
+    // Try EPUB 3 nav first; fall back to EPUB 2 NCX. If neither yields a
+    // mapping, we silently default to "Chapter N" titles below.
+    let title_by_href: std::collections::HashMap<String, String> = (|| {
+        if let Some(id) = opf.nav_id.as_deref() {
+            if let Some(item) = opf.manifest.get(id) {
+                let abs = resolve_href(&opf_path, &item.href);
+                if let Ok(bytes) = read_zip_to_vec(&mut zip, &abs) {
+                    let m = parse_nav_titles(&bytes, &abs);
+                    if !m.is_empty() { return m; }
+                }
+            }
+        }
+        if let Some(id) = opf.ncx_id.as_deref() {
+            if let Some(item) = opf.manifest.get(id) {
+                let abs = resolve_href(&opf_path, &item.href);
+                if let Ok(bytes) = read_zip_to_vec(&mut zip, &abs) {
+                    return parse_ncx_titles(&bytes, &abs);
+                }
+            }
+        }
+        std::collections::HashMap::new()
+    })();
 
     let series_name = args
         .series_name_override
@@ -842,7 +991,10 @@ pub(crate) fn import_epub_inner(
         let dest = chapter_dir.join(format!("{chapter_id}.html"));
         std::fs::write(&dest, cleaned.as_bytes()).map_err(|e| e.to_string())?;
         let stored = format!("novel/{pid}/{chapter_id}.html");
-        let title = format!("Chapter {}", i + 1);
+        let title = title_by_href
+            .get(&abs_href)
+            .cloned()
+            .unwrap_or_else(|| format!("Chapter {}", i + 1));
 
         conn.execute(
             "INSERT INTO chapters (chapter_id, pid, chapter_no, title, is_downloaded,
@@ -1372,6 +1524,21 @@ mod tests {
     // ── EPUB ───────────────────────────────────────────────────────────
 
     fn build_epub(root: &Path, name: &str, title: &str, chapters: &[(&str, &str)], cover: Option<&[u8]>) -> PathBuf {
+        build_epub_full(root, name, title, chapters, cover, None, None)
+    }
+
+    /// `nav_entries` / `ncx_entries`: (href, label). When set, the helper
+    /// writes the corresponding TOC document and marks it in the OPF
+    /// manifest. Used to exercise the nav-title pickup path.
+    fn build_epub_full(
+        root: &Path,
+        name: &str,
+        title: &str,
+        chapters: &[(&str, &str)],
+        cover: Option<&[u8]>,
+        nav_entries: Option<&[(&str, &str)]>,
+        ncx_entries: Option<&[(&str, &str)]>,
+    ) -> PathBuf {
         let path = root.join(name);
         let file = fs::File::create(&path).unwrap();
         let mut zip = zip::ZipWriter::new(file);
@@ -1409,6 +1576,35 @@ mod tests {
             std::io::Write::write_all(&mut zip, bytes).unwrap();
         }
 
+        // Nav.xhtml (EPUB 3) — only when entries were provided.
+        if let Some(entries) = nav_entries {
+            let mut s = String::from(r#"<?xml version="1.0"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<body><nav epub:type="toc"><ol>"#);
+            for (href, label) in entries {
+                s.push_str(&format!("<li><a href=\"{href}\">{label}</a></li>"));
+            }
+            s.push_str("</ol></nav></body></html>");
+            zip.start_file::<_, ()>("OEBPS/nav.xhtml", opts).unwrap();
+            std::io::Write::write_all(&mut zip, s.as_bytes()).unwrap();
+        }
+
+        // toc.ncx (EPUB 2 fallback).
+        if let Some(entries) = ncx_entries {
+            let mut s = String::from(r#"<?xml version="1.0"?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+<navMap>"#);
+            for (i, (href, label)) in entries.iter().enumerate() {
+                s.push_str(&format!(
+                    "<navPoint id=\"np{n}\" playOrder=\"{n}\"><navLabel><text>{label}</text></navLabel><content src=\"{href}\"/></navPoint>",
+                    n = i + 1,
+                ));
+            }
+            s.push_str("</navMap></ncx>");
+            zip.start_file::<_, ()>("OEBPS/toc.ncx", opts).unwrap();
+            std::io::Write::write_all(&mut zip, s.as_bytes()).unwrap();
+        }
+
         // OPF manifest + spine.
         let mut opf = format!(
             r#"<?xml version="1.0" encoding="utf-8"?>
@@ -1427,6 +1623,14 @@ mod tests {
         }
         if cover.is_some() {
             opf.push_str(r#"    <item id="cover-img" href="cover.jpg" media-type="image/jpeg" properties="cover-image"/>"#);
+            opf.push('\n');
+        }
+        if nav_entries.is_some() {
+            opf.push_str(r#"    <item id="nav-doc" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>"#);
+            opf.push('\n');
+        }
+        if ncx_entries.is_some() {
+            opf.push_str(r#"    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>"#);
             opf.push('\n');
         }
         opf.push_str("  </manifest>\n  <spine>\n");
@@ -1527,6 +1731,61 @@ mod tests {
             .query_row("SELECT name FROM series WHERE pid=?1", params![out.pid], |r| r.get(0))
             .unwrap();
         assert_eq!(name, "Custom Name");
+    }
+
+    #[test]
+    fn epub_uses_nav_xhtml_titles_when_present() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        let src = build_epub_full(
+            &root,
+            "book.epub",
+            "Nav Book",
+            &[
+                ("c1", "<html><body><p>one</p></body></html>"),
+                ("c2", "<html><body><p>two</p></body></html>"),
+            ],
+            None,
+            Some(&[("ch1.xhtml", "Prologue"), ("ch2.xhtml#sec", "The Long Road")]),
+            None,
+        );
+        let out = import_epub_inner(&conn, &root, epub_args(&src, None)).unwrap();
+        assert_eq!(out.chapters_added, 2);
+        let titles: Vec<String> = conn
+            .prepare("SELECT title FROM chapters WHERE pid=?1 ORDER BY chapter_no")
+            .unwrap()
+            .query_map(params![out.pid], |r| r.get::<_, String>(0))
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        assert_eq!(titles, vec!["Prologue".to_string(), "The Long Road".to_string()]);
+    }
+
+    #[test]
+    fn epub_falls_back_to_ncx_when_no_nav() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        let src = build_epub_full(
+            &root,
+            "book.epub",
+            "Ncx Book",
+            &[
+                ("c1", "<html><body>one</body></html>"),
+                ("c2", "<html><body>two</body></html>"),
+            ],
+            None,
+            None,
+            Some(&[("ch1.xhtml", "Awakening"), ("ch2.xhtml", "Departure")]),
+        );
+        let out = import_epub_inner(&conn, &root, epub_args(&src, None)).unwrap();
+        let titles: Vec<String> = conn
+            .prepare("SELECT title FROM chapters WHERE pid=?1 ORDER BY chapter_no")
+            .unwrap()
+            .query_map(params![out.pid], |r| r.get::<_, String>(0))
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        assert_eq!(titles, vec!["Awakening".to_string(), "Departure".to_string()]);
     }
 
     #[test]
