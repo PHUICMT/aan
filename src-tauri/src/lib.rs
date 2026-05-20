@@ -160,6 +160,8 @@ pub fn run() {
             commands::data_folder::pause_move_data,
             commands::data_folder::cancel_move_data,
             commands::data_folder::finalize_move_data,
+            commands::import::import_pdf,
+            commands::import::read_import_pdf,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

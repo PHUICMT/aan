@@ -217,3 +217,38 @@ export async function cancelMoveData(deletePartial: boolean): Promise<void> {
 export async function finalizeMoveData(deleteSource: boolean): Promise<void> {
   await invoke('finalize_move_data', { deleteSource });
 }
+
+export type PdfImportArgs = {
+  srcPath: string;
+  seriesName: string;
+  kind: 'manga' | 'comic' | 'novel' | 'original_novel';
+  chapterNo: number;
+  chapterTitle: string;
+  pageCount: number;
+  coverBytes?: number[] | null;
+};
+
+export type ImportedChapter = {
+  pid: number;
+  chapter_id: string;
+  created_series: boolean;
+};
+
+export async function readImportPdf(path: string): Promise<Uint8Array> {
+  const bytes = await invoke<number[]>('read_import_pdf', { path });
+  return new Uint8Array(bytes);
+}
+
+export async function importPdf(input: PdfImportArgs): Promise<ImportedChapter> {
+  return await invoke<ImportedChapter>('import_pdf', {
+    args: {
+      src_path: input.srcPath,
+      series_name: input.seriesName,
+      kind: input.kind,
+      chapter_no: input.chapterNo,
+      chapter_title: input.chapterTitle,
+      page_count: input.pageCount,
+      cover_bytes: input.coverBytes ?? null,
+    },
+  });
+}

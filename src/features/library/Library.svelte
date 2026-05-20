@@ -12,6 +12,7 @@
   // Below this size the plain CSS grid is faster than the virtualizer.
   const VIRT_THRESHOLD = 200;
   import Shimmer from '../../shared/components/Shimmer.svelte';
+  import ImportButton from './ImportButton.svelte';
   import { listLocalSeries, listGenres, searchChapters, listChapters } from '../../shared/lib/api';
   import Icon from '../../shared/components/Icon.svelte';
   import { LIBRARY_FILTERS, ANIM } from '../../shared/lib/constants';
@@ -146,6 +147,7 @@
       <p class="sub">{t('library.sub')}</p>
     </div>
     <div class="hero-actions">
+      <ImportButton />
       <div class="counter">
         {#if loading}
           <span class="count-skel"><Shimmer radius={4} height="100%" /></span>
