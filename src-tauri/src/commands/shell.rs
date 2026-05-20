@@ -1,5 +1,18 @@
 use crate::{data_root, resolve_path};
 
+/// Write `contents` as UTF-8 to a user-picked path. Used by export
+/// flows (markdown annotations, backup zips) where the destination is
+/// supplied by a native dialog — we don't validate the path since the
+/// user just consented to writing it.
+#[tauri::command]
+pub(crate) fn save_text_file(path: String, contents: String) -> Result<(), String> {
+    let p = std::path::Path::new(&path);
+    if let Some(parent) = p.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    std::fs::write(p, contents).map_err(|e| e.to_string())
+}
+
 pub(crate) fn read_cover_inner(root: &std::path::Path, pid: i64) -> Result<Vec<u8>, String> {
     let candidate = root.join("covers").join(format!("{}.jpg", pid));
     if candidate.exists() {

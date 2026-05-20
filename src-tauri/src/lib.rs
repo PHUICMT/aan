@@ -188,6 +188,14 @@ pub fn run() {
             commands::fonts::install_font,
             commands::fonts::remove_custom_font,
             commands::fonts::read_custom_font,
+            commands::annotations::add_annotation,
+            commands::annotations::list_annotations_for_chapter,
+            commands::annotations::list_annotations_for_series,
+            commands::annotations::update_annotation_note,
+            commands::annotations::update_annotation_color,
+            commands::annotations::remove_annotation,
+            commands::annotations::export_series_annotations_md,
+            commands::shell::save_text_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

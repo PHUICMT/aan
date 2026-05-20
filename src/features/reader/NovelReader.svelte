@@ -3,10 +3,14 @@
   import { tooltip } from '../../shared/lib/tooltip';
   import Shimmer from '../../shared/components/Shimmer.svelte';
   import NovelSettingsMenu from './NovelSettingsMenu.svelte';
+  import NovelAnnotations from './NovelAnnotations.svelte';
   import { setChapterProgress } from '../../shared/lib/api';
   import { takeChapterBytes, prefetchChapterBytes, hasPrefetched } from '../../shared/lib/prefetch';
   import { startReadingTimer, type ReadingTimer } from '../../shared/lib/reading-time';
-  import { onMount, onDestroy, tick } from 'svelte';
+  import { onMount, onDestroy, tick, untrack } from 'svelte';
+  import { listAnnotationsForSeries, exportSeriesAnnotationsMd, type Annotation } from '../../shared/lib/api';
+  import { save as saveDialog } from '@tauri-apps/plugin-dialog';
+  import { invoke } from '@tauri-apps/api/core';
   import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import { app, readerHasNext, readerHasPrev, readerNext, readerPrev, peekNextDownloadedChapter, loadSeriesOverride, unloadSeriesOverride } from '../../shared/lib/store.svelte';
@@ -162,6 +166,51 @@
     if (app.novelLayout !== 'paged') return false;
     if (pageIdx > 0) { pageIdx -= 1; return true; }
     return false;
+  }
+
+  // ── Annotations panel ─────────────────────────────────────────────
+  let annoOpen = $state(false);
+  let annoItems = $state<Annotation[]>([]);
+  // Cache of chapter_id → "Ch N — Title" for grouping in the panel.
+  let chapterLabels = $state<Record<string, string>>({});
+
+  async function refreshAnnoPanel() {
+    const pid = app.readerChapter?.pid;
+    if (pid == null) { annoItems = []; return; }
+    try {
+      annoItems = await listAnnotationsForSeries(pid);
+    } catch { annoItems = []; }
+    const labels: Record<string, string> = {};
+    for (const c of app.readerChapters) {
+      const t = c.title?.trim();
+      labels[c.chapter_id] = t ? `Ch ${c.chapter_no} — ${t}` : `Ch ${c.chapter_no}`;
+    }
+    chapterLabels = labels;
+  }
+  $effect(() => {
+    if (!annoOpen) return;
+    void untrack(() => refreshAnnoPanel());
+  });
+  // Refresh whenever a chapter swap happens so the panel mirrors edits
+  // made in other chapters during the same session.
+  $effect(() => {
+    articleEpoch;
+    if (annoOpen) void untrack(() => refreshAnnoPanel());
+  });
+
+  async function exportAnnotations() {
+    const pid = app.readerChapter?.pid;
+    if (pid == null) return;
+    try {
+      const md = await exportSeriesAnnotationsMd(pid);
+      const defaultName = (app.lastReader?.seriesName ?? 'annotations').replace(/[\\/:*?"<>|]/g, '_');
+      const dest = await saveDialog({
+        defaultPath: `${defaultName}-annotations.md`,
+        filters: [{ name: 'Markdown', extensions: ['md'] }],
+      });
+      if (typeof dest !== 'string') return;
+      await invoke('save_text_file', { path: dest, contents: md });
+    } catch {}
   }
 
   // ── In-chapter search (Ctrl+F) ──────────────────────────────────────
@@ -418,6 +467,16 @@
       <button class="bg-toggle" onclick={openFind} use:tooltip={"Search (Ctrl+F)"} aria-label="Search">
         <Icon name="search" size={12} />
       </button>
+      <button
+        class="bg-toggle"
+        class:on={annoOpen}
+        onclick={() => (annoOpen = !annoOpen)}
+        use:tooltip={"Annotations"}
+        aria-label="Annotations"
+        data-test="anno-panel-toggle"
+      >
+        <Icon name="bookmark" size={12} />
+      </button>
       <NovelSettingsMenu />
     </div>
   </div>
@@ -453,6 +512,38 @@
       in:fly={{ y: 18, duration: 320, easing: cubicOut }}
     >{@html html}</article>
   {/key}
+  <NovelAnnotations
+    bodyEl={bodyEl}
+    chapterId={chapterId}
+    pid={app.readerChapter?.pid ?? null}
+    epoch={articleEpoch}
+  />
+  {#if annoOpen}
+    <aside class="anno-panel" aria-label="Annotations" use:portal data-test="anno-panel">
+      <div class="anno-head">
+        <span>Annotations · {annoItems.length}</span>
+        <div class="anno-head-ctrls">
+          <button class="find-btn" onclick={exportAnnotations} use:tooltip={"Export as markdown"} aria-label="Export" data-test="anno-export">
+            <Icon name="download" size={12} />
+          </button>
+          <button class="find-btn" onclick={() => (annoOpen = false)} aria-label="Close">×</button>
+        </div>
+      </div>
+      <div class="anno-list">
+        {#if annoItems.length === 0}
+          <div class="anno-empty">No highlights yet. Select text in the chapter to add one.</div>
+        {:else}
+          {#each annoItems as a (a.id)}
+            <div class="anno-item anno-{a.color}">
+              <div class="anno-chip">{chapterLabels[a.chapter_id] ?? 'Chapter'}</div>
+              <div class="anno-text">{a.text_snippet}</div>
+              {#if a.note}<div class="anno-note">{a.note}</div>{/if}
+            </div>
+          {/each}
+        {/if}
+      </div>
+    </aside>
+  {/if}
   {#if tocOpen && toc.length > 0}
     <aside class="toc-panel" aria-label="Outline" use:portal>
       <div class="toc-head">
@@ -720,6 +811,49 @@
   @media (max-width: 900px) {
     .toc-panel { left: 16px; right: 16px; width: auto; }
   }
+
+  .anno-panel {
+    position: fixed; top: 80px; right: 16px; bottom: 16px;
+    width: 320px; max-width: 80vw;
+    z-index: 2000;
+    display: flex; flex-direction: column;
+    background: color-mix(in srgb, var(--menu-bg) 55%, transparent);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    box-shadow: 0 18px 40px -12px rgba(0,0,0,0.55);
+    overflow: hidden;
+    animation: toc-slide 0.18s var(--ease-out);
+  }
+  .anno-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text2);
+  }
+  .anno-head-ctrls { display: inline-flex; gap: 4px; }
+  .anno-list {
+    list-style: none; margin: 0; padding: 8px;
+    overflow-y: auto; flex: 1;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .anno-empty { padding: 24px 16px; color: var(--text3); font-size: 12px; text-align: center; }
+  .anno-item {
+    padding: 10px 12px; border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    border-left: 3px solid rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .anno-item.anno-yellow { border-left-color: rgba(251, 191, 36, 0.85); }
+  .anno-item.anno-green  { border-left-color: rgba(34, 197, 94, 0.85); }
+  .anno-item.anno-blue   { border-left-color: rgba(96, 165, 250, 0.85); }
+  .anno-item.anno-pink   { border-left-color: rgba(236, 72, 153, 0.85); }
+  .anno-item.anno-red    { border-left-color: rgba(239, 68, 68, 0.85); }
+  .anno-chip { font-size: 10px; color: var(--text3); font-family: var(--font-mono); }
+  .anno-text { font-size: 12px; color: var(--text); line-height: 1.4; }
+  .anno-note { font-size: 11px; color: var(--text2); padding-top: 4px; border-top: 1px dashed var(--border-soft); }
   .body :global(mark.nv-find.active) {
     background: rgba(251, 191, 36, 0.95);
     box-shadow: 0 0 0 2px rgba(251,191,36,0.45);

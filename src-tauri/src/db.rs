@@ -155,6 +155,40 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
+    // Novel text annotations: a coloured highlight over a character range in
+    // a chapter's plain-text projection, optionally with a note. The range
+    // is stored as text offsets (start..end) against the chapter's text-only
+    // content — robust as long as the HTML doesn't change between sessions,
+    // which it won't (we own the file on disk).
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS annotations (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            chapter_id    TEXT NOT NULL,
+            pid           INTEGER NOT NULL,
+            color         TEXT NOT NULL,
+            text_snippet  TEXT NOT NULL,
+            start_offset  INTEGER NOT NULL,
+            end_offset    INTEGER NOT NULL,
+            note          TEXT DEFAULT '',
+            created_at    TIMESTAMP NOT NULL DEFAULT (datetime('now')),
+            updated_at    TIMESTAMP NOT NULL DEFAULT (datetime('now'))
+        )",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_annotations_chapter
+         ON annotations(chapter_id)",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_annotations_pid
+         ON annotations(pid)",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+
     conn.execute(
         "CREATE TABLE IF NOT EXISTS tags (
             id   INTEGER PRIMARY KEY AUTOINCREMENT,

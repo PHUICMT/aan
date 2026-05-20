@@ -371,6 +371,61 @@ export async function importEpub(input: EpubImportArgs): Promise<ImportedEpub> {
   });
 }
 
+export type Annotation = {
+  id: number;
+  chapter_id: string;
+  pid: number;
+  color: string;
+  text_snippet: string;
+  start_offset: number;
+  end_offset: number;
+  note: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AddAnnotationInput = {
+  chapterId: string;
+  pid: number;
+  color: string;
+  textSnippet: string;
+  startOffset: number;
+  endOffset: number;
+  note?: string | null;
+};
+
+export async function addAnnotation(input: AddAnnotationInput): Promise<number> {
+  return await invoke<number>('add_annotation', {
+    args: {
+      chapter_id: input.chapterId,
+      pid: input.pid,
+      color: input.color,
+      text_snippet: input.textSnippet,
+      start_offset: input.startOffset,
+      end_offset: input.endOffset,
+      note: input.note ?? null,
+    },
+  });
+}
+export async function listAnnotationsForChapter(chapterId: string): Promise<Annotation[]> {
+  return await invoke<Annotation[]>('list_annotations_for_chapter', { chapterId });
+}
+export async function listAnnotationsForSeries(pid: number): Promise<Annotation[]> {
+  return await invoke<Annotation[]>('list_annotations_for_series', { pid });
+}
+export async function updateAnnotationNote(id: number, note: string): Promise<void> {
+  await invoke('update_annotation_note', { id, note });
+}
+export async function updateAnnotationColor(id: number, color: string): Promise<void> {
+  await invoke('update_annotation_color', { id, color });
+}
+export async function removeAnnotation(id: number): Promise<void> {
+  await invoke('remove_annotation', { id });
+}
+export async function exportSeriesAnnotationsMd(pid: number): Promise<string> {
+  return await invoke<string>('export_series_annotations_md', { pid });
+}
+
 export async function getSeriesReaderPrefs(pid: number): Promise<string | null> {
   return await invoke<string | null>('get_series_reader_prefs', { pid });
 }

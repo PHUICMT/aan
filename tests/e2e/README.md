@@ -25,7 +25,7 @@ npm run e2e:report                     # open the HTML report
 
 ## Test catalogue
 
-> 32 tests across 16 spec files. Runtime ≈ 31 seconds.
+> 35 tests across 17 spec files. Runtime ≈ 35 seconds.
 
 ### `smoke.spec.ts`
 Sanity that the suite is wired right.
@@ -93,6 +93,14 @@ Opens the SeriesEditModal on series 1001 and either reverts the edit or, for cha
 - **rename a series and see the hero update** — edits name through the form, asserts the hero text changed. `afterEach` resets the name to `Test Manga Alpha`.
 - **blank name shows an error and does not save** — fills `   `, save is blocked, modal stays open, original name unchanged.
 - **inline chapter title edit persists** — imports a throwaway series, clicks the chapter row's edit icon, retypes the title, presses Enter; cleanup deletes the throwaway series.
+
+### `annotations.spec.ts` *(mutates — cleans up in afterEach)*
+
+Novel highlights persist as rows in the `annotations` table, get re-applied as `<span class="nv-anno">` wrappers on chapter mount, and listed in a side panel. The selection-driven create flow needs a real user gesture, so we drive the Rust commands directly and assert through the panel.
+
+- **annotations created via command surface as wrappers + panel rows** — `add_annotation` twice in different colours, opens the panel, asserts both rows render with the right colour class.
+- **annotation list survives chapter swap and reload** — adds one with a note, reloads the app cold, re-enters the chapter, asserts the row + note are still there.
+- **export_series_annotations_md emits chapter-grouped markdown** — adds two annotations, calls the export command, asserts the markdown contains `## Chapter` headings + both snippets.
 
 ### `novel-override.spec.ts` *(mutates — cleans up in afterEach)*
 
