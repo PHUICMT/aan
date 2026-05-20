@@ -366,5 +366,10 @@
   "novel.line_height.title": "Line height",
   "novel.max_width.title": "Page width",
   "novel.spread.title": "Two-page spread",
-  "novel.spread.desc": "Show two pages side-by-side like an open book (paged layout)"
+  "novel.spread.desc": "Show two pages side-by-side like an open book (paged layout)",
+  "novel.override.section": "Per-book settings",
+  "novel.override.active": "These settings apply to this book only",
+  "novel.override.inactive": "Currently using your global defaults",
+  "novel.override.save": "Save for this book",
+  "novel.override.clear": "Use defaults"
 }

@@ -343,5 +343,10 @@
   "novel.line_height.title": "ระยะบรรทัด",
   "novel.max_width.title": "ความกว้างหน้า",
   "novel.spread.title": "เปิดสองหน้า",
-  "novel.spread.desc": "แสดงสองหน้าคู่กันเหมือนหนังสือเปิด (โหมดพลิกหน้า)"
+  "novel.spread.desc": "แสดงสองหน้าคู่กันเหมือนหนังสือเปิด (โหมดพลิกหน้า)",
+  "novel.override.section": "ตั้งค่าเฉพาะเล่มนี้",
+  "novel.override.active": "ค่านี้ใช้กับเล่มนี้เท่านั้น",
+  "novel.override.inactive": "กำลังใช้ค่าตั้งต้นของแอป",
+  "novel.override.save": "บันทึกสำหรับเล่มนี้",
+  "novel.override.clear": "ใช้ค่าตั้งต้น"
 }

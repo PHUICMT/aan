@@ -82,6 +82,9 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
     if !series_cols.iter().any(|c| c == "reading_status") {
         let _ = conn.execute("ALTER TABLE series ADD COLUMN reading_status TEXT", []);
     }
+    if !series_cols.iter().any(|c| c == "reader_prefs_json") {
+        let _ = conn.execute("ALTER TABLE series ADD COLUMN reader_prefs_json TEXT", []);
+    }
     if !series_cols.iter().any(|c| c == "added_at") {
         let _ = conn.execute("ALTER TABLE series ADD COLUMN added_at TIMESTAMP", []);
         let _ = conn.execute(

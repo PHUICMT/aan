@@ -161,6 +161,9 @@ export const app = $state({
   novelLineHeight: initialNovel.lineHeight,
   novelMaxWidth: initialNovel.maxWidth,
   novelSpread: initialNovel.spread,
+  /** Pid of the series whose override is currently active in the reader.
+   *  Setters in novel-reader.svelte route persistence accordingly. */
+  novelOverridePid: null as number | null,
 });
 
 /** Reader registers a flush callback while mounted; goBack() awaits it

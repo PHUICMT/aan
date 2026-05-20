@@ -14,9 +14,16 @@
     setNovelLineHeight,
     setNovelMaxWidth,
     setNovelSpread,
+    saveOverrideForCurrentSeries,
+    clearOverrideForCurrentSeries,
     LINE_HEIGHT_MIN, LINE_HEIGHT_MAX, MAX_WIDTH_MIN, MAX_WIDTH_MAX,
     type NovelLayout, type NovelTheme,
   } from '../../shared/lib/store.svelte';
+
+  const overrideActive = $derived(
+    app.novelOverridePid != null && app.novelOverridePid === app.readerChapter?.pid,
+  );
+  const canOverride = $derived(app.readerChapter?.pid != null);
 
   function popMenu(_node: Element, { duration = 180 }: { duration?: number } = {}) {
     return {
@@ -172,6 +179,24 @@
       <div class="set-row brightness-row">
         <BrightnessControls />
       </div>
+      {#if canOverride}
+        <div class="set-divider"></div>
+        <div class="set-section-label">{t('novel.override.section')}</div>
+        <div class="override-row" data-test="novel-override-row" data-override-active={overrideActive ? '1' : '0'}>
+          <div class="ov-text">
+            {overrideActive ? t('novel.override.active') : t('novel.override.inactive')}
+          </div>
+          {#if overrideActive}
+            <button class="ov-btn ov-reset" onclick={() => clearOverrideForCurrentSeries()} data-test="novel-override-clear">
+              {t('novel.override.clear')}
+            </button>
+          {:else}
+            <button class="ov-btn ov-save" onclick={() => saveOverrideForCurrentSeries()} data-test="novel-override-save">
+              {t('novel.override.save')}
+            </button>
+          {/if}
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -293,6 +318,21 @@
     flex-shrink: 0;
   }
   .set-value.on { background: var(--accent); color: #fff; }
+
+  .override-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 6px 12px 8px;
+  }
+  .ov-text { font-size: 11px; color: var(--text2); line-height: 1.4; }
+  .ov-btn {
+    padding: 6px 12px; border-radius: 9999px;
+    font-size: 11px; font-weight: 700;
+    transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+  }
+  .ov-save { background: var(--accent-dim); color: var(--accent); }
+  .ov-save:hover { background: var(--accent); color: #fff; }
+  .ov-reset { background: rgba(239,68,68,0.14); color: #fca5a5; }
+  .ov-reset:hover { background: rgba(239,68,68,0.32); color: #fff; }
 
   :global(.novel-root.bg-light) .set-menu {
     background: rgba(255, 255, 255, 0.92);

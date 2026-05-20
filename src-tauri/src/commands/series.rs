@@ -560,6 +560,74 @@ pub(crate) fn set_series_cover(pid: i64, bytes: Vec<u8>) -> Result<(), String> {
     Ok(())
 }
 
+// ── Per-series reader preferences override ─────────────────────────
+// Reader settings are normally a global default (localStorage). A
+// series can opt-in to its own snapshot stored as opaque JSON; the
+// reader applies it on chapter open and falls back to the global if
+// the column is NULL.
+
+pub(crate) fn get_series_reader_prefs_inner(
+    conn: &Connection,
+    pid: i64,
+) -> Result<Option<String>, String> {
+    let v: Option<String> = conn
+        .query_row(
+            "SELECT reader_prefs_json FROM series WHERE pid = ?1",
+            rusqlite::params![pid],
+            |r| r.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    Ok(v.filter(|s| !s.is_empty()))
+}
+
+pub(crate) fn set_series_reader_prefs_inner(
+    conn: &Connection,
+    pid: i64,
+    json: &str,
+) -> Result<(), String> {
+    // Tiny structural sanity check — keeps obvious junk out of the column
+    // without paying for a full serde round-trip on every save.
+    if !json.trim_start().starts_with('{') {
+        return Err("reader prefs must be a JSON object".into());
+    }
+    conn.execute(
+        "UPDATE series SET reader_prefs_json = ?2 WHERE pid = ?1",
+        rusqlite::params![pid, json],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub(crate) fn clear_series_reader_prefs_inner(
+    conn: &Connection,
+    pid: i64,
+) -> Result<(), String> {
+    conn.execute(
+        "UPDATE series SET reader_prefs_json = NULL WHERE pid = ?1",
+        rusqlite::params![pid],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub(crate) fn get_series_reader_prefs(pid: i64) -> Result<Option<String>, String> {
+    let conn = db::open(&data_root())?;
+    get_series_reader_prefs_inner(&conn, pid)
+}
+
+#[tauri::command]
+pub(crate) fn set_series_reader_prefs(pid: i64, json: String) -> Result<(), String> {
+    let conn = db::open(&data_root())?;
+    set_series_reader_prefs_inner(&conn, pid, &json)
+}
+
+#[tauri::command]
+pub(crate) fn clear_series_reader_prefs(pid: i64) -> Result<(), String> {
+    let conn = db::open(&data_root())?;
+    clear_series_reader_prefs_inner(&conn, pid)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -762,5 +830,27 @@ mod tests {
         assert_eq!(c, 0);
         assert!(!pdf.exists());
         assert!(!cover.exists());
+    }
+
+    #[test]
+    fn reader_prefs_roundtrip() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        insert_test_series(&conn, 11, "Z", "novel", 1, 0, None, None, None);
+        assert_eq!(get_series_reader_prefs_inner(&conn, 11).unwrap(), None);
+        set_series_reader_prefs_inner(&conn, 11, r#"{"layout":"paged","theme":"sepia"}"#).unwrap();
+        let got = get_series_reader_prefs_inner(&conn, 11).unwrap().unwrap();
+        assert!(got.contains("\"theme\":\"sepia\""));
+        clear_series_reader_prefs_inner(&conn, 11).unwrap();
+        assert_eq!(get_series_reader_prefs_inner(&conn, 11).unwrap(), None);
+    }
+
+    #[test]
+    fn reader_prefs_rejects_non_json() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        insert_test_series(&conn, 12, "X", "novel", 1, 0, None, None, None);
+        let err = set_series_reader_prefs_inner(&conn, 12, "not-json").unwrap_err();
+        assert!(err.contains("JSON"));
     }
 }

@@ -25,7 +25,7 @@ npm run e2e:report                     # open the HTML report
 
 ## Test catalogue
 
-> 30 tests across 15 spec files. Runtime ≈ 28 seconds.
+> 32 tests across 16 spec files. Runtime ≈ 31 seconds.
 
 ### `smoke.spec.ts`
 Sanity that the suite is wired right.
@@ -93,6 +93,13 @@ Opens the SeriesEditModal on series 1001 and either reverts the edit or, for cha
 - **rename a series and see the hero update** — edits name through the form, asserts the hero text changed. `afterEach` resets the name to `Test Manga Alpha`.
 - **blank name shows an error and does not save** — fills `   `, save is blocked, modal stays open, original name unchanged.
 - **inline chapter title edit persists** — imports a throwaway series, clicks the chapter row's edit icon, retypes the title, presses Enter; cleanup deletes the throwaway series.
+
+### `novel-override.spec.ts` *(mutates — cleans up in afterEach)*
+
+Per-series override of the novel reader settings (stored in `series.reader_prefs_json`). Each test clears the column for the fixture series in `afterEach`.
+
+- **saving override stamps the row + reapplies on reopen** — flips theme to sepia + layout to paged, clicks `Save for this book`, asserts the JSON column has `"theme":"sepia"`/`"layout":"paged"`, reloads cold and re-opens the chapter — the override re-applies on its own.
+- **clearing the override falls back to global defaults** — seeds an override via the Rust command, opens the chapter, clicks `Use defaults`, asserts the root snaps back to the global theme and the column is NULL.
 
 ### `custom-fonts.spec.ts` *(mutates — cleans up in afterEach)*
 

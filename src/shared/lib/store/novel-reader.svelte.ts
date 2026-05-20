@@ -3,6 +3,24 @@
 // reader can stay sepia even when the rest of the app is dark.
 
 import { app } from './state.svelte';
+import { setSeriesReaderPrefs } from '../api';
+
+// When an override is active, mutations write through to the series
+// row instead of the global localStorage key. Fire-and-forget — the UI
+// already reflects the new value in app.novel*.
+function persistOverride() {
+  const pid = app.novelOverridePid;
+  if (pid == null) return false;
+  const snap = {
+    layout: app.novelLayout,
+    theme: app.novelTheme,
+    lineHeight: app.novelLineHeight,
+    maxWidth: app.novelMaxWidth,
+    spread: app.novelSpread,
+  };
+  void setSeriesReaderPrefs(pid, JSON.stringify(snap)).catch(() => {});
+  return true;
+}
 
 export type NovelLayout = 'scroll' | 'paged';
 export type NovelTheme = 'light' | 'sepia' | 'dark' | 'black';
@@ -44,23 +62,28 @@ export function loadNovelPrefs() {
 
 export function setNovelLayout(v: NovelLayout) {
   app.novelLayout = v;
+  if (persistOverride()) return;
   try { localStorage.setItem('aan.novel.layout', v); } catch {}
 }
 export function setNovelTheme(v: NovelTheme) {
   app.novelTheme = v;
+  if (persistOverride()) return;
   try { localStorage.setItem('aan.novel.theme', v); } catch {}
 }
 export function setNovelLineHeight(v: number) {
   const n = Math.min(LINE_HEIGHT_MAX, Math.max(LINE_HEIGHT_MIN, Math.round(v * 10) / 10));
   app.novelLineHeight = n;
+  if (persistOverride()) return;
   try { localStorage.setItem('aan.novel.line_height', String(n)); } catch {}
 }
 export function setNovelMaxWidth(v: number) {
   const n = Math.min(MAX_WIDTH_MAX, Math.max(MAX_WIDTH_MIN, Math.round(v / 20) * 20));
   app.novelMaxWidth = n;
+  if (persistOverride()) return;
   try { localStorage.setItem('aan.novel.max_width', String(n)); } catch {}
 }
 export function setNovelSpread(on: boolean) {
   app.novelSpread = on;
+  if (persistOverride()) return;
   try { localStorage.setItem('aan.novel.spread', on ? '1' : '0'); } catch {}
 }

@@ -9,7 +9,7 @@
   import { onMount, onDestroy, tick } from 'svelte';
   import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
-  import { app, readerHasNext, readerHasPrev, readerNext, readerPrev, peekNextDownloadedChapter } from '../../shared/lib/store.svelte';
+  import { app, readerHasNext, readerHasPrev, readerNext, readerPrev, peekNextDownloadedChapter, loadSeriesOverride, unloadSeriesOverride } from '../../shared/lib/store.svelte';
 
   type Props = { pdfPath: string; chapterId?: string };
   let { pdfPath, chapterId }: Props = $props();
@@ -320,6 +320,9 @@
     window.addEventListener('keydown', onKeyDown);
     ro = new ResizeObserver(() => recomputePages());
     if (bodyEl) ro.observe(bodyEl);
+    // If this series has a saved override, swap globals for it now.
+    const pid = app.readerChapter?.pid;
+    if (pid != null) void loadSeriesOverride(pid);
   });
   onDestroy(() => {
     readingTimer?.stop();
@@ -327,6 +330,7 @@
     window.removeEventListener('keydown', onKeyDown);
     ro?.disconnect();
     ro = null;
+    unloadSeriesOverride();
   });
 
   function attachScroll(node: HTMLElement) {

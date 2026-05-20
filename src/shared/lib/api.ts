@@ -371,6 +371,16 @@ export async function importEpub(input: EpubImportArgs): Promise<ImportedEpub> {
   });
 }
 
+export async function getSeriesReaderPrefs(pid: number): Promise<string | null> {
+  return await invoke<string | null>('get_series_reader_prefs', { pid });
+}
+export async function setSeriesReaderPrefs(pid: number, json: string): Promise<void> {
+  await invoke('set_series_reader_prefs', { pid, json });
+}
+export async function clearSeriesReaderPrefs(pid: number): Promise<void> {
+  await invoke('clear_series_reader_prefs', { pid });
+}
+
 export type CustomFont = { family: string; filename: string; path: string; bytes: number };
 
 export async function listCustomFonts(): Promise<CustomFont[]> {
