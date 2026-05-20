@@ -15,6 +15,16 @@
   let summary = $state<ImportProgress | null>(null);
   let menuOpen = $state(false);
   let triggerEl: HTMLButtonElement | undefined = $state();
+  // Tracked for the cursor-following sheen on hover; clamped 0-1 within
+  // the button rect. Listener only attaches while the user is over it.
+  let sheenX = $state(0.5);
+  let sheenY = $state(0.5);
+  function onMove(e: MouseEvent) {
+    if (!triggerEl) return;
+    const r = triggerEl.getBoundingClientRect();
+    sheenX = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    sheenY = Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
+  }
 
   async function runImport(run: () => Promise<ImportProgress>, total: number) {
     busy = true;
@@ -80,17 +90,24 @@
     class:busy
     class:open={menuOpen}
     onclick={() => (menuOpen = !menuOpen)}
+    onmousemove={onMove}
     disabled={busy}
     aria-haspopup="menu"
     aria-expanded={menuOpen}
     use:tooltip={t('library.import.tooltip')}
     data-test="library-import"
+    style:--mx="{Math.round(sheenX * 100)}%"
+    style:--my="{Math.round(sheenY * 100)}%"
   >
-    <Icon name="plus" size={14} />
-    <span>{t('library.import.label')}</span>
+    <span class="sheen" aria-hidden="true"></span>
+    <span class="icon-wrap"><Icon name="plus" size={14} /></span>
+    <span class="lbl">{t('library.import.label')}</span>
     <span class="caret" class:flip={menuOpen}>
       <Icon name="chevron_down" size={12} />
     </span>
+    {#if busy}
+      <span class="busy-ring" aria-hidden="true"></span>
+    {/if}
   </button>
 
   {#if menuOpen}
@@ -100,15 +117,15 @@
       transition:scale={{ duration: 140, start: 0.94, easing: cubicOut }}
       use:closeMenuOnOutside
     >
-      <li>
+      <li style:--i={0}>
         <button type="button" class="menu-item" onclick={pickFiles} role="menuitem">
-          <Icon name="plus" size={12} />
+          <span class="mi-icon"><Icon name="file_text" size={13} /></span>
           <span>{t('library.import.menu_files')}</span>
         </button>
       </li>
-      <li>
+      <li style:--i={1}>
         <button type="button" class="menu-item" onclick={pickFolder} role="menuitem">
-          <Icon name="inbox" size={12} />
+          <span class="mi-icon"><Icon name="folder_open" size={13} /></span>
           <span>{t('library.import.menu_folder')}</span>
         </button>
       </li>
@@ -173,63 +190,187 @@
 
 <style>
   .wrap { position: relative; display: inline-block; }
+
+  /* The button: gradient fill + cursor-following sheen + tiny lift on
+     hover + spring-y press. Looks like a primary CTA from a modern
+     design system without leaving the Aan tokens. */
+  .import-btn {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px 9px 12px;
+    border-radius: 10px;
+    background:
+      linear-gradient(135deg,
+        color-mix(in srgb, var(--accent) 92%, white 8%) 0%,
+        color-mix(in srgb, var(--accent) 75%, black 0%) 100%);
+    color: #fff;
+    border: 1px solid color-mix(in srgb, var(--accent) 60%, white 0%);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    overflow: hidden;
+    box-shadow:
+      0 4px 14px -4px color-mix(in srgb, var(--accent) 60%, transparent),
+      inset 0 1px 0 rgba(255,255,255,0.18);
+    transition:
+      transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 200ms var(--ease-out),
+      filter 160ms var(--ease-out);
+  }
+  .import-btn:hover:not(.busy) {
+    transform: translateY(-1px);
+    box-shadow:
+      0 8px 22px -6px color-mix(in srgb, var(--accent) 70%, transparent),
+      0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent),
+      inset 0 1px 0 rgba(255,255,255,0.24);
+    filter: brightness(1.06);
+  }
+  .import-btn:active:not(.busy) {
+    transform: translateY(0) scale(0.98);
+    transition-duration: 60ms;
+  }
+  .import-btn.open {
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--accent) 26%, transparent),
+      inset 0 1px 0 rgba(255,255,255,0.22);
+  }
+  .import-btn.busy { cursor: progress; filter: saturate(0.85) brightness(0.95); }
+
+  /* Cursor-following sheen via radial-gradient anchored at --mx/--my. */
+  .sheen {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      180px circle at var(--mx, 50%) var(--my, 50%),
+      rgba(255,255,255,0.28),
+      rgba(255,255,255,0) 60%
+    );
+    opacity: 0;
+    transition: opacity 200ms var(--ease-out);
+    z-index: 0;
+  }
+  .import-btn:hover .sheen { opacity: 1; }
+  .import-btn.busy .sheen { opacity: 0; }
+  .import-btn > * { position: relative; z-index: 1; }
+
+  /* Plus icon: gentle wiggle on hover; rotates to a + → × hint when open. */
+  .icon-wrap {
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .import-btn:hover:not(.busy) .icon-wrap { transform: rotate(90deg) scale(1.05); }
+  .import-btn.open .icon-wrap { transform: rotate(45deg); }
+  .lbl { white-space: nowrap; }
   .caret {
     display: inline-flex;
     margin-left: 2px;
-    transition: transform 160ms var(--ease-out, ease-out);
+    opacity: 0.85;
+    transition: transform 200ms var(--ease-out), opacity 160ms;
   }
-  .caret.flip { transform: rotate(180deg); }
+  .caret.flip { transform: rotate(180deg); opacity: 1; }
+
+  /* Busy state: a rotating conic-gradient ring around the button. */
+  .busy-ring {
+    position: absolute; inset: -2px;
+    border-radius: 12px;
+    padding: 2px;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      color-mix(in srgb, var(--accent) 65%, white 35%) 90deg,
+      transparent 180deg,
+      color-mix(in srgb, var(--accent) 65%, white 35%) 270deg,
+      transparent 360deg
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+            mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    animation: ring-spin 1.4s linear infinite;
+    z-index: 0;
+    pointer-events: none;
+  }
+  @keyframes ring-spin { to { transform: rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .import-btn, .icon-wrap, .sheen, .caret { transition: none; }
+    .busy-ring { animation: none; }
+  }
+
+  /* Menu polish: glassy backdrop, larger hit area, stagger entrance. */
   .menu {
     position: absolute;
-    top: calc(100% + 6px);
+    top: calc(100% + 8px);
     right: 0;
     z-index: 50;
     list-style: none;
     margin: 0;
-    padding: 4px;
-    min-width: 200px;
-    background: var(--menu-bg, #1a1530);
-    border: 1px solid var(--border, rgba(255,255,255,0.12));
-    border-radius: 10px;
-    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+    padding: 6px;
+    min-width: 240px;
+    background: color-mix(in srgb, var(--menu-bg) 88%, transparent);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--glass-border, var(--border));
+    border-radius: 12px;
+    box-shadow:
+      0 18px 40px -10px rgba(0,0,0,0.55),
+      0 0 0 1px rgba(255,255,255,0.04) inset;
     transform-origin: top right;
   }
-  .menu li { margin: 0; }
+  .menu li {
+    margin: 0;
+    opacity: 0;
+    transform: translateY(-6px);
+    animation: mi-in 220ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation-delay: calc(var(--i, 0) * 50ms + 30ms);
+  }
+  @keyframes mi-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .menu li { opacity: 1; transform: none; animation: none; }
+  }
   .menu-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     width: 100%;
-    padding: 8px 10px;
+    padding: 9px 12px;
     background: transparent;
     border: none;
-    color: var(--text, #fff);
+    color: var(--text);
     font-size: 12.5px;
     text-align: left;
     cursor: pointer;
-    border-radius: 6px;
-    transition: background 120ms;
+    border-radius: 8px;
+    transition: background 140ms var(--ease-out), color 140ms;
   }
-  .menu-item:hover { background: color-mix(in srgb, var(--accent, #7c5cff) 18%, transparent); }
-  .import-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    border-radius: 10px;
-    background: var(--accent, #7c5cff);
+  .menu-item:hover {
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
     color: #fff;
-    border: 1px solid color-mix(in srgb, var(--accent, #7c5cff) 60%, #fff 0%);
-    font-size: 12.5px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform 140ms var(--ease-out, ease-out), background 140ms;
   }
-  .import-btn:hover:not(.busy) {
-    background: color-mix(in srgb, var(--accent, #7c5cff) 88%, #fff 12%);
-    transform: translateY(-1px);
+  .mi-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px;
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: color-mix(in srgb, var(--accent) 80%, white 20%);
+    flex-shrink: 0;
+    transition: background 140ms var(--ease-out), transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
-  .import-btn.busy { opacity: 0.6; cursor: progress; }
+  .menu-item:hover .mi-icon {
+    background: var(--accent);
+    color: #fff;
+    transform: scale(1.08);
+  }
 
   .overlay {
     position: fixed;
