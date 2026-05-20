@@ -160,6 +160,7 @@ export const app = $state({
   novelTheme: initialNovel.theme as NovelTheme,
   novelLineHeight: initialNovel.lineHeight,
   novelMaxWidth: initialNovel.maxWidth,
+  novelSpread: initialNovel.spread,
 });
 
 /** Reader registers a flush callback while mounted; goBack() awaits it

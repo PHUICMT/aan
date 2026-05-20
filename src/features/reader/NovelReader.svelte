@@ -147,6 +147,7 @@
     // re-measure on the things that affect layout
     html;
     app.novelLayout;
+    app.novelSpread;
     app.novelMaxWidth;
     app.novelLineHeight;
     app.fontNovelSize;
@@ -358,12 +359,14 @@
   class:theme-dark={app.novelTheme === 'dark'}
   class:theme-black={app.novelTheme === 'black'}
   class:layout-paged={app.novelLayout === 'paged'}
+  class:spread={app.novelLayout === 'paged' && app.novelSpread}
   style:--novel-max-w="{app.novelMaxWidth}px"
   style:--novel-lh="{app.novelLineHeight}"
   use:attachScroll
   data-test="novel-root"
   data-novel-theme={app.novelTheme}
   data-novel-layout={app.novelLayout}
+  data-novel-spread={app.novelSpread ? '1' : '0'}
   data-novel-page-idx={pageIdx}
   data-novel-page-count={pageCount}
 >
@@ -574,15 +577,23 @@
      between them. Hide overflow on the root so scroll is trapped. */
   .novel-root.layout-paged { height: 100%; overflow: hidden; }
   .novel-root.layout-paged .body {
-    column-width: var(--novel-max-w, 760px);
+    column-count: 1;
     column-gap: 60px;
     column-fill: auto;
     height: calc(100vh - 56px - 60px);
     padding: 30px 32px 30px;
-    max-width: none;
+    max-width: var(--novel-max-w, 760px);
     transform: translateX(calc(var(--page-idx, 0) * -100%));
     transition: transform 0.32s var(--ease-out);
     -webkit-column-break-inside: avoid;
+  }
+  /* Spread: two columns side-by-side at the full viewport. The faint
+     centre rule mimics the gutter of an open paperback. */
+  .novel-root.layout-paged.spread .body {
+    column-count: 2;
+    max-width: none;
+    padding: 30px 48px 30px;
+    column-rule: 1px solid rgba(128,128,128,0.15);
   }
   .novel-root.layout-paged .body :global(img),
   .novel-root.layout-paged .body :global(h1),

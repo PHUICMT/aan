@@ -4,6 +4,7 @@
   import { portal, anchorBelow } from '../../shared/lib/portal';
   import { t } from '../../shared/lib/i18n.svelte';
   import { cubicOut } from 'svelte/easing';
+  import { slide } from 'svelte/transition';
   import BrightnessControls from './BrightnessControls.svelte';
   import {
     app,
@@ -12,6 +13,7 @@
     setNovelTheme,
     setNovelLineHeight,
     setNovelMaxWidth,
+    setNovelSpread,
     LINE_HEIGHT_MIN, LINE_HEIGHT_MAX, MAX_WIDTH_MIN, MAX_WIDTH_MAX,
     type NovelLayout, type NovelTheme,
   } from '../../shared/lib/store.svelte';
@@ -90,6 +92,19 @@
           <button class="seg-btn" class:active={app.novelLayout === 'paged'} onclick={() => setNovelLayout('paged' as NovelLayout)} data-test="novel-layout-paged">{t('novel.layout.paged')}</button>
         </div>
       </div>
+
+      {#if app.novelLayout === 'paged'}
+        <div transition:slide={{ duration: 220, easing: cubicOut }}>
+          <button class="set-row" onclick={() => setNovelSpread(!app.novelSpread)} data-test="novel-spread-toggle">
+            <div class="set-icon"><Icon name="book_open" size={14} /></div>
+            <div class="set-text">
+              <div class="set-title">{t('novel.spread.title')}</div>
+              <div class="set-desc">{t('novel.spread.desc')}</div>
+            </div>
+            <div class="set-value" class:on={app.novelSpread}>{app.novelSpread ? t('reader.anim.on') : t('reader.anim.off')}</div>
+          </button>
+        </div>
+      {/if}
 
       <!-- Theme swatches -->
       <div class="set-row layout-row">
@@ -264,6 +279,20 @@
   }
   .step-ctl button:hover:not(:disabled) { background: var(--accent-dim); color: var(--text); }
   .step-ctl button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .set-row:not(.layout-row):not(.brightness-row) {
+    cursor: pointer;
+    transition: background 0.12s var(--ease-out);
+  }
+  .set-row:not(.layout-row):not(.brightness-row):hover { background: var(--hover-bg); }
+  .set-value {
+    padding: 3px 10px; border-radius: 9999px;
+    background: rgba(255,255,255,0.12); color: var(--text);
+    font-size: 10px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+  .set-value.on { background: var(--accent); color: #fff; }
 
   :global(.novel-root.bg-light) .set-menu {
     background: rgba(255, 255, 255, 0.92);

@@ -38,6 +38,7 @@ export function loadNovelPrefs() {
     theme: parseTheme(localStorage.getItem('aan.novel.theme')),
     lineHeight: clampFloat(localStorage.getItem('aan.novel.line_height'), LINE_HEIGHT_MIN, LINE_HEIGHT_MAX, 1.9),
     maxWidth: clampInt(localStorage.getItem('aan.novel.max_width'), MAX_WIDTH_MIN, MAX_WIDTH_MAX, 760),
+    spread: localStorage.getItem('aan.novel.spread') === '1',
   };
 }
 
@@ -58,4 +59,8 @@ export function setNovelMaxWidth(v: number) {
   const n = Math.min(MAX_WIDTH_MAX, Math.max(MAX_WIDTH_MIN, Math.round(v / 20) * 20));
   app.novelMaxWidth = n;
   try { localStorage.setItem('aan.novel.max_width', String(n)); } catch {}
+}
+export function setNovelSpread(on: boolean) {
+  app.novelSpread = on;
+  try { localStorage.setItem('aan.novel.spread', on ? '1' : '0'); } catch {}
 }

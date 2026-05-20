@@ -360,5 +360,7 @@
   "novel.theme.black": "Black",
   "novel.font_size.title": "Font size",
   "novel.line_height.title": "Line height",
-  "novel.max_width.title": "Page width"
+  "novel.max_width.title": "Page width",
+  "novel.spread.title": "Two-page spread",
+  "novel.spread.desc": "Show two pages side-by-side like an open book (paged layout)"
 }

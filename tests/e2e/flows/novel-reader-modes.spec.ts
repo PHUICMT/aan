@@ -43,6 +43,23 @@ test('switching to paged layout shows page indicator and arrow keys flip pages',
   }
 });
 
+test('two-page spread toggle only appears in paged mode and persists', async ({ app }) => {
+  await openNovelChapter(app);
+  const root = app.locator('[data-test="novel-root"]');
+
+  await app.click('[data-test="novel-settings-toggle"]');
+  // Spread toggle should not be in the DOM while layout is scroll.
+  await expect(app.locator('[data-test="novel-spread-toggle"]')).toHaveCount(0);
+
+  await app.click('[data-test="novel-layout-paged"]');
+  await expect(app.locator('[data-test="novel-spread-toggle"]')).toBeVisible();
+  await app.click('[data-test="novel-spread-toggle"]');
+  await expect(root).toHaveAttribute('data-novel-spread', '1');
+
+  const stored = await app.evaluate(() => localStorage.getItem('aan.novel.spread'));
+  expect(stored).toBe('1');
+});
+
 test('theme swatch updates root and persists across reload', async ({ app }) => {
   await openNovelChapter(app);
   const root = app.locator('[data-test="novel-root"]');
