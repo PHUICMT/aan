@@ -6,7 +6,7 @@
 use crate::commands::import;
 use crate::{data_root, db};
 use notify::{
-    event::{CreateKind, ModifyKind, RenameMode},
+    event::{ModifyKind, RenameMode},
     Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
 };
 use parking_lot::Mutex;
@@ -100,12 +100,13 @@ fn spawn_watcher(
                 if !path.is_file() {
                     continue;
                 }
-                if recently_seen(&seen, &path) {
+                // Stability gate first — a partially-written file MUST
+                // not get marked as seen, otherwise the next event (when
+                // the writer closes) would be skipped.
+                if !file_is_stable(&path) {
                     continue;
                 }
-                if !file_is_stable(&path) {
-                    // Re-queue: write still in flight. The next OS event
-                    // when the writer closes will trigger another pass.
+                if !mark_seen_once(&seen, &path) {
                     continue;
                 }
                 let result = dispatch_import(&path);
@@ -124,8 +125,10 @@ fn spawn_watcher(
 }
 
 fn collect_paths(ev: &Event, out: &mut HashSet<PathBuf>) {
+    // Windows ReadDirectoryChangesW reports `Create(Any)` for new files,
+    // not `Create(File)`. Accept any create + rename-to + data write.
     match ev.kind {
-        EventKind::Create(CreateKind::File)
+        EventKind::Create(_)
         | EventKind::Modify(ModifyKind::Name(RenameMode::To))
         | EventKind::Modify(ModifyKind::Name(RenameMode::Any))
         | EventKind::Modify(ModifyKind::Data(_)) => {
@@ -143,24 +146,30 @@ fn looks_like_supported(p: &Path) -> bool {
 }
 
 /// Wait briefly and confirm the file size has stopped growing — proxy
-/// for "the writer closed the handle". Skips remote shares where size
-/// is sometimes 0 forever; those will simply retry on the next event.
+/// for "the writer closed the handle". Try opening for read as a final
+/// liveness check: most writers hold an exclusive lock until they're done.
 fn file_is_stable(p: &Path) -> bool {
     let first = match std::fs::metadata(p) { Ok(m) => m.len(), Err(_) => return false };
     std::thread::sleep(Duration::from_millis(400));
     let second = match std::fs::metadata(p) { Ok(m) => m.len(), Err(_) => return false };
-    first == second && first > 0
+    if first != second || first == 0 {
+        return false;
+    }
+    // Open for read confirms no exclusive write lock is held (Windows).
+    std::fs::File::open(p).is_ok()
 }
 
-fn recently_seen(seen: &Arc<Mutex<HashMap<PathBuf, Instant>>>, p: &Path) -> bool {
+/// Atomically check-and-insert. Returns true if the caller "won" the
+/// race and should proceed to dispatch.
+fn mark_seen_once(seen: &Arc<Mutex<HashMap<PathBuf, Instant>>>, p: &Path) -> bool {
     let mut g = seen.lock();
     if let Some(when) = g.get(p) {
         if when.elapsed() < Duration::from_secs(30) {
-            return true;
+            return false;
         }
     }
     g.insert(p.to_path_buf(), Instant::now());
-    false
+    true
 }
 
 fn cleanup_seen(seen: &Arc<Mutex<HashMap<PathBuf, Instant>>>) {

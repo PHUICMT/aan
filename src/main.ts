@@ -1,7 +1,13 @@
 import { mount } from 'svelte'
+import { invoke } from '@tauri-apps/api/core'
 import './app.css'
 import App from './App.svelte'
 import TrayMenu from './app/TrayMenu.svelte'
+
+// Expose the IPC entrypoint so e2e specs can drive backend setup and
+// teardown directly. Commands are already invocable from any JS in this
+// webview — this is a convenience, not a privilege gate.
+;(window as unknown as { __aanInvoke?: typeof invoke }).__aanInvoke = invoke
 
 // Clear legacy QA mock flag from localStorage (QA now uses sessionStorage).
 try { localStorage.removeItem('aan.mock'); } catch {}

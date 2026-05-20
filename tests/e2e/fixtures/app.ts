@@ -38,3 +38,22 @@ export const test = base.extend<{ app: Page }>({
 });
 
 export { expect } from '@playwright/test';
+
+/**
+ * Invoke a Tauri command from inside the running app. Used by specs to
+ * drive backend setup/teardown without going through native dialogs.
+ */
+export async function invokeCmd<T = unknown>(
+  page: Page,
+  cmd: string,
+  args: Record<string, unknown> = {},
+): Promise<T> {
+  return page.evaluate(
+    async ([c, a]) => {
+      const fn = (window as unknown as { __aanInvoke?: (cmd: string, args?: unknown) => Promise<unknown> }).__aanInvoke;
+      if (!fn) throw new Error('__aanInvoke not exposed — is the app built with main.ts global?');
+      return fn(c as string, a);
+    },
+    [cmd, args] as const,
+  ) as Promise<T>;
+}

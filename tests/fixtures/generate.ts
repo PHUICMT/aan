@@ -6,6 +6,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PDFDocument, StandardFonts, degrees, rgb } from 'pdf-lib';
 import Database from 'better-sqlite3';
+import { deflateRawSync } from 'node:zlib';
 import { CHAPTERS, SERIES } from './seeds.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -148,6 +149,81 @@ function ensureDir(p: string): void {
   mkdirSync(p, { recursive: true });
 }
 
+// Minimal ZIP writer for the CBZ sample. Deflated entries only; no
+// extensions needed — the importer just uses zip-rs's basic reader.
+function buildCbz(entries: { name: string; data: Buffer }[]): Buffer {
+  const localParts: Buffer[] = [];
+  const central: Buffer[] = [];
+  let offset = 0;
+  for (const e of entries) {
+    const crc = crc32(e.data);
+    const compressed = deflateRawSync(e.data);
+    const nameBuf = Buffer.from(e.name, 'utf8');
+
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);     // local file header sig
+    local.writeUInt16LE(20, 4);              // version needed
+    local.writeUInt16LE(0, 6);               // gp flags
+    local.writeUInt16LE(8, 8);               // method: deflate
+    local.writeUInt16LE(0, 10);              // mod time
+    local.writeUInt16LE(0, 12);              // mod date
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(compressed.length, 18);
+    local.writeUInt32LE(e.data.length, 22);
+    local.writeUInt16LE(nameBuf.length, 26);
+    local.writeUInt16LE(0, 28);              // extra len
+    localParts.push(local, nameBuf, compressed);
+
+    const cen = Buffer.alloc(46);
+    cen.writeUInt32LE(0x02014b50, 0);
+    cen.writeUInt16LE(20, 4);                // version made by
+    cen.writeUInt16LE(20, 6);                // version needed
+    cen.writeUInt16LE(0, 8);                 // gp flags
+    cen.writeUInt16LE(8, 10);                // method
+    cen.writeUInt16LE(0, 12);
+    cen.writeUInt16LE(0, 14);
+    cen.writeUInt32LE(crc, 16);
+    cen.writeUInt32LE(compressed.length, 20);
+    cen.writeUInt32LE(e.data.length, 24);
+    cen.writeUInt16LE(nameBuf.length, 28);
+    cen.writeUInt16LE(0, 30);                // extra
+    cen.writeUInt16LE(0, 32);                // comment
+    cen.writeUInt16LE(0, 34);                // disk no
+    cen.writeUInt16LE(0, 36);                // internal attrs
+    cen.writeUInt32LE(0, 38);                // external attrs
+    cen.writeUInt32LE(offset, 42);
+    central.push(cen, nameBuf);
+
+    offset += local.length + nameBuf.length + compressed.length;
+  }
+  const centralBuf = Buffer.concat(central);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(0, 4);
+  eocd.writeUInt16LE(0, 6);
+  eocd.writeUInt16LE(entries.length, 8);
+  eocd.writeUInt16LE(entries.length, 10);
+  eocd.writeUInt32LE(centralBuf.length, 12);
+  eocd.writeUInt32LE(offset, 16);
+  eocd.writeUInt16LE(0, 20);
+  return Buffer.concat([...localParts, centralBuf, eocd]);
+}
+
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(buf: Buffer): number {
+  let c = 0xffffffff;
+  for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
 async function main(): Promise<void> {
   rmSync(BUILD, { recursive: true, force: true });
   ensureDir(BUILD);
@@ -178,6 +254,16 @@ async function main(): Promise<void> {
   for (const s of SERIES) {
     writeFileSync(join(BUILD, 'covers', `${s.pid}.jpg`), buildCoverJpeg(s.name, s.pid));
   }
+
+  // --- Import samples (e2e drives these into the real importers) ---
+  const samplesDir = join(BUILD, 'import-samples');
+  ensureDir(samplesDir);
+  writeFileSync(join(samplesDir, 'sample.pdf'), await buildPdf(3, 'Import Sample'));
+  writeFileSync(join(samplesDir, 'novel.txt'), 'First paragraph.\nLine two.\n\nSecond paragraph.\n');
+  // Tiny CBZ: one valid JPEG entry, no compression — enough for the
+  // importer to extract + create one chapter.
+  const jpegBytes = buildCoverJpeg('cbz', 1);
+  writeFileSync(join(samplesDir, 'sample.cbz'), buildCbz([{ name: 'page1.jpg', data: jpegBytes }]));
 
   // --- DB ---
   const dbPath = join(BUILD, 'library.db');
