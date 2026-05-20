@@ -520,6 +520,378 @@ pub(crate) fn import_image_folder(args: FolderImportArgs) -> Result<ImportedChap
     import_image_folder_inner(&conn, &root, args)
 }
 
+// ── EPUB ─────────────────────────────────────────────────────────────
+
+#[derive(Deserialize)]
+pub(crate) struct EpubImportArgs {
+    pub src_path: String,
+    /// Optional override; when empty, the title is taken from the OPF.
+    pub series_name_override: Option<String>,
+    pub kind: String,
+}
+
+#[derive(Serialize)]
+pub(crate) struct ImportedEpub {
+    pub pid: i64,
+    pub created_series: bool,
+    pub chapters_added: i64,
+}
+
+#[derive(Default)]
+struct OpfDoc {
+    title: String,
+    /// id → href (relative to OPF location)
+    manifest: std::collections::HashMap<String, ManifestItem>,
+    /// Ordered idrefs from <spine>
+    spine: Vec<String>,
+    /// Either the `cover-image` property or fallback id from `<meta name="cover">`.
+    cover_id: Option<String>,
+}
+
+#[derive(Default, Clone)]
+struct ManifestItem {
+    href: String,
+    media_type: String,
+    properties: String,
+}
+
+fn read_zip_to_vec<R: std::io::Read + std::io::Seek>(
+    zip: &mut zip::ZipArchive<R>,
+    name: &str,
+) -> Result<Vec<u8>, String> {
+    let mut entry = zip.by_name(name).map_err(|e| format!("entry {name}: {e}"))?;
+    let mut buf = Vec::with_capacity(entry.size() as usize);
+    entry.read_to_end(&mut buf).map_err(|e| e.to_string())?;
+    Ok(buf)
+}
+
+fn find_opf_path(container_xml: &[u8]) -> Result<String, String> {
+    use quick_xml::events::Event;
+    let mut reader = quick_xml::Reader::from_reader(container_xml);
+    reader.config_mut().trim_text(true);
+    let mut buf = Vec::new();
+    loop {
+        match reader.read_event_into(&mut buf).map_err(|e| e.to_string())? {
+            Event::Empty(e) | Event::Start(e) if e.name().as_ref() == b"rootfile" => {
+                for attr in e.attributes().flatten() {
+                    if attr.key.as_ref() == b"full-path" {
+                        return Ok(String::from_utf8_lossy(&attr.value).into_owned());
+                    }
+                }
+            }
+            Event::Eof => break,
+            _ => {}
+        }
+        buf.clear();
+    }
+    Err("container.xml has no rootfile/@full-path".into())
+}
+
+fn parse_opf(opf_xml: &[u8]) -> Result<OpfDoc, String> {
+    use quick_xml::events::Event;
+    let mut reader = quick_xml::Reader::from_reader(opf_xml);
+    reader.config_mut().trim_text(true);
+    let mut doc = OpfDoc::default();
+    let mut buf = Vec::new();
+    let mut in_metadata = false;
+    let mut in_title = false;
+    let mut current_title = String::new();
+    let mut meta_cover_id: Option<String> = None;
+
+    loop {
+        match reader.read_event_into(&mut buf).map_err(|e| e.to_string())? {
+            Event::Start(e) => match local_name(&e.name().0) {
+                b"metadata" => in_metadata = true,
+                b"title" if in_metadata => {
+                    in_title = true;
+                    current_title.clear();
+                }
+                b"item" => {
+                    let mut item = ManifestItem::default();
+                    let mut id = String::new();
+                    for attr in e.attributes().flatten() {
+                        let v = attr.value.as_ref();
+                        match attr.key.as_ref() {
+                            b"id" => id = String::from_utf8_lossy(v).into_owned(),
+                            b"href" => item.href = String::from_utf8_lossy(v).into_owned(),
+                            b"media-type" => item.media_type = String::from_utf8_lossy(v).into_owned(),
+                            b"properties" => item.properties = String::from_utf8_lossy(v).into_owned(),
+                            _ => {}
+                        }
+                    }
+                    if !id.is_empty() {
+                        if item.properties.contains("cover-image") {
+                            doc.cover_id = Some(id.clone());
+                        }
+                        doc.manifest.insert(id, item);
+                    }
+                }
+                b"itemref" => {
+                    for attr in e.attributes().flatten() {
+                        if attr.key.as_ref() == b"idref" {
+                            doc.spine.push(String::from_utf8_lossy(&attr.value).into_owned());
+                        }
+                    }
+                }
+                _ => {}
+            },
+            Event::Empty(e) => {
+                let name = local_name(&e.name().0);
+                if name == b"item" {
+                    let mut item = ManifestItem::default();
+                    let mut id = String::new();
+                    for attr in e.attributes().flatten() {
+                        let v = attr.value.as_ref();
+                        match attr.key.as_ref() {
+                            b"id" => id = String::from_utf8_lossy(v).into_owned(),
+                            b"href" => item.href = String::from_utf8_lossy(v).into_owned(),
+                            b"media-type" => item.media_type = String::from_utf8_lossy(v).into_owned(),
+                            b"properties" => item.properties = String::from_utf8_lossy(v).into_owned(),
+                            _ => {}
+                        }
+                    }
+                    if !id.is_empty() {
+                        if item.properties.contains("cover-image") {
+                            doc.cover_id = Some(id.clone());
+                        }
+                        doc.manifest.insert(id, item);
+                    }
+                } else if name == b"itemref" {
+                    for attr in e.attributes().flatten() {
+                        if attr.key.as_ref() == b"idref" {
+                            doc.spine.push(String::from_utf8_lossy(&attr.value).into_owned());
+                        }
+                    }
+                } else if name == b"meta" && in_metadata {
+                    // EPUB 2 cover hint: <meta name="cover" content="cover-id"/>
+                    let mut is_cover = false;
+                    let mut content = String::new();
+                    for attr in e.attributes().flatten() {
+                        match attr.key.as_ref() {
+                            b"name" if attr.value.as_ref() == b"cover" => is_cover = true,
+                            b"content" => content = String::from_utf8_lossy(&attr.value).into_owned(),
+                            _ => {}
+                        }
+                    }
+                    if is_cover && !content.is_empty() {
+                        meta_cover_id = Some(content);
+                    }
+                }
+            }
+            Event::Text(e) if in_title => {
+                current_title.push_str(&String::from_utf8_lossy(e.as_ref()));
+            }
+            Event::End(e) => match local_name(&e.name().0) {
+                b"metadata" => in_metadata = false,
+                b"title" if in_title => {
+                    if doc.title.is_empty() {
+                        doc.title = current_title.trim().to_string();
+                    }
+                    in_title = false;
+                }
+                _ => {}
+            },
+            Event::Eof => break,
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    if doc.cover_id.is_none() {
+        if let Some(id) = meta_cover_id {
+            if doc.manifest.contains_key(&id) {
+                doc.cover_id = Some(id);
+            }
+        }
+    }
+
+    Ok(doc)
+}
+
+fn local_name(qname: &[u8]) -> &[u8] {
+    match qname.iter().position(|&b| b == b':') {
+        Some(i) => &qname[i + 1..],
+        None => qname,
+    }
+}
+
+fn resolve_href(opf_path: &str, href: &str) -> String {
+    // OPF path is like "OEBPS/content.opf"; hrefs are relative to its dir.
+    let dir = match opf_path.rfind('/') {
+        Some(i) => &opf_path[..i + 1],
+        None => "",
+    };
+    format!("{dir}{href}")
+}
+
+/// Strip script/style/link tags from an xhtml chapter so the existing
+/// NovelReader iframe path renders cleanly without pulling external CSS.
+fn sanitize_chapter_html(xhtml: &str) -> String {
+    let mut out = String::with_capacity(xhtml.len());
+    let bytes = xhtml.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'<' {
+            // Find the tag end.
+            let start = i;
+            let mut j = i + 1;
+            while j < bytes.len() && bytes[j] != b'>' { j += 1; }
+            if j >= bytes.len() { break; }
+            let tag = std::str::from_utf8(&bytes[start..=j]).unwrap_or("");
+            let lower = tag.to_ascii_lowercase();
+            if lower.starts_with("<script") || lower.starts_with("<style") {
+                // Skip until matching close tag.
+                let close = if lower.starts_with("<script") { "</script>" } else { "</style>" };
+                if let Some(end) = xhtml[j + 1..].to_ascii_lowercase().find(close) {
+                    i = j + 1 + end + close.len();
+                    continue;
+                } else {
+                    break;
+                }
+            }
+            if lower.starts_with("<link") {
+                i = j + 1;
+                continue;
+            }
+            out.push_str(tag);
+            i = j + 1;
+        } else {
+            out.push(bytes[i] as char);
+            i += 1;
+        }
+    }
+    out
+}
+
+pub(crate) fn import_epub_inner(
+    conn: &Connection,
+    data_root: &Path,
+    args: EpubImportArgs,
+) -> Result<ImportedEpub, String> {
+    let kind = normalize_kind(&args.kind)?;
+    if kind != KIND_NOVEL && kind != KIND_ORIGINAL_NOVEL {
+        return Err("epub import only supports novel/original_novel".into());
+    }
+    let src = PathBuf::from(&args.src_path);
+    if !src.is_file() {
+        return Err(format!("source not found: {}", args.src_path));
+    }
+
+    let file = std::fs::File::open(&src).map_err(|e| e.to_string())?;
+    let mut zip = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
+
+    let container = read_zip_to_vec(&mut zip, "META-INF/container.xml")
+        .map_err(|e| format!("read container.xml: {e}"))?;
+    let opf_path = find_opf_path(&container)?;
+    let opf_bytes = read_zip_to_vec(&mut zip, &opf_path)
+        .map_err(|e| format!("read OPF: {e}"))?;
+    let opf = parse_opf(&opf_bytes)?;
+
+    if opf.spine.is_empty() {
+        return Err("epub spine is empty".into());
+    }
+
+    let series_name = args
+        .series_name_override
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_owned)
+        .unwrap_or_else(|| {
+            if opf.title.is_empty() {
+                src.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "Untitled".into())
+            } else {
+                opf.title.clone()
+            }
+        });
+
+    let now = now_iso();
+    let (pid, created_series) = find_or_create_series(conn, &series_name, kind, &now)?;
+
+    let chapter_dir = data_root.join("novel").join(pid.to_string());
+    std::fs::create_dir_all(&chapter_dir).map_err(|e| e.to_string())?;
+
+    // Where on disk this chapter sequence starts — multiple EPUB imports
+    // for the same series will continue numbering.
+    let start_idx: i64 = conn
+        .query_row(
+            "SELECT COALESCE(MAX(chapter_no), 0) FROM chapters WHERE pid=?1",
+            params![pid],
+            |r| r.get(0),
+        )
+        .unwrap_or(0);
+
+    let mut added = 0i64;
+    for (i, idref) in opf.spine.iter().enumerate() {
+        let Some(item) = opf.manifest.get(idref) else { continue };
+        // Only HTML-ish documents count as chapters.
+        if !item.media_type.contains("html") && !item.media_type.contains("xml") {
+            continue;
+        }
+        let abs_href = resolve_href(&opf_path, &item.href);
+        let xhtml_bytes = match read_zip_to_vec(&mut zip, &abs_href) {
+            Ok(b) => b,
+            Err(_) => continue,
+        };
+        let xhtml = String::from_utf8_lossy(&xhtml_bytes);
+        let cleaned = sanitize_chapter_html(&xhtml);
+
+        let chapter_no = (start_idx + i as i64 + 1) as f64;
+        let base_id = chapter_id_for(pid, chapter_no);
+        let chapter_id = unique_chapter_id(conn, &base_id)?;
+        let dest = chapter_dir.join(format!("{chapter_id}.html"));
+        std::fs::write(&dest, cleaned.as_bytes()).map_err(|e| e.to_string())?;
+        let stored = format!("novel/{pid}/{chapter_id}.html");
+        let title = format!("Chapter {}", i + 1);
+
+        conn.execute(
+            "INSERT INTO chapters (chapter_id, pid, chapter_no, title, is_downloaded,
+                                    pdf_path, page_count, update_date)
+             VALUES (?1, ?2, ?3, ?4, 1, ?5, 0, ?6)",
+            params![chapter_id, pid, chapter_no, title, stored, now],
+        )
+        .map_err(|e| e.to_string())?;
+        added += 1;
+    }
+
+    if added == 0 {
+        return Err("epub had no readable chapters".into());
+    }
+
+    // Cover.
+    if let Some(id) = opf.cover_id.as_deref() {
+        if let Some(item) = opf.manifest.get(id) {
+            let abs = resolve_href(&opf_path, &item.href);
+            if let Ok(bytes) = read_zip_to_vec(&mut zip, &abs) {
+                let cover_path = data_root.join("covers").join(format!("{pid}.jpg"));
+                let _ = write_cover_jpeg(&cover_path, &bytes);
+            }
+        }
+    }
+
+    let cover_rel = format!("covers/{pid}.jpg");
+    conn.execute(
+        "UPDATE series
+         SET chapter_count       = (SELECT COUNT(*) FROM chapters WHERE pid=?1),
+             local_chapter_count = (SELECT COUNT(*) FROM chapters WHERE pid=?1 AND is_downloaded=1),
+             last_chapter_no     = (SELECT COALESCE(MAX(chapter_no), 0) FROM chapters WHERE pid=?1),
+             last_updated        = ?2,
+             cover_path          = CASE WHEN COALESCE(cover_path,'')='' THEN ?3 ELSE cover_path END
+         WHERE pid=?1",
+        params![pid, now, cover_rel],
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(ImportedEpub { pid, created_series, chapters_added: added })
+}
+
+#[tauri::command]
+pub(crate) fn import_epub(args: EpubImportArgs) -> Result<ImportedEpub, String> {
+    let root = data_root();
+    let conn = db::open(&root)?;
+    import_epub_inner(&conn, &root, args)
+}
+
 /// Natural-order comparator: "page2" sorts before "page10". Falls back
 /// to byte order outside of digit runs.
 fn natord_cmp(a: &str, b: &str) -> std::cmp::Ordering {
@@ -995,6 +1367,176 @@ mod tests {
         fs::create_dir_all(&empty).unwrap();
         fs::write(empty.join("readme.txt"), b"x").unwrap();
         assert!(import_image_folder_inner(&conn, &root, folder_args(&empty, "S", 1.0)).is_err());
+    }
+
+    // ── EPUB ───────────────────────────────────────────────────────────
+
+    fn build_epub(root: &Path, name: &str, title: &str, chapters: &[(&str, &str)], cover: Option<&[u8]>) -> PathBuf {
+        let path = root.join(name);
+        let file = fs::File::create(&path).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+
+        // mimetype must be first, stored uncompressed.
+        zip.start_file::<_, ()>(
+            "mimetype",
+            zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored),
+        )
+        .unwrap();
+        std::io::Write::write_all(&mut zip, b"application/epub+zip").unwrap();
+
+        let opts: zip::write::SimpleFileOptions = zip::write::SimpleFileOptions::default();
+
+        zip.start_file::<_, ()>("META-INF/container.xml", opts).unwrap();
+        std::io::Write::write_all(
+            &mut zip,
+            br#"<?xml version="1.0"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles>
+</container>"#,
+        )
+        .unwrap();
+
+        // Write chapters.
+        for (i, (_label, html)) in chapters.iter().enumerate() {
+            let path = format!("OEBPS/ch{}.xhtml", i + 1);
+            zip.start_file::<_, ()>(&path, opts).unwrap();
+            std::io::Write::write_all(&mut zip, html.as_bytes()).unwrap();
+        }
+
+        // Cover image (optional).
+        if let Some(bytes) = cover {
+            zip.start_file::<_, ()>("OEBPS/cover.jpg", opts).unwrap();
+            std::io::Write::write_all(&mut zip, bytes).unwrap();
+        }
+
+        // OPF manifest + spine.
+        let mut opf = format!(
+            r#"<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>{title}</dc:title>
+  </metadata>
+  <manifest>"#
+        );
+        for i in 0..chapters.len() {
+            opf.push_str(&format!(
+                r#"    <item id="ch{n}" href="ch{n}.xhtml" media-type="application/xhtml+xml"/>"#,
+                n = i + 1
+            ));
+            opf.push('\n');
+        }
+        if cover.is_some() {
+            opf.push_str(r#"    <item id="cover-img" href="cover.jpg" media-type="image/jpeg" properties="cover-image"/>"#);
+            opf.push('\n');
+        }
+        opf.push_str("  </manifest>\n  <spine>\n");
+        for i in 0..chapters.len() {
+            opf.push_str(&format!(r#"    <itemref idref="ch{}"/>"#, i + 1));
+            opf.push('\n');
+        }
+        opf.push_str("  </spine>\n</package>");
+        zip.start_file::<_, ()>("OEBPS/content.opf", opts).unwrap();
+        std::io::Write::write_all(&mut zip, opf.as_bytes()).unwrap();
+        zip.finish().unwrap();
+        path
+    }
+
+    fn epub_args(src: &Path, override_name: Option<&str>) -> EpubImportArgs {
+        EpubImportArgs {
+            src_path: src.to_string_lossy().into_owned(),
+            series_name_override: override_name.map(str::to_string),
+            kind: "novel".into(),
+        }
+    }
+
+    #[test]
+    fn epub_imports_title_and_spine_chapters() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        let src = build_epub(
+            &root,
+            "book.epub",
+            "Fixture Book",
+            &[
+                ("c1", "<html><body><p>Chapter one body.</p></body></html>"),
+                ("c2", "<html><body><p>Chapter two body.</p></body></html>"),
+            ],
+            Some(&tiny_jpeg()),
+        );
+
+        let out = import_epub_inner(&conn, &root, epub_args(&src, None)).unwrap();
+        assert!(out.created_series);
+        assert_eq!(out.chapters_added, 2);
+
+        let name: String = conn
+            .query_row("SELECT name FROM series WHERE pid=?1", params![out.pid], |r| r.get(0))
+            .unwrap();
+        assert_eq!(name, "Fixture Book");
+
+        let chapter_files: Vec<String> = conn
+            .prepare("SELECT pdf_path FROM chapters WHERE pid=?1 ORDER BY chapter_no")
+            .unwrap()
+            .query_map(params![out.pid], |r| r.get::<_, String>(0))
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        assert_eq!(chapter_files.len(), 2);
+        for path in &chapter_files {
+            let abs = root.join(path);
+            assert!(abs.exists(), "chapter html written at {abs:?}");
+            let body = fs::read_to_string(&abs).unwrap();
+            assert!(body.contains("<p>") || body.contains("Chapter"), "saw {body}");
+        }
+        assert!(root.join("covers").join(format!("{}.jpg", out.pid)).exists());
+    }
+
+    #[test]
+    fn epub_strips_script_and_style_tags() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        let src = build_epub(
+            &root,
+            "book.epub",
+            "T",
+            &[("c1", "<html><body><script>alert(1)</script><style>p{}</style><p>ok</p></body></html>")],
+            None,
+        );
+        let out = import_epub_inner(&conn, &root, epub_args(&src, None)).unwrap();
+        let path: String = conn
+            .query_row("SELECT pdf_path FROM chapters WHERE pid=?1 LIMIT 1", params![out.pid], |r| r.get(0))
+            .unwrap();
+        let body = fs::read_to_string(root.join(path)).unwrap();
+        assert!(!body.to_ascii_lowercase().contains("<script"));
+        assert!(!body.to_ascii_lowercase().contains("<style"));
+        assert!(body.contains("<p>ok</p>"));
+    }
+
+    #[test]
+    fn epub_override_series_name_wins() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        let src = build_epub(
+            &root,
+            "book.epub",
+            "Default Title",
+            &[("c1", "<html><body><p>x</p></body></html>")],
+            None,
+        );
+        let out = import_epub_inner(&conn, &root, epub_args(&src, Some("Custom Name"))).unwrap();
+        let name: String = conn
+            .query_row("SELECT name FROM series WHERE pid=?1", params![out.pid], |r| r.get(0))
+            .unwrap();
+        assert_eq!(name, "Custom Name");
+    }
+
+    #[test]
+    fn epub_rejects_manga_kind() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        let src = build_epub(&root, "b.epub", "T", &[("c1", "<p>x</p>")], None);
+        let mut a = epub_args(&src, None);
+        a.kind = "manga".into();
+        assert!(import_epub_inner(&conn, &root, a).is_err());
     }
 
     #[test]

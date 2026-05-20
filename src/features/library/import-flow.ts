@@ -8,6 +8,7 @@ import {
   importPdf,
   importCbz,
   importTxt,
+  importEpub,
   importImageFolder,
   readImportPdf,
   type ImportedChapter,
@@ -27,7 +28,7 @@ export type ImportProgress = {
   imported: ImportedChapter[];
 };
 
-type Ext = 'pdf' | 'cbz' | 'txt';
+type Ext = 'pdf' | 'cbz' | 'txt' | 'epub';
 
 function fileBaseName(p: string): string {
   const norm = p.replace(/\\/g, '/');
@@ -39,7 +40,9 @@ function detectExt(path: string): Ext | null {
   const m = path.toLowerCase().match(/\.([a-z0-9]{1,5})$/);
   if (!m) return null;
   const ext = m[1];
-  return ext === 'pdf' || ext === 'cbz' || ext === 'txt' ? (ext as Ext) : null;
+  return ext === 'pdf' || ext === 'cbz' || ext === 'txt' || ext === 'epub'
+    ? (ext as Ext)
+    : null;
 }
 
 async function renderCoverBytes(doc: pdfjs.PDFDocumentProxy): Promise<number[] | null> {
@@ -104,6 +107,12 @@ async function importOneTxt(path: string, filename: string): Promise<ImportedCha
   });
 }
 
+/** EPUBs surface ImportedEpub (multi-chapter); convert to the per-file shape. */
+async function importOneEpub(path: string): Promise<ImportedChapter> {
+  const out = await importEpub({ srcPath: path, kind: 'novel' });
+  return { pid: out.pid, chapter_id: `epub:${out.chapters_added}`, created_series: out.created_series };
+}
+
 export async function importFiles(
   paths: string[],
   onProgress?: (p: ImportProgress) => void,
@@ -128,6 +137,7 @@ export async function importFiles(
       const imported =
         ext === 'pdf' ? await importOnePdf(path, filename) :
         ext === 'cbz' ? await importOneCbz(path, filename) :
+        ext === 'epub' ? await importOneEpub(path) :
         await importOneTxt(path, filename);
       progress.imported.push(imported);
     } catch (e) {

@@ -164,6 +164,7 @@ pub fn run() {
             commands::import::import_cbz,
             commands::import::import_txt,
             commands::import::import_image_folder,
+            commands::import::import_epub,
             commands::import::read_import_pdf,
         ])
         .run(tauri::generate_context!())

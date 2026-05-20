@@ -285,6 +285,28 @@ export async function importTxt(input: ArchiveImportArgs): Promise<ImportedChapt
   });
 }
 
+export type EpubImportArgs = {
+  srcPath: string;
+  seriesNameOverride?: string | null;
+  kind: 'novel' | 'original_novel';
+};
+
+export type ImportedEpub = {
+  pid: number;
+  created_series: boolean;
+  chapters_added: number;
+};
+
+export async function importEpub(input: EpubImportArgs): Promise<ImportedEpub> {
+  return await invoke<ImportedEpub>('import_epub', {
+    args: {
+      src_path: input.srcPath,
+      series_name_override: input.seriesNameOverride ?? null,
+      kind: input.kind,
+    },
+  });
+}
+
 export async function importImageFolder(input: ArchiveImportArgs): Promise<ImportedChapter> {
   return await invoke<ImportedChapter>('import_image_folder', {
     args: {

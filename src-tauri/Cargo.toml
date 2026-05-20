@@ -26,6 +26,7 @@ parking_lot = "0.12"
 pdf-writer = "0.13"
 zip = { version = "2", default-features = false, features = ["deflate", "deflate64"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+quick-xml = "0.36"
 
 [dev-dependencies]
 tempfile = "3"

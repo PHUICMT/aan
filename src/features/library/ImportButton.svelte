@@ -36,9 +36,10 @@
     const picked = await openDialog({
       multiple: true,
       filters: [
-        { name: 'Supported', extensions: ['pdf', 'cbz', 'txt'] },
+        { name: 'Supported', extensions: ['pdf', 'cbz', 'epub', 'txt'] },
         { name: 'PDF', extensions: ['pdf'] },
         { name: 'CBZ (Comic archive)', extensions: ['cbz'] },
+        { name: 'EPUB (Novel)', extensions: ['epub'] },
         { name: 'Text (novel)', extensions: ['txt'] },
       ],
     });
