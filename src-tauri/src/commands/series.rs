@@ -413,6 +413,153 @@ pub(crate) fn top_series_week(limit: Option<i64>) -> Result<Vec<TopSeriesEntry>,
     top_series_week_inner(&conn, limit)
 }
 
+// ── Editor: update / delete / cover ─────────────────────────────────
+
+#[derive(serde::Deserialize, Default)]
+pub(crate) struct SeriesPatch {
+    /// Each field is "missing" (no edit) vs `Some("")` (clear) vs `Some(value)`.
+    pub name: Option<String>,
+    pub alias: Option<String>,
+    pub info: Option<String>,
+    pub author_name: Option<String>,
+    pub artist_name: Option<String>,
+    pub status: Option<i64>,
+}
+
+pub(crate) fn update_series_inner(
+    conn: &Connection,
+    pid: i64,
+    patch: SeriesPatch,
+) -> Result<(), String> {
+    // Build SET clauses dynamically so unchanged columns stay untouched.
+    let mut sets: Vec<&str> = Vec::new();
+    let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
+    if let Some(v) = patch.name.as_ref() {
+        if v.trim().is_empty() {
+            return Err("name cannot be empty".into());
+        }
+        sets.push("name = ?");
+        params.push(Box::new(v.trim().to_string()));
+    }
+    if let Some(v) = patch.alias { sets.push("alias = ?"); params.push(Box::new(v)); }
+    if let Some(v) = patch.info { sets.push("info = ?"); params.push(Box::new(v)); }
+    if let Some(v) = patch.author_name { sets.push("author_name = ?"); params.push(Box::new(v)); }
+    if let Some(v) = patch.artist_name { sets.push("artist_name = ?"); params.push(Box::new(v)); }
+    if let Some(v) = patch.status { sets.push("status = ?"); params.push(Box::new(v)); }
+    if sets.is_empty() {
+        return Ok(());
+    }
+    let sql = format!("UPDATE series SET {} WHERE pid = ?", sets.join(", "));
+    params.push(Box::new(pid));
+    let refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|b| b.as_ref()).collect();
+    conn.execute(&sql, refs.as_slice()).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub(crate) fn update_series(pid: i64, patch: SeriesPatch) -> Result<(), String> {
+    let conn = db::open(&data_root())?;
+    update_series_inner(&conn, pid, patch)
+}
+
+/// Deletes a series and **all** its files, even if downloaded or favorited.
+/// Caller is expected to confirm with the user before invoking this.
+pub(crate) fn delete_series_force_inner(
+    conn: &Connection,
+    root: &std::path::Path,
+    pid: i64,
+) -> Result<(), String> {
+    let chapter_paths: Vec<String> = conn
+        .prepare("SELECT COALESCE(pdf_path,'') FROM chapters WHERE pid = ?1")
+        .map_err(|e| e.to_string())?
+        .query_map([pid], |r| r.get::<_, String>(0))
+        .map_err(|e| e.to_string())?
+        .filter_map(Result::ok)
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    let _ = conn.execute("DELETE FROM chapters WHERE pid = ?1", [pid]);
+    let _ = conn.execute("DELETE FROM series_tags WHERE pid = ?1", [pid]);
+    let _ = conn.execute("DELETE FROM bookmarks WHERE pid = ?1", [pid]);
+    let _ = conn.execute("DELETE FROM reading_log WHERE pid = ?1", [pid]);
+    let _ = conn.execute("DELETE FROM series WHERE pid = ?1", [pid]);
+
+    // Remove chapter files: image dirs (no .pdf suffix) or individual files.
+    for stored in chapter_paths {
+        let p = crate::app_config::resolve_stored_path(&stored, root);
+        if p.is_dir() {
+            let _ = std::fs::remove_dir_all(&p);
+        } else if p.is_file() {
+            let _ = std::fs::remove_file(&p);
+        }
+    }
+    // Series-wide folders.
+    let _ = std::fs::remove_dir_all(root.join("manga").join(pid.to_string()));
+    let _ = std::fs::remove_dir_all(root.join("novel").join(pid.to_string()));
+    let _ = std::fs::remove_file(root.join("covers").join(format!("{pid}.jpg")));
+    Ok(())
+}
+
+#[tauri::command]
+pub(crate) fn delete_series_force(pid: i64) -> Result<(), String> {
+    let root = data_root();
+    let conn = db::open(&root)?;
+    delete_series_force_inner(&conn, &root, pid)
+}
+
+/// Read an arbitrary image file the user picked via the cover dialog.
+/// Extension-gated so the command can't be coerced into reading any path.
+#[tauri::command]
+pub(crate) fn read_cover_source(path: String) -> Result<Vec<u8>, String> {
+    let p = std::path::PathBuf::from(&path);
+    let ext_ok = p
+        .extension()
+        .and_then(|s| s.to_str())
+        .map(|s| matches!(s.to_ascii_lowercase().as_str(), "jpg" | "jpeg" | "png" | "webp"))
+        .unwrap_or(false);
+    if !ext_ok {
+        return Err("only jpg/jpeg/png/webp are supported".into());
+    }
+    if !p.is_file() {
+        return Err(format!("not a file: {path}"));
+    }
+    std::fs::read(&p).map_err(|e| e.to_string())
+}
+
+/// Replace the cover with bytes the frontend just produced (resize +
+/// re-encode through the `image` crate so the read-cover path stays
+/// uniformly JPEG).
+#[tauri::command]
+pub(crate) fn set_series_cover(pid: i64, bytes: Vec<u8>) -> Result<(), String> {
+    let root = data_root();
+    let dest = root.join("covers").join(format!("{pid}.jpg"));
+    if let Some(parent) = dest.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    let img = image::load_from_memory(&bytes).map_err(|e| format!("decode: {e}"))?;
+    let max_w = 600u32;
+    let scaled = if img.width() > max_w {
+        img.resize(max_w, u32::MAX, image::imageops::FilterType::Triangle)
+    } else {
+        img
+    };
+    let mut out = std::fs::File::create(&dest).map_err(|e| e.to_string())?;
+    scaled
+        .to_rgb8()
+        .write_with_encoder(image::codecs::jpeg::JpegEncoder::new_with_quality(&mut out, 88))
+        .map_err(|e| format!("encode: {e}"))?;
+
+    // Make sure series.cover_path points at the canonical file.
+    let conn = db::open(&root)?;
+    let rel = format!("covers/{pid}.jpg");
+    conn.execute(
+        "UPDATE series SET cover_path = ?2 WHERE pid = ?1",
+        rusqlite::params![pid, rel],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -550,5 +697,70 @@ mod tests {
         let d = get_series_inner(&conn, 7).unwrap();
         assert_eq!(d.pid, 7);
         assert_eq!(d.name, "Hello");
+    }
+
+    // ── Editor ─────────────────────────────────────────────────────
+
+    #[test]
+    fn update_series_patches_only_supplied_fields() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        insert_test_series(&conn, 100, "Old", "manga", 1, 0, None, None, None);
+
+        let patch = SeriesPatch {
+            name: Some("New Name".into()),
+            info: Some("Synopsis here".into()),
+            ..Default::default()
+        };
+        update_series_inner(&conn, 100, patch).unwrap();
+        let (name, info, author): (String, String, String) = conn
+            .query_row(
+                "SELECT name, info, COALESCE(author_name,'') FROM series WHERE pid=100",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(name, "New Name");
+        assert_eq!(info, "Synopsis here");
+        assert_eq!(author, ""); // untouched
+    }
+
+    #[test]
+    fn update_series_rejects_blank_name() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        insert_test_series(&conn, 1, "X", "manga", 0, 0, None, None, None);
+        let patch = SeriesPatch { name: Some("   ".into()), ..Default::default() };
+        assert!(update_series_inner(&conn, 1, patch).is_err());
+    }
+
+    #[test]
+    fn delete_series_force_drops_rows_and_files() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        insert_test_series(&conn, 200, "Wipe Me", "manga", 1, 0, None, None, None);
+        insert_test_chapter(&conn, "200-1", 200, 1.0, "Ch 1", 1, "manga/200/200-1.pdf", 5);
+
+        // Create the file so we can assert it goes away.
+        let pdf_dir = root.join("manga").join("200");
+        std::fs::create_dir_all(&pdf_dir).unwrap();
+        let pdf = pdf_dir.join("200-1.pdf");
+        std::fs::write(&pdf, b"%PDF-1.4").unwrap();
+        let cover = root.join("covers").join("200.jpg");
+        std::fs::create_dir_all(cover.parent().unwrap()).unwrap();
+        std::fs::write(&cover, b"x").unwrap();
+
+        delete_series_force_inner(&conn, &root, 200).unwrap();
+
+        let n: i64 = conn
+            .query_row("SELECT COUNT(*) FROM series WHERE pid=200", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(n, 0);
+        let c: i64 = conn
+            .query_row("SELECT COUNT(*) FROM chapters WHERE pid=200", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(c, 0);
+        assert!(!pdf.exists());
+        assert!(!cover.exists());
     }
 }

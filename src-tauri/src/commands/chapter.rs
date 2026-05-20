@@ -388,6 +388,88 @@ pub(crate) fn rescan_chapter_files(pid: i64, kind: String) -> Result<i64, String
     Ok(updated)
 }
 
+// ── Editor: update / delete chapter ─────────────────────────────────
+
+#[derive(serde::Deserialize, Default)]
+pub(crate) struct ChapterPatch {
+    pub title: Option<String>,
+    pub chapter_no: Option<f64>,
+}
+
+pub(crate) fn update_chapter_inner(
+    conn: &Connection,
+    chapter_id: &str,
+    patch: ChapterPatch,
+) -> Result<(), String> {
+    let mut sets: Vec<&str> = Vec::new();
+    let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
+    if let Some(v) = patch.title { sets.push("title = ?"); params.push(Box::new(v)); }
+    if let Some(v) = patch.chapter_no {
+        sets.push("chapter_no = ?");
+        params.push(Box::new(v));
+    }
+    if sets.is_empty() { return Ok(()); }
+    let sql = format!("UPDATE chapters SET {} WHERE chapter_id = ?", sets.join(", "));
+    params.push(Box::new(chapter_id.to_string()));
+    let refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|b| b.as_ref()).collect();
+    conn.execute(&sql, refs.as_slice()).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub(crate) fn update_chapter(chapter_id: String, patch: ChapterPatch) -> Result<(), String> {
+    let conn = db::open(&data_root())?;
+    update_chapter_inner(&conn, &chapter_id, patch)
+}
+
+/// Drop a chapter row and remove the underlying file(s). Resyncs the
+/// parent series's counts so the library card stays accurate.
+pub(crate) fn delete_chapter_inner(
+    conn: &Connection,
+    root: &std::path::Path,
+    chapter_id: &str,
+) -> Result<(), String> {
+    let row: Option<(i64, String)> = conn
+        .query_row(
+            "SELECT pid, COALESCE(pdf_path,'') FROM chapters WHERE chapter_id=?1",
+            rusqlite::params![chapter_id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .ok();
+    let Some((pid, stored)) = row else { return Err(format!("chapter not found: {chapter_id}")); };
+
+    let _ = conn.execute("DELETE FROM bookmarks WHERE chapter_id=?1", rusqlite::params![chapter_id]);
+    let _ = conn.execute("DELETE FROM reading_log WHERE chapter_id=?1", rusqlite::params![chapter_id]);
+    conn.execute("DELETE FROM chapters WHERE chapter_id=?1", rusqlite::params![chapter_id])
+        .map_err(|e| e.to_string())?;
+
+    if !stored.is_empty() {
+        let p = crate::app_config::resolve_stored_path(&stored, root);
+        if p.is_dir() {
+            let _ = std::fs::remove_dir_all(&p);
+        } else if p.is_file() {
+            let _ = std::fs::remove_file(&p);
+        }
+    }
+
+    let _ = conn.execute(
+        "UPDATE series
+         SET chapter_count       = (SELECT COUNT(*) FROM chapters WHERE pid=?1),
+             local_chapter_count = (SELECT COUNT(*) FROM chapters WHERE pid=?1 AND is_downloaded=1),
+             last_chapter_no     = (SELECT COALESCE(MAX(chapter_no), 0) FROM chapters WHERE pid=?1)
+         WHERE pid=?1",
+        rusqlite::params![pid],
+    );
+    Ok(())
+}
+
+#[tauri::command]
+pub(crate) fn delete_chapter(chapter_id: String) -> Result<(), String> {
+    let root = data_root();
+    let conn = db::open(&root)?;
+    delete_chapter_inner(&conn, &root, &chapter_id)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -479,5 +561,61 @@ mod tests {
             .query_row("SELECT page_count FROM chapters WHERE chapter_id='z'", [], |r| r.get(0))
             .unwrap();
         assert_eq!(z, 17);
+    }
+
+    #[test]
+    fn update_chapter_patches_title_and_chapter_no() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        insert_test_series(&conn, 1, "S", "manga", 1, 0, None, None, None);
+        insert_test_chapter(&conn, "1-1", 1, 1.0, "Old", 1, "manga/1/1-1.pdf", 0);
+
+        update_chapter_inner(&conn, "1-1", ChapterPatch {
+            title: Some("New Title".into()),
+            chapter_no: Some(1.5),
+        }).unwrap();
+
+        let (title, no): (String, f64) = conn
+            .query_row("SELECT title, chapter_no FROM chapters WHERE chapter_id='1-1'", [], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })
+            .unwrap();
+        assert_eq!(title, "New Title");
+        assert!((no - 1.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn delete_chapter_removes_row_and_file() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        insert_test_series(&conn, 1, "S", "manga", 1, 0, None, None, None);
+        insert_test_chapter(&conn, "1-1", 1, 1.0, "Ch1", 1, "manga/1/1-1.pdf", 1);
+
+        let dir = root.join("manga").join("1");
+        std::fs::create_dir_all(&dir).unwrap();
+        let f = dir.join("1-1.pdf");
+        std::fs::write(&f, b"%PDF").unwrap();
+
+        delete_chapter_inner(&conn, &root, "1-1").unwrap();
+        let n: i64 = conn
+            .query_row("SELECT COUNT(*) FROM chapters WHERE chapter_id='1-1'", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(n, 0);
+        assert!(!f.exists());
+    }
+
+    #[test]
+    fn delete_chapter_resyncs_series_counts() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        insert_test_series(&conn, 1, "S", "manga", 2, 0, None, None, None);
+        insert_test_chapter(&conn, "1-1", 1, 1.0, "A", 1, "manga/1/1-1.pdf", 1);
+        insert_test_chapter(&conn, "1-2", 1, 2.0, "B", 1, "manga/1/1-2.pdf", 1);
+
+        delete_chapter_inner(&conn, &root, "1-2").unwrap();
+        let count: i64 = conn
+            .query_row("SELECT chapter_count FROM series WHERE pid=1", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 1);
     }
 }

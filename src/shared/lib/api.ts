@@ -218,6 +218,56 @@ export async function finalizeMoveData(deleteSource: boolean): Promise<void> {
   await invoke('finalize_move_data', { deleteSource });
 }
 
+export type SeriesPatch = {
+  name?: string;
+  alias?: string;
+  info?: string;
+  authorName?: string;
+  artistName?: string;
+  status?: number;
+};
+
+export async function updateSeries(pid: number, patch: SeriesPatch): Promise<void> {
+  await invoke('update_series', {
+    pid,
+    patch: {
+      name: patch.name,
+      alias: patch.alias,
+      info: patch.info,
+      author_name: patch.authorName,
+      artist_name: patch.artistName,
+      status: patch.status,
+    },
+  });
+}
+
+export async function deleteSeriesForce(pid: number): Promise<void> {
+  await invoke('delete_series_force', { pid });
+}
+
+export async function setSeriesCover(pid: number, bytes: Uint8Array | number[]): Promise<void> {
+  const arr = bytes instanceof Uint8Array ? Array.from(bytes) : bytes;
+  await invoke('set_series_cover', { pid, bytes: arr });
+}
+
+export async function readCoverSource(path: string): Promise<Uint8Array> {
+  const bytes = await invoke<number[]>('read_cover_source', { path });
+  return new Uint8Array(bytes);
+}
+
+export type ChapterPatch = { title?: string; chapterNo?: number };
+
+export async function updateChapter(chapterId: string, patch: ChapterPatch): Promise<void> {
+  await invoke('update_chapter', {
+    chapterId,
+    patch: { title: patch.title, chapter_no: patch.chapterNo },
+  });
+}
+
+export async function deleteChapter(chapterId: string): Promise<void> {
+  await invoke('delete_chapter', { chapterId });
+}
+
 export type PdfImportArgs = {
   srcPath: string;
   seriesName: string;

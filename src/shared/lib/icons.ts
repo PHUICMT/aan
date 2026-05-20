@@ -19,6 +19,8 @@ export const ICON_PATHS: Record<string, string> = {
     '<path d="M16 16h5v5"/>',
   minus:    '<line x1="5" y1="12" x2="19" y2="12"/>',
   plus:     '<line x1="5" y1="12" x2="19" y2="12"/><line x1="12" y1="5" x2="12" y2="19"/>',
+  pencil:
+    '<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>',
   square:   '<rect x="4" y="4" width="16" height="16" rx="2"/>',
   copy:     '<rect x="4" y="4" width="14" height="14" rx="2"/><rect x="8" y="8" width="14" height="14" rx="2"/>',
   inbox:

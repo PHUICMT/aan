@@ -5,6 +5,7 @@
   import { tooltip } from '../../shared/lib/tooltip';
   import BackButton from '../../shared/components/BackButton.svelte';
   import ChapterRow from '../series/ChapterRow.svelte';
+  import SeriesEditModal from './SeriesEditModal.svelte';
   import Shimmer from '../../shared/components/Shimmer.svelte';
   import Icon from '../../shared/components/Icon.svelte';
   import {
@@ -18,7 +19,7 @@
   import { getCoverUrl } from '../../shared/lib/covers';
   import { STATUS_KEY, TYPE_CHIP, READING_STATUSES } from '../../shared/lib/constants';
   import { t } from '../../shared/lib/i18n.svelte';
-  import { app, bumpSeriesMutation, setReaderChapters, openReader } from '../../shared/lib/store.svelte';
+  import { app, bumpSeriesMutation, setReaderChapters, openReader, goBack } from '../../shared/lib/store.svelte';
   import type { Chapter, SeriesDetail } from '../../shared/lib/types';
   import { portal, anchorBelow } from '../../shared/lib/portal';
 
@@ -28,6 +29,21 @@
   //───── State ─────
   let detail = $state<SeriesDetail | null>(null);
   let chapters = $state<Chapter[]>([]);
+  let editorOpen = $state(false);
+
+  async function onEditorSaved() {
+    editorOpen = false;
+    if (detail) {
+      try { detail = await getSeries(detail.pid); }
+      catch { /* keep stale data; the bump below will refresh the library */ }
+    }
+    bumpSeriesMutation();
+  }
+  function onSeriesDeleted() {
+    editorOpen = false;
+    bumpSeriesMutation();
+    goBack();
+  }
   // Two-effect refresh on reader progress tick: capture, then drain
   // once detail is loaded — so ticks fired pre-load aren't dropped.
   let lastProgressTick = $state(app.chapterProgressTick);
@@ -344,6 +360,15 @@
           >
             <Icon name="folder" size={13} />
           </button>
+          <button
+            class="head-btn icon-only"
+            onclick={() => (editorOpen = true)}
+            use:tooltip={t('series.edit')}
+            aria-label={t('series.edit')}
+            data-test="series-edit"
+          >
+            <Icon name="pencil" size={13} />
+          </button>
         </div>
 
         {#if detail.tags && detail.tags.length > 0}
@@ -412,6 +437,15 @@
     {/if}
   {/if}
 </div>
+
+{#if editorOpen && detail}
+  <SeriesEditModal
+    series={detail}
+    onClose={() => (editorOpen = false)}
+    onSaved={onEditorSaved}
+    onDeleted={onSeriesDeleted}
+  />
+{/if}
 
 <style>
   .page { padding: 18px 40px 40px; height: 100%; overflow-y: auto; }

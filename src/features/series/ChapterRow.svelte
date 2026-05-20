@@ -2,8 +2,13 @@
   import Icon from '../../shared/components/Icon.svelte';
   import { tooltip } from '../../shared/lib/tooltip';
   import { t } from '../../shared/lib/i18n.svelte';
-  import { openReader } from '../../shared/lib/store.svelte';
-  import { convertChapterToPdf, convertChapterToImages } from '../../shared/lib/api';
+  import { openReader, bumpSeriesMutation } from '../../shared/lib/store.svelte';
+  import {
+    convertChapterToPdf,
+    convertChapterToImages,
+    updateChapter,
+    deleteChapter,
+  } from '../../shared/lib/api';
   import type { Chapter } from '../../shared/lib/types';
 
   type Props = {
@@ -40,6 +45,51 @@
   let converting = $state(false);
   let confirming = $state(false);
   let confirmTimer: ReturnType<typeof setTimeout> | null = null;
+  let editing = $state(false);
+  let editTitle = $state(chapter.title ?? '');
+  let editChapterNo = $state<number>(chapter.chapter_no);
+  let savingEdit = $state(false);
+  let confirmingDelete = $state(false);
+  let deleteTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function startEdit() {
+    editTitle = chapter.title ?? '';
+    editChapterNo = chapter.chapter_no;
+    editing = true;
+  }
+  function cancelEdit() { editing = false; }
+  async function saveEdit() {
+    if (savingEdit) return;
+    savingEdit = true;
+    try {
+      await updateChapter(chapter.chapter_id, {
+        title: editTitle,
+        chapterNo: editChapterNo,
+      });
+      chapter = { ...chapter, title: editTitle, chapter_no: editChapterNo };
+      editing = false;
+    } catch (e) {
+      console.warn('chapter update failed', e);
+    } finally {
+      savingEdit = false;
+    }
+  }
+
+  function askDelete() {
+    confirmingDelete = true;
+    if (deleteTimer) clearTimeout(deleteTimer);
+    deleteTimer = setTimeout(() => (confirmingDelete = false), 4000);
+  }
+  async function doDelete() {
+    confirmingDelete = false;
+    if (deleteTimer) clearTimeout(deleteTimer);
+    try {
+      await deleteChapter(chapter.chapter_id);
+      bumpSeriesMutation();
+    } catch (e) {
+      console.warn('chapter delete failed', e);
+    }
+  }
 
   function askConvert() {
     if (converting) return;
@@ -98,9 +148,30 @@
       {#if selected}<Icon name="check" size={11} />{/if}
     </button>
   {/if}
-  <div class="no">{t('series.ch_no')} {chapter.chapter_no}</div>
+  <div class="no">
+    {#if editing}
+      <input
+        class="inline-input small"
+        type="number"
+        step="0.1"
+        bind:value={editChapterNo}
+        onkeydown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+      />
+    {:else}
+      {t('series.ch_no')} {chapter.chapter_no}
+    {/if}
+  </div>
   <div class="title">
-    <span class="title-text">{chapter.title || '—'}</span>
+    {#if editing}
+      <input
+        class="inline-input"
+        bind:value={editTitle}
+        placeholder={t('series.edit.chapter_title') ?? 'Title'}
+        onkeydown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+      />
+    {:else}
+      <span class="title-text">{chapter.title || '—'}</span>
+    {/if}
     {#if isPdf}
       <span class="fmt-chip pdf" use:tooltip={t('chapter.fmt.pdf')}>PDF</span>
     {:else if isImageDir}
@@ -120,7 +191,42 @@
   </div>
   <div class="date">{dateText}</div>
   <div class="actions">
-    {#if isLocal}
+    {#if editing}
+      <button class="confirm-yes" disabled={savingEdit} onclick={saveEdit}>
+        <Icon name="check" size={11} />
+        {t('series.edit.save')}
+      </button>
+      <button class="confirm-no" onclick={cancelEdit} aria-label={t('common.cancel')}>
+        <Icon name="x" size={10} />
+      </button>
+    {:else if confirmingDelete}
+      <button class="confirm-yes danger" onclick={doDelete}>
+        <Icon name="trash" size={11} />
+        {t('series.edit.delete_now')}
+      </button>
+      <button class="confirm-no" onclick={() => (confirmingDelete = false)} aria-label={t('common.cancel')}>
+        <Icon name="x" size={10} />
+      </button>
+    {:else if !selectMode}
+      <button
+        class="redl"
+        onclick={startEdit}
+        use:tooltip={t('series.edit.chapter')}
+        aria-label={t('series.edit.chapter')}
+        data-test={`chapter-edit-${chapter.chapter_id}`}
+      >
+        <Icon name="pencil" size={11} />
+      </button>
+      <button
+        class="redl danger"
+        onclick={askDelete}
+        use:tooltip={t('series.edit.delete')}
+        aria-label={t('series.edit.delete')}
+      >
+        <Icon name="trash" size={11} />
+      </button>
+    {/if}
+    {#if isLocal && !editing && !confirmingDelete}
       <button class="read" onclick={() => openReader(chapter)} data-test={`chapter-read-${chapter.chapter_id}`}>
         <Icon name="book" size={12} />
         {t('series.read')}
@@ -276,4 +382,18 @@
     transition: background 0.15s var(--ease-out);
   }
   .confirm-no:hover { background: rgba(255,255,255,0.14); color: var(--text); }
+  .confirm-yes.danger { background: #ef4444; }
+  .inline-input {
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    width: 100%;
+    font-family: inherit;
+  }
+  .inline-input.small { width: 70px; }
+  .inline-input:focus { outline: none; border-color: var(--accent); }
+  .redl.danger:hover { background: #ef4444; color: #fff; }
 </style>
