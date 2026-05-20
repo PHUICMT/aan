@@ -11,14 +11,15 @@
   import TraySection from './sections/TraySection.svelte';
   import WatchFoldersSection from './sections/WatchFoldersSection.svelte';
   import ResetSection from './sections/ResetSection.svelte';
+  import BackupSection from './sections/BackupSection.svelte';
 
   //───── Collapse + search ─────
   type SectionId =
     | 'general' | 'appearance' | 'typography'
-    | 'datafolder' | 'watch' | 'auto' | 'reset';
+    | 'datafolder' | 'watch' | 'auto' | 'backup' | 'reset';
   const SECTION_IDS: SectionId[] = [
     'general', 'appearance', 'typography',
-    'datafolder', 'watch', 'auto', 'reset',
+    'datafolder', 'watch', 'auto', 'backup', 'reset',
   ];
 
   function loadCollapsed(): Record<SectionId, boolean> {
@@ -68,6 +69,7 @@
   const visWatch = $derived(matches(t('settings.section.watch'), t('settings.watch.desc'), 'watch', 'monitor', 'เฝ้า'));
   const visTray = $derived(matches(t('settings.tray.close_to_tray.title'), t('settings.tray.close_to_tray.desc')));
   const visReset = $derived(matches(t('settings.reset.title'), t('settings.reset.desc')));
+  const visBackup = $derived(matches(t('settings.section.backup'), t('settings.backup.desc'), 'backup', 'restore', 'สำรอง'));
 
   const secVisGeneral    = $derived(!searching || visLang);
   const secVisAppearance = $derived(!searching || visTheme);
@@ -76,6 +78,7 @@
   const secVisWatch      = $derived(!searching || visWatch);
   const secVisAuto       = $derived(!searching || visTray);
   const secVisReset      = $derived(!searching || visReset);
+  const secVisBackup     = $derived(!searching || visBackup);
 
   // Force-expand sections while searching so hits are always visible.
   const openGeneral    = $derived(searching || !collapsed.general);
@@ -85,11 +88,12 @@
   const openWatch      = $derived(searching || !collapsed.watch);
   const openAuto       = $derived(searching || !collapsed.auto);
   const openReset      = $derived(searching || !collapsed.reset);
+  const openBackup     = $derived(searching || !collapsed.backup);
 
   const anyVisible = $derived(
     !searching ||
     secVisGeneral || secVisAppearance || secVisTypography ||
-    secVisDataFolder || secVisWatch || secVisAuto || secVisReset,
+    secVisDataFolder || secVisWatch || secVisAuto || secVisBackup || secVisReset,
   );
 </script>
 
@@ -173,6 +177,15 @@
     query={q}
     onToggle={() => toggle('auto')}
   />
+
+  {#if secVisBackup}
+    <BackupSection
+      open={openBackup}
+      {searching}
+      query={q}
+      onToggle={() => toggle('backup')}
+    />
+  {/if}
 
   <ResetSection
     open={openReset}

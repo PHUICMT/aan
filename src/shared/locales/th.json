@@ -348,5 +348,21 @@
   "novel.override.active": "ค่านี้ใช้กับเล่มนี้เท่านั้น",
   "novel.override.inactive": "กำลังใช้ค่าตั้งต้นของแอป",
   "novel.override.save": "บันทึกสำหรับเล่มนี้",
-  "novel.override.clear": "ใช้ค่าตั้งต้น"
+  "novel.override.clear": "ใช้ค่าตั้งต้น",
+
+  "settings.section.backup": "สำรอง / กู้คืน",
+  "settings.backup.desc": "บันทึกหรือกู้คืนคลังทั้งหมดเป็นไฟล์ .aan.zip ไฟล์เดียว",
+  "settings.backup.create.title": "สร้างไฟล์สำรอง",
+  "settings.backup.create.desc": "รวม library.db + covers + manga + novel + fonts เป็นไฟล์เดียว",
+  "settings.backup.create.cta": "สร้างไฟล์สำรอง…",
+  "settings.backup.creating": "กำลังสร้าง…",
+  "settings.backup.created": "บันทึกแล้ว · {n} ไฟล์ · {b}",
+  "settings.backup.restore.title": "กู้คืนจากไฟล์สำรอง",
+  "settings.backup.restore.desc": "การกู้คืนจะแทนที่ข้อมูลปัจจุบันทั้งหมด ย้อนกลับไม่ได้",
+  "settings.backup.restore.pick": "เลือกไฟล์ .aan.zip…",
+  "settings.backup.restore.arm": "กู้คืนไฟล์นี้",
+  "settings.backup.restore.confirm": "แทนที่คลังปัจจุบันด้วยไฟล์สำรองนี้?",
+  "settings.backup.restore.confirm_cta": "ใช่ แทนที่",
+  "settings.backup.restoring": "กำลังกู้คืน…",
+  "settings.backup.preview": "{n} ไฟล์ · {b} · สร้าง {when}"
 }

@@ -25,7 +25,7 @@ npm run e2e:report                     # open the HTML report
 
 ## Test catalogue
 
-> 35 tests across 17 spec files. Runtime ≈ 35 seconds.
+> 38 tests across 18 spec files. Runtime ≈ 37 seconds.
 
 ### `smoke.spec.ts`
 Sanity that the suite is wired right.
@@ -101,6 +101,14 @@ Novel highlights persist as rows in the `annotations` table, get re-applied as `
 - **annotations created via command surface as wrappers + panel rows** — `add_annotation` twice in different colours, opens the panel, asserts both rows render with the right colour class.
 - **annotation list survives chapter swap and reload** — adds one with a note, reloads the app cold, re-enters the chapter, asserts the row + note are still there.
 - **export_series_annotations_md emits chapter-grouped markdown** — adds two annotations, calls the export command, asserts the markdown contains `## Chapter` headings + both snippets.
+
+### `backup.spec.ts`
+
+Bundle the data root into a `.aan.zip` archive (library.db + covers + manga + novel + fonts + manifest.json). Restore is destructive — we don't exercise it end-to-end because it would wipe the fixture mid-suite.
+
+- **create_backup writes a zip containing the manifest** — invokes the command into a tmp dir, asserts the file exists + starts with the ZIP magic bytes.
+- **read_backup_metadata returns the manifest fields** — creates a backup, reads it back, asserts `version`/`app`/`files`/`created_at` are populated.
+- **read_backup_metadata rejects a non-aan zip** — feeds a junk file in, expects an error string.
 
 ### `novel-override.spec.ts` *(mutates — cleans up in afterEach)*
 

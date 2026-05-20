@@ -196,6 +196,9 @@ pub fn run() {
             commands::annotations::remove_annotation,
             commands::annotations::export_series_annotations_md,
             commands::shell::save_text_file,
+            commands::backup::create_backup,
+            commands::backup::read_backup_metadata,
+            commands::backup::restore_backup,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

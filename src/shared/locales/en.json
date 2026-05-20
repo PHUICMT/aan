@@ -371,5 +371,21 @@
   "novel.override.active": "These settings apply to this book only",
   "novel.override.inactive": "Currently using your global defaults",
   "novel.override.save": "Save for this book",
-  "novel.override.clear": "Use defaults"
+  "novel.override.clear": "Use defaults",
+
+  "settings.section.backup": "Backup & restore",
+  "settings.backup.desc": "Snapshot or rebuild your library from a single .aan.zip file.",
+  "settings.backup.create.title": "Create backup",
+  "settings.backup.create.desc": "Saves library.db + covers + manga + novel + fonts into one archive.",
+  "settings.backup.create.cta": "Create backup…",
+  "settings.backup.creating": "Creating…",
+  "settings.backup.created": "Backup saved · {n} files · {b}",
+  "settings.backup.restore.title": "Restore from backup",
+  "settings.backup.restore.desc": "This replaces your current library with the chosen backup. It cannot be undone.",
+  "settings.backup.restore.pick": "Choose .aan.zip…",
+  "settings.backup.restore.arm": "Restore this backup",
+  "settings.backup.restore.confirm": "Replace the current library with this backup?",
+  "settings.backup.restore.confirm_cta": "Yes, replace",
+  "settings.backup.restoring": "Restoring…",
+  "settings.backup.preview": "{n} files · {b} · created {when}"
 }

@@ -371,6 +371,25 @@ export async function importEpub(input: EpubImportArgs): Promise<ImportedEpub> {
   });
 }
 
+export type BackupStats = { files: number; bytes: number };
+export type BackupMetadata = {
+  version: number;
+  created_at: string;
+  app: string;
+  files: number;
+  bytes: number;
+};
+
+export async function createBackup(destPath: string): Promise<BackupStats> {
+  return await invoke<BackupStats>('create_backup', { destPath });
+}
+export async function readBackupMetadata(srcPath: string): Promise<BackupMetadata> {
+  return await invoke<BackupMetadata>('read_backup_metadata', { srcPath });
+}
+export async function restoreBackup(srcPath: string): Promise<BackupStats> {
+  return await invoke<BackupStats>('restore_backup', { srcPath });
+}
+
 export type Annotation = {
   id: number;
   chapter_id: string;
