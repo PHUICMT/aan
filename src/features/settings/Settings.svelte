@@ -13,14 +13,15 @@
   import ResetSection from './sections/ResetSection.svelte';
   import BackupSection from './sections/BackupSection.svelte';
   import DictionariesSection from './sections/DictionariesSection.svelte';
+  import TagsSection from './sections/TagsSection.svelte';
 
   //───── Collapse + search ─────
   type SectionId =
     | 'general' | 'appearance' | 'typography'
-    | 'datafolder' | 'watch' | 'auto' | 'dicts' | 'backup' | 'reset';
+    | 'datafolder' | 'watch' | 'auto' | 'tags' | 'dicts' | 'backup' | 'reset';
   const SECTION_IDS: SectionId[] = [
     'general', 'appearance', 'typography',
-    'datafolder', 'watch', 'auto', 'dicts', 'backup', 'reset',
+    'datafolder', 'watch', 'auto', 'tags', 'dicts', 'backup', 'reset',
   ];
 
   function loadCollapsed(): Record<SectionId, boolean> {
@@ -72,6 +73,7 @@
   const visReset = $derived(matches(t('settings.reset.title'), t('settings.reset.desc')));
   const visBackup = $derived(matches(t('settings.section.backup'), t('settings.backup.desc'), 'backup', 'restore', 'สำรอง'));
   const visDicts  = $derived(matches(t('settings.section.dicts'), t('settings.dicts.desc'), 'dictionary', 'พจนานุกรม', 'lookup'));
+  const visTags   = $derived(matches(t('settings.section.tags'), t('settings.tags.desc'), 'tag', 'แท็ก'));
 
   const secVisGeneral    = $derived(!searching || visLang);
   const secVisAppearance = $derived(!searching || visTheme);
@@ -82,6 +84,7 @@
   const secVisReset      = $derived(!searching || visReset);
   const secVisBackup     = $derived(!searching || visBackup);
   const secVisDicts      = $derived(!searching || visDicts);
+  const secVisTags       = $derived(!searching || visTags);
 
   // Force-expand sections while searching so hits are always visible.
   const openGeneral    = $derived(searching || !collapsed.general);
@@ -93,11 +96,12 @@
   const openReset      = $derived(searching || !collapsed.reset);
   const openBackup     = $derived(searching || !collapsed.backup);
   const openDicts      = $derived(searching || !collapsed.dicts);
+  const openTags       = $derived(searching || !collapsed.tags);
 
   const anyVisible = $derived(
     !searching ||
     secVisGeneral || secVisAppearance || secVisTypography ||
-    secVisDataFolder || secVisWatch || secVisAuto || secVisDicts || secVisBackup || secVisReset,
+    secVisDataFolder || secVisWatch || secVisAuto || secVisTags || secVisDicts || secVisBackup || secVisReset,
   );
 </script>
 
@@ -181,6 +185,15 @@
     query={q}
     onToggle={() => toggle('auto')}
   />
+
+  {#if secVisTags}
+    <TagsSection
+      open={openTags}
+      {searching}
+      query={q}
+      onToggle={() => toggle('tags')}
+    />
+  {/if}
 
   {#if secVisDicts}
     <DictionariesSection

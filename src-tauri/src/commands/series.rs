@@ -182,6 +182,86 @@ pub(crate) fn list_tags() -> Result<Vec<TagCount>, String> {
     list_tags_inner(&conn)
 }
 
+/// Rename a tag. If `to` already exists, merges sources into the target row
+/// (relinks series_tags, dedupes, drops the orphan). Returns the new (or
+/// existing) tag's name.
+pub(crate) fn rename_tag_inner(conn: &Connection, from: &str, to: &str) -> Result<String, String> {
+    let from = from.trim();
+    let to = to.trim();
+    if from.is_empty() || to.is_empty() {
+        return Err("tag name cannot be empty".into());
+    }
+    if from == to { return Ok(to.to_string()); }
+    let src_id: i64 = conn
+        .query_row("SELECT id FROM tags WHERE name = ?1", rusqlite::params![from], |r| r.get(0))
+        .map_err(|_| format!("tag not found: {from}"))?;
+    let dest_id: Option<i64> = conn
+        .query_row("SELECT id FROM tags WHERE name = ?1", rusqlite::params![to], |r| r.get(0))
+        .ok();
+    if let Some(dest) = dest_id {
+        // Merge: copy unique pids, drop the source links, drop the source row.
+        conn.execute(
+            "INSERT OR IGNORE INTO series_tags (pid, tag_id) \
+             SELECT pid, ?1 FROM series_tags WHERE tag_id = ?2",
+            rusqlite::params![dest, src_id],
+        ).map_err(|e| e.to_string())?;
+        conn.execute("DELETE FROM series_tags WHERE tag_id = ?1", rusqlite::params![src_id])
+            .map_err(|e| e.to_string())?;
+        conn.execute("DELETE FROM tags WHERE id = ?1", rusqlite::params![src_id])
+            .map_err(|e| e.to_string())?;
+    } else {
+        conn.execute("UPDATE tags SET name = ?1 WHERE id = ?2", rusqlite::params![to, src_id])
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(to.to_string())
+}
+
+#[tauri::command]
+pub(crate) fn rename_tag(from: String, to: String) -> Result<String, String> {
+    let conn = db::open(&data_root())?;
+    rename_tag_inner(&conn, &from, &to)
+}
+
+pub(crate) fn delete_tag_inner(conn: &Connection, name: &str) -> Result<(), String> {
+    let name = name.trim();
+    if name.is_empty() { return Err("tag name cannot be empty".into()); }
+    let id: i64 = conn
+        .query_row("SELECT id FROM tags WHERE name = ?1", rusqlite::params![name], |r| r.get(0))
+        .map_err(|_| format!("tag not found: {name}"))?;
+    conn.execute("DELETE FROM series_tags WHERE tag_id = ?1", rusqlite::params![id])
+        .map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM tags WHERE id = ?1", rusqlite::params![id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub(crate) fn delete_tag(name: String) -> Result<(), String> {
+    let conn = db::open(&data_root())?;
+    delete_tag_inner(&conn, &name)
+}
+
+/// Merge multiple source tags into `target`. Creates target if missing.
+/// Returns the final tag name.
+pub(crate) fn merge_tags_inner(conn: &Connection, sources: &[String], target: &str) -> Result<String, String> {
+    let target = target.trim();
+    if target.is_empty() { return Err("target name cannot be empty".into()); }
+    conn.execute("INSERT OR IGNORE INTO tags (name) VALUES (?1)", rusqlite::params![target])
+        .map_err(|e| e.to_string())?;
+    for s in sources {
+        let s = s.trim();
+        if s.is_empty() || s == target { continue; }
+        rename_tag_inner(conn, s, target)?;
+    }
+    Ok(target.to_string())
+}
+
+#[tauri::command]
+pub(crate) fn merge_tags(sources: Vec<String>, target: String) -> Result<String, String> {
+    let conn = db::open(&data_root())?;
+    merge_tags_inner(&conn, &sources, &target)
+}
+
 #[tauri::command]
 pub(crate) fn set_series_favorite(pid: i64, fav: bool) -> Result<(), String> {
     let conn = db::open(&data_root())?;

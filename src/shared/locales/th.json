@@ -1,6 +1,7 @@
 {
   "common.cancel": "ยกเลิก",
   "common.close": "ปิด",
+  "common.loading": "กำลังโหลด…",
   "library.import.label": "นำเข้า",
   "library.import.tooltip": "นำเข้าไฟล์หรือโฟลเดอร์เข้าสู่คลัง",
   "library.import.menu_files": "เลือกไฟล์ (PDF / CBZ / EPUB / TXT)…",
@@ -383,6 +384,20 @@
   "settings.backup.restore.confirm_cta": "ใช่ แทนที่",
   "settings.backup.restoring": "กำลังกู้คืน…",
   "settings.backup.preview": "{n} ไฟล์ · {b} · สร้าง {when}",
+
+  "settings.section.tags": "แท็ก",
+  "settings.tags.desc": "เปลี่ยนชื่อ รวม หรือลบแท็กในไลบรารี",
+  "settings.tags.search": "ค้นหาแท็ก…",
+  "settings.tags.empty": "ยังไม่มีแท็ก — เพิ่มได้ตอน import",
+  "settings.tags.no_match": "ไม่มีแท็กที่ตรงกับการค้นหา",
+  "settings.tags.rename": "เปลี่ยนชื่อ",
+  "settings.tags.save": "บันทึก",
+  "settings.tags.delete": "ลบแท็ก",
+  "settings.tags.delete_confirm": "ลบ?",
+  "settings.tags.merge_mode": "รวม",
+  "settings.tags.merge": "รวม",
+  "settings.tags.merge_target": "ชื่อแท็กปลายทาง…",
+  "settings.tags.selected": "เลือก",
 
   "settings.section.dicts": "พจนานุกรม",
   "settings.dicts.title": "พจนานุกรมที่ติดตั้ง",

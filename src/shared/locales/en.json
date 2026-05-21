@@ -1,6 +1,7 @@
 {
   "common.cancel": "Cancel",
   "common.close": "Close",
+  "common.loading": "Loading…",
 
   "library.import.label": "Import",
   "library.import.tooltip": "Import files or folders into your library",
@@ -406,6 +407,20 @@
   "settings.backup.restore.confirm_cta": "Yes, replace",
   "settings.backup.restoring": "Restoring…",
   "settings.backup.preview": "{n} files · {b} · created {when}",
+
+  "settings.section.tags": "Tags",
+  "settings.tags.desc": "Rename, merge, or delete tags across your library.",
+  "settings.tags.search": "Search tags…",
+  "settings.tags.empty": "No tags yet — add some when importing.",
+  "settings.tags.no_match": "No tags match your search.",
+  "settings.tags.rename": "Rename",
+  "settings.tags.save": "Save",
+  "settings.tags.delete": "Delete tag",
+  "settings.tags.delete_confirm": "Delete?",
+  "settings.tags.merge_mode": "Merge",
+  "settings.tags.merge": "Merge",
+  "settings.tags.merge_target": "Target tag name…",
+  "settings.tags.selected": "selected",
 
   "settings.section.dicts": "Dictionaries",
   "settings.dicts.title": "Installed dictionaries",

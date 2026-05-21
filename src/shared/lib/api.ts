@@ -78,6 +78,18 @@ export async function listTags(): Promise<TagCount[]> {
   return await invoke<TagCount[]>('list_tags');
 }
 
+export async function renameTag(from: string, to: string): Promise<string> {
+  return await invoke<string>('rename_tag', { from, to });
+}
+
+export async function deleteTag(name: string): Promise<void> {
+  await invoke('delete_tag', { name });
+}
+
+export async function mergeTags(sources: string[], target: string): Promise<string> {
+  return await invoke<string>('merge_tags', { sources, target });
+}
+
 export async function setChapterProgress(chapterId: string, page: number): Promise<void> {
   await invoke('set_chapter_progress', { chapterId, page });
 }
