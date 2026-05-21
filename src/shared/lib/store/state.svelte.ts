@@ -183,6 +183,12 @@ export const app = $state({
   readerBrightness: clampFloat(localStorage.getItem('aan.reader.brightness'), 0.3, 1, 1),
   /** 0..0.6 — amber tint strength, composes with brightness. */
   readerWarmth: clampFloat(localStorage.getItem('aan.reader.warmth'), 0, 0.6, 0),
+  /** 'lazy' streams the PDF via asset:// + HTTP range requests (fast open
+   *  for huge files); 'eager' reads the full bytes through IPC upfront. */
+  pdfLoadMode: ((): 'lazy' | 'eager' => {
+    const v = localStorage.getItem('aan.reader.pdf_load_mode');
+    return v === 'eager' ? 'eager' : 'lazy';
+  })(),
   novelLayout: initialNovel.layout as NovelLayout,
   novelTheme: initialNovel.theme as NovelTheme,
   novelLineHeight: initialNovel.lineHeight,

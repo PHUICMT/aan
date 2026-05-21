@@ -82,6 +82,19 @@ pub(crate) fn list_chapters(pid: i64) -> Result<Vec<Chapter>, String> {
     list_chapters_inner(&conn, pid)
 }
 
+/// Resolve a project-root-relative chapter path to its absolute filesystem
+/// path so the frontend can ask Tauri's asset protocol to stream the file
+/// directly (range-request friendly — pdf.js will fetch only the bytes it
+/// needs instead of pulling the whole PDF over IPC).
+#[tauri::command]
+pub(crate) fn resolve_chapter_abs_path(pdf_path: String) -> Result<String, String> {
+    let path = resolve_path(&pdf_path);
+    if !path.exists() {
+        return Err(format!("file not found: {}", path.display()));
+    }
+    Ok(path.to_string_lossy().into_owned())
+}
+
 #[tauri::command]
 pub(crate) async fn read_chapter_bytes(pdf_path: String) -> Result<Vec<u8>, String> {
     // Loading a multi-hundred-MB PDF on the UI thread freezes the window

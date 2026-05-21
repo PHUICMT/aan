@@ -13,14 +13,17 @@
     listChapterImages, readImage,
     addBookmark, removeBookmark, listBookmarks,
     backfillChapterPageCount,
+    resolveChapterAbsPath,
   } from '../../shared/lib/api';
   import { takeChapterBytes } from '../../shared/lib/prefetch';
+  import { convertFileSrc } from '@tauri-apps/api/core';
   import { startReadingTimer, type ReadingTimer } from '../../shared/lib/reading-time';
   import { t } from '../../shared/lib/i18n.svelte';
   import type { Bookmark } from '../../shared/lib/types';
   import {
     app, registerReaderFlush,
     readerHasNext, readerHasPrev, readerNext, readerPrev,
+    setPdfLoadMode,
   } from '../../shared/lib/store.svelte';
   import { useReaderImmersive } from './composables/useReaderImmersive.svelte';
   import { useReaderZoom } from './composables/useReaderZoom.svelte';
@@ -496,8 +499,16 @@
         imageUrls = files.map((f) => `${dirName(pdfPath)}/${f}`);
         pageCount = files.length;
       } else {
-        const bytes = await takeChapterBytes(chapterId, pdfPath);
-        pdfDoc = await pdfjs.getDocument({ data: bytes }).promise;
+        if (app.pdfLoadMode === 'lazy') {
+          // Range-request streaming via the asset:// protocol: pdf.js
+          // pulls only the bytes it needs to render visible pages.
+          const abs = await resolveChapterAbsPath(pdfPath);
+          const url = convertFileSrc(abs);
+          pdfDoc = await pdfjs.getDocument({ url, withCredentials: false }).promise;
+        } else {
+          const bytes = await takeChapterBytes(chapterId, pdfPath);
+          pdfDoc = await pdfjs.getDocument({ data: bytes }).promise;
+        }
         pageCount = pdfDoc.numPages;
       }
       const startPage = Math.min(Math.max(1, initialPage), pageCount);
@@ -633,12 +644,14 @@
         {rtl}
         {dpage}
         immersiveOn={immersive.immersiveOn}
+        pdfLoadMode={app.pdfLoadMode}
         onSetView={setView}
         onToggleBg={toggleBg}
         onToggleAnim={toggleAnim}
         onToggleRtl={toggleRtl}
         onCycleDpage={cycleDpage}
         onToggleImmersive={() => immersive.toggleImmersive()}
+        onTogglePdfLoadMode={() => setPdfLoadMode(app.pdfLoadMode === 'lazy' ? 'eager' : 'lazy')}
       />
     </ReaderToolbar>
 

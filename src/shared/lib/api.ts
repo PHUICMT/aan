@@ -28,6 +28,10 @@ export async function readChapterBytes(pdfPath: string): Promise<Uint8Array> {
   return new Uint8Array(bytes);
 }
 
+export async function resolveChapterAbsPath(pdfPath: string): Promise<string> {
+  return await invoke<string>('resolve_chapter_abs_path', { pdfPath });
+}
+
 export async function readCover(pid: number): Promise<Uint8Array | null> {
   try {
     const bytes = await invoke<number[] | null>('read_cover', { pid });

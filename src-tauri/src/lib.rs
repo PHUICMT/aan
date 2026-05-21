@@ -131,6 +131,7 @@ pub fn run() {
             commands::series::get_series,
             commands::chapter::list_chapters,
             commands::chapter::read_chapter_bytes,
+            commands::chapter::resolve_chapter_abs_path,
             commands::shell::open_in_explorer,
             commands::shell::open_url,
             commands::chapter::rescan_chapter_files,

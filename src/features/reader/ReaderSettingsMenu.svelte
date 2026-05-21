@@ -17,17 +17,19 @@
     rtl: boolean;
     dpage: Dpage;
     immersiveOn: boolean;
+    pdfLoadMode: 'lazy' | 'eager';
     onSetView: (v: View) => void;
     onToggleBg: () => void;
     onToggleAnim: () => void;
     onToggleRtl: () => void;
     onCycleDpage: () => void;
     onToggleImmersive: () => void;
+    onTogglePdfLoadMode: () => void;
   };
   let {
-    view, bg, anim, rtl, dpage, immersiveOn,
+    view, bg, anim, rtl, dpage, immersiveOn, pdfLoadMode,
     onSetView, onToggleBg, onToggleAnim, onToggleRtl,
-    onCycleDpage, onToggleImmersive,
+    onCycleDpage, onToggleImmersive, onTogglePdfLoadMode,
   }: Props = $props();
   // `mode` here drives the dpage row gating; continuous hides it.
   const mode = $derived(view === 'continuous' ? 'continuous' : 'paged');
@@ -154,6 +156,16 @@
           <div class="set-desc">{t('reader.immersive.desc')}</div>
         </div>
         <div class="set-value" class:on={immersiveOn}>{immersiveOn ? t('reader.immersive.on') : t('reader.immersive.off')}</div>
+      </button>
+      <button class="set-row" onclick={onTogglePdfLoadMode} data-test="reader-pdf-load-mode-toggle">
+        <div class="set-icon"><Icon name="download" size={14} /></div>
+        <div class="set-text">
+          <div class="set-title">{t('reader.pdf_load.title')}</div>
+          <div class="set-desc">{t('reader.pdf_load.desc')}</div>
+        </div>
+        <div class="set-value" class:on={pdfLoadMode === 'lazy'}>
+          {pdfLoadMode === 'lazy' ? t('reader.pdf_load.lazy') : t('reader.pdf_load.eager')}
+        </div>
       </button>
       <div class="set-divider"></div>
       <div class="set-section-label">{t('reader.section.visibility')}</div>

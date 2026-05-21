@@ -12,6 +12,11 @@ export function setReaderWarmth(v: number) {
   try { localStorage.setItem('aan.reader.warmth', String(app.readerWarmth)); } catch {}
 }
 
+export function setPdfLoadMode(v: 'lazy' | 'eager') {
+  app.pdfLoadMode = v;
+  try { localStorage.setItem('aan.reader.pdf_load_mode', v); } catch {}
+}
+
 export function setLastReader(info: LastReader) {
   app.lastReader = info;
   try { localStorage.setItem('aan.last_reader', JSON.stringify(info)); } catch {}
