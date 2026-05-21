@@ -13,7 +13,6 @@ Each per-area flow file ends with a "Selectors / commands needed (proposed addit
 - `title-drag` on the drag region of `TitleBar.svelte`
 - `title-brand` on the brand area
 - `tray-menu-root`, `tray-menu-show`, `tray-menu-quit` on `TrayMenu.svelte`
-- `lang-toggle`, `lang-{en,th}` (added in this pass)
 
 ### Home — [02-home.md](flows-todo/02-home.md)
 

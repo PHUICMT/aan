@@ -24,7 +24,7 @@ Cross-references existing specs in [`tests/e2e/flows/`](../flows/). Source: [`do
 - **Goal:** verify `home.title` + `home.sub` lookups.
 - **Steps:**
   1. Read `.hero-head h1` text — expect non-empty, matches `t('home.title')` in EN.
-  2. Switch lang to TH (sidebar `[data-test="lang-th"]`).
+  2. Switch lang to TH via Settings (`[data-test="lang-th"]` inside General section).
   3. Assert text changes.
   4. Restore EN.
 - **Notes:** thin layer over i18n, but verifies header renders.

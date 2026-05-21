@@ -172,36 +172,6 @@ Cross-references existing specs in [`tests/e2e/flows/`](../flows/). Source: [`do
 - **Fixture deps:** none beyond the fixture catalog.
 - **Notes:** confirms the `$effect` on `seriesMutationTick` re-fires correctly.
 
-### F14. Sidebar language switch (expanded) — 2-segment radio
-
-- **Status:** [ ] TODO
-- **Goal:** clicking `[data-test="lang-th"]` flips `app.lang` to `th` and persists.
-- **Preconditions:** sidebar expanded, `app.lang === 'en'`.
-- **Steps:**
-  1. Click `[data-test="lang-th"]`.
-  2. Assert `[data-test="lang-th"]` has `aria-checked="true"`.
-  3. Assert sidebar nav labels switched to Thai (`t('nav.home')` lookup).
-  4. Reload; assert lang still `th`.
-  5. Restore `en` in `afterEach`.
-- **Expected:**
-  - `localStorage.getItem('aan.lang') === 'th'`.
-- **Selectors / commands:** `[data-test="lang-en"]`, `[data-test="lang-th"]`.
-- **Fixture deps:** none.
-- **Notes:** persistence half overlaps with theme-persist pattern; reuse `SettingsPage`-style helper.
-
-### F15. Sidebar language toggle (collapsed) cycles to next language
-
-- **Status:** [ ] TODO
-- **Goal:** the compact `EN`/`TH` button cycles through `AVAILABLE_LANGS` on click.
-- **Preconditions:** sidebar collapsed.
-- **Steps:**
-  1. Click `[data-test="lang-toggle"]`.
-  2. Assert text content changes from `EN` to `TH` (or vice versa).
-  3. Assert `localStorage.getItem('aan.lang')` updated.
-- **Selectors / commands:** `[data-test="lang-toggle"]`.
-- **Fixture deps:** none.
-- **Notes:** tooltip content (label of next lang) is hard to assert under WebView2 — skip the tooltip text check.
-
 ### F16. Sidebar "?" footer button opens the shortcuts modal
 
 - **Status:** [ ] TODO
