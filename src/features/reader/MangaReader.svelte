@@ -457,7 +457,6 @@
         try { localStorage.setItem('aan.reader.dpage', 'off'); } catch {}
       }
     }
-    if (mode !== 'continuous') currentPage = 1;
   }
   function cycleMode() {
     const next: ViewState =
