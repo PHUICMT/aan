@@ -387,5 +387,12 @@
   "settings.backup.restore.confirm": "Replace the current library with this backup?",
   "settings.backup.restore.confirm_cta": "Yes, replace",
   "settings.backup.restoring": "Restoring…",
-  "settings.backup.preview": "{n} files · {b} · created {when}"
+  "settings.backup.preview": "{n} files · {b} · created {when}",
+
+  "settings.section.dicts": "Dictionaries",
+  "settings.dicts.title": "Installed dictionaries",
+  "settings.dicts.desc": "Install .tsv files (term ⇥ definition per line) for double-click lookups in the novel reader.",
+  "settings.dicts.install": "Install dictionary…",
+  "settings.dicts.installing": "Installing…",
+  "settings.dicts.format_hint": "Format: one entry per line, term and definition separated by a tab. Comments lines starting with # are ignored."
 }

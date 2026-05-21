@@ -25,7 +25,7 @@ npm run e2e:report                     # open the HTML report
 
 ## Test catalogue
 
-> 38 tests across 18 spec files. Runtime ≈ 37 seconds.
+> 41 tests across 19 spec files. Runtime ≈ 35 seconds.
 
 ### `smoke.spec.ts`
 Sanity that the suite is wired right.
@@ -101,6 +101,14 @@ Novel highlights persist as rows in the `annotations` table, get re-applied as `
 - **annotations created via command surface as wrappers + panel rows** — `add_annotation` twice in different colours, opens the panel, asserts both rows render with the right colour class.
 - **annotation list survives chapter swap and reload** — adds one with a note, reloads the app cold, re-enters the chapter, asserts the row + note are still there.
 - **export_series_annotations_md emits chapter-grouped markdown** — adds two annotations, calls the export command, asserts the markdown contains `## Chapter` headings + both snippets.
+
+### `dictionary.spec.ts` *(mutates — cleans up in afterEach)*
+
+User-installed TSV dictionaries live in `<data_root>/dicts/`; `lookup_term` searches across all of them with case-insensitive + punctuation-stripped queries. Native file dialog can't be driven, so the install path goes through the Rust command directly.
+
+- **install_dictionary + lookup_term returns the exact match** — writes a fake TSV, installs it, then queries `hello` and asserts the Thai translation comes back.
+- **lookup_term strips punctuation and is case-insensitive** — feeds `Hello,` against a lower-case `hello` entry; asserts the match still lands.
+- **lookup_term returns empty array when no match** — with no dict installed, the query returns `[]` instead of erroring.
 
 ### `backup.spec.ts`
 

@@ -4,6 +4,7 @@
   import Shimmer from '../../shared/components/Shimmer.svelte';
   import NovelSettingsMenu from './NovelSettingsMenu.svelte';
   import NovelAnnotations from './NovelAnnotations.svelte';
+  import NovelDictionary from './NovelDictionary.svelte';
   import { setChapterProgress } from '../../shared/lib/api';
   import { takeChapterBytes, prefetchChapterBytes, hasPrefetched } from '../../shared/lib/prefetch';
   import { startReadingTimer, type ReadingTimer } from '../../shared/lib/reading-time';
@@ -518,6 +519,7 @@
     pid={app.readerChapter?.pid ?? null}
     epoch={articleEpoch}
   />
+  <NovelDictionary bodyEl={bodyEl} />
   {#if annoOpen}
     <aside class="anno-panel" aria-label="Annotations" use:portal data-test="anno-panel">
       <div class="anno-head">

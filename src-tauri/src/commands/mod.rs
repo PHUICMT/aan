@@ -4,6 +4,7 @@ pub mod data_folder;
 pub mod fonts;
 pub mod annotations;
 pub mod backup;
+pub mod dictionary;
 pub mod import;
 pub mod series;
 pub mod shell;

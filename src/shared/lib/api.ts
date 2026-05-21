@@ -371,6 +371,22 @@ export async function importEpub(input: EpubImportArgs): Promise<ImportedEpub> {
   });
 }
 
+export type Dictionary = { filename: string; name: string; entries: number; bytes: number };
+export type DictMatch = { dictionary: string; term: string; definition: string };
+
+export async function listDictionaries(): Promise<Dictionary[]> {
+  return await invoke<Dictionary[]>('list_dictionaries');
+}
+export async function installDictionary(srcPath: string): Promise<Dictionary> {
+  return await invoke<Dictionary>('install_dictionary', { srcPath });
+}
+export async function removeDictionary(filename: string): Promise<void> {
+  await invoke('remove_dictionary', { filename });
+}
+export async function lookupTerm(term: string): Promise<DictMatch[]> {
+  return await invoke<DictMatch[]>('lookup_term', { term });
+}
+
 export type BackupStats = { files: number; bytes: number };
 export type BackupMetadata = {
   version: number;

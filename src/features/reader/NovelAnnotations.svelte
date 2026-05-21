@@ -174,6 +174,8 @@
     // Clicking inside the menu itself shouldn't re-trigger.
     const target = e.target as HTMLElement;
     if (target.closest('.nv-anno-menu')) return;
+    // Double-click is the dictionary lookup gesture — let it pass through.
+    if (e.detail >= 2) return;
     // If we clicked on an existing highlight, open the edit menu.
     const span = target.closest('span.nv-anno') as HTMLElement | null;
     if (span) {

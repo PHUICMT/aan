@@ -199,6 +199,10 @@ pub fn run() {
             commands::backup::create_backup,
             commands::backup::read_backup_metadata,
             commands::backup::restore_backup,
+            commands::dictionary::list_dictionaries,
+            commands::dictionary::install_dictionary,
+            commands::dictionary::remove_dictionary,
+            commands::dictionary::lookup_term,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

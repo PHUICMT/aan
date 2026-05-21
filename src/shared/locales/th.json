@@ -364,5 +364,12 @@
   "settings.backup.restore.confirm": "แทนที่คลังปัจจุบันด้วยไฟล์สำรองนี้?",
   "settings.backup.restore.confirm_cta": "ใช่ แทนที่",
   "settings.backup.restoring": "กำลังกู้คืน…",
-  "settings.backup.preview": "{n} ไฟล์ · {b} · สร้าง {when}"
+  "settings.backup.preview": "{n} ไฟล์ · {b} · สร้าง {when}",
+
+  "settings.section.dicts": "พจนานุกรม",
+  "settings.dicts.title": "พจนานุกรมที่ติดตั้ง",
+  "settings.dicts.desc": "ติดตั้งไฟล์ .tsv (คำ ⇥ ความหมาย) เพื่อใช้ดับเบิลคลิกค้นคำใน novel reader",
+  "settings.dicts.install": "เพิ่มพจนานุกรม…",
+  "settings.dicts.installing": "กำลังเพิ่ม…",
+  "settings.dicts.format_hint": "รูปแบบ: หนึ่งคำต่อบรรทัด คำกับความหมายคั่นด้วย Tab บรรทัดขึ้นต้นด้วย # ถือว่าเป็นคอมเมนต์"
 }
