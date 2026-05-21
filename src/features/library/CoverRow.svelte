@@ -86,14 +86,16 @@
       <span class="pct">{progress}%</span>
     </div>
   </div>
-  <Icon name="chevron_right" size={14} />
+  <span class="chev" aria-hidden="true">
+    <Icon name="chevron_right" size={14} />
+  </span>
 </button>
 
 <style>
   .row {
     display: grid; grid-template-columns: 48px 1fr auto;
-    gap: 14px; align-items: center;
-    padding: 10px 14px;
+    gap: 16px; align-items: center;
+    padding: 12px 22px;
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -105,6 +107,11 @@
     transition: background 0.15s var(--ease-out), border-color 0.15s var(--ease-out), transform 0.15s var(--ease-out);
   }
   .row:hover { background: var(--surface2); border-color: var(--accent); transform: translateY(-1px); }
+  .chev {
+    display: inline-flex; color: var(--text3);
+    transition: transform 0.22s var(--ease-out), color 0.22s var(--ease-out);
+  }
+  .row:hover .chev { transform: translateX(4px); color: var(--accent); }
   .cover {
     width: 48px; height: 68px; border-radius: 6px; overflow: hidden;
     border: 1px solid var(--border); background: #14182a;
