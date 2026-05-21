@@ -5,9 +5,18 @@
   import { NAV_ITEMS, READING_STATUSES } from '../shared/lib/constants';
   import { t } from '../shared/lib/i18n.svelte';
   import { tooltip } from '../shared/lib/tooltip';
-  import { app, navigate, toggleSidebar, toggleShortcuts, openList } from '../shared/lib/store.svelte';
+  import { app, navigate, toggleSidebar, toggleShortcuts, openList, setLang } from '../shared/lib/store.svelte';
   import { listLocalSeries } from '../shared/lib/api';
-  import type { ReadingStatus } from '../shared/lib/types';
+  import type { Lang, ReadingStatus } from '../shared/lib/types';
+  import { AVAILABLE_LANGS } from '../shared/lib/i18n.svelte';
+
+  // Compact two-letter code per language (en → EN, th → TH).
+  function langCode(id: Lang) { return id.toUpperCase(); }
+  function nextLang() {
+    const order: Lang[] = AVAILABLE_LANGS.map((l) => l.id);
+    const i = order.indexOf(app.lang);
+    setLang(order[(i + 1) % order.length]);
+  }
 
   let counts = $state<Record<string, number>>({});
   let version = $state<string>('');
@@ -35,6 +44,34 @@
 </script>
 
 <aside class="sidebar" class:collapsed={app.sidebarCollapsed} data-test="sidebar">
+  {#if app.sidebarCollapsed}
+    <button
+      class="lang-mini"
+      type="button"
+      onclick={nextLang}
+      use:tooltip={AVAILABLE_LANGS.find((l) => l.id === app.lang)?.label ?? app.lang}
+      data-test="lang-toggle"
+      aria-label="Change language"
+    >
+      {langCode(app.lang)}
+    </button>
+  {:else}
+    <div class="lang-row" role="radiogroup" aria-label="Language">
+      {#each AVAILABLE_LANGS as l (l.id)}
+        <button
+          type="button"
+          class="lang-seg"
+          class:active={app.lang === l.id}
+          onclick={() => setLang(l.id)}
+          role="radio"
+          aria-checked={app.lang === l.id}
+          data-test={`lang-${l.id}`}
+        >
+          {langCode(l.id)}
+        </button>
+      {/each}
+    </div>
+  {/if}
   <div class="sec-row">
     <div class="sec-label">{t('nav.section')}</div>
     <button class="collapse-btn" onclick={toggleSidebar} use:tooltip={"Collapse sidebar"} data-test="sidebar-collapse">
@@ -76,7 +113,7 @@
         <span class="rs-dot"></span>
         <span class="label">{t(s.labelKey)}</span>
         {#if n > 0}
-          <span class="rs-count">{n}</span>
+          <span class="rs-count" data-test={`list-count-${s.id}`}>{n}</span>
         {/if}
       </button>
     {/each}
@@ -84,12 +121,13 @@
   </div>
 
   <div class="footer">
-    <span class="status-text">Aan{version ? ` ${version}` : ''}</span>
+    <span class="status-text" data-test="sidebar-version">Aan{version ? ` ${version}` : ''}</span>
     <button
       class="kbd-btn"
       onclick={toggleShortcuts}
       use:tooltip={t('shortcuts.title')}
       aria-label={t('shortcuts.title')}
+      data-test="sidebar-shortcuts"
     >?</button>
   </div>
 </aside>
@@ -131,6 +169,43 @@
   .sidebar.collapsed .nav-item { justify-content: center; padding: 10px; }
   .sidebar.collapsed .footer { justify-content: center; padding: 14px 0; }
   .sidebar.collapsed .sec-row { justify-content: center; padding: 0 0 10px; }
+
+  /* Language switcher at the very top, under the titlebar logo. */
+  .lang-row {
+    display: inline-flex;
+    margin: 0 14px 14px;
+    padding: 2px;
+    background: var(--hover-bg);
+    border: 1px solid var(--border-soft);
+    border-radius: 9999px;
+    width: max-content;
+  }
+  .lang-seg {
+    appearance: none;
+    padding: 3px 10px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+    color: var(--text3);
+    border-radius: 9999px;
+    background: transparent;
+    transition: background 0.18s var(--ease-out), color 0.18s var(--ease-out);
+  }
+  .lang-seg:hover { color: var(--text); }
+  .lang-seg.active {
+    background: var(--accent-dim);
+    color: var(--sidebar-hi);
+  }
+  .lang-mini {
+    align-self: center;
+    margin: 2px auto 12px;
+    width: 32px; height: 22px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+    color: var(--sidebar-hi);
+    background: var(--accent-dim);
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    border-radius: 9999px;
+    transition: background 0.18s var(--ease-out), color 0.18s var(--ease-out), transform 0.18s var(--ease-out);
+  }
+  .lang-mini:hover { background: color-mix(in srgb, var(--accent) 24%, transparent); transform: scale(1.05); }
 
   .sec-row {
     display: flex; align-items: center; justify-content: space-between;
