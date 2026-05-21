@@ -5,6 +5,7 @@
   import CoverRow from '../library/CoverRow.svelte';
   import Icon from '../../shared/components/Icon.svelte';
   import Shimmer from '../../shared/components/Shimmer.svelte';
+  import SegmentedControl from '../../shared/components/ui/SegmentedControl.svelte';
   import { listLocalSeries } from '../../shared/lib/api';
   import { ANIM, READING_STATUSES } from '../../shared/lib/constants';
   import { t } from '../../shared/lib/i18n.svelte';
@@ -95,17 +96,17 @@
 
   <div class="toolbar">
     <input bind:value={query} placeholder={t('library.search')} class="search" />
-    <div class="view-seg">
-      <button class="view-btn" class:active={viewMode === 'grid'} onclick={() => setView('grid')} use:tooltip={t('library.view.grid')}>
-        <Icon name="layout_grid" size={13} />
-      </button>
-      <button class="view-btn" class:active={viewMode === 'compact'} onclick={() => setView('compact')} use:tooltip={t('library.view.compact')}>
-        <Icon name="layout_compact" size={13} />
-      </button>
-      <button class="view-btn" class:active={viewMode === 'list'} onclick={() => setView('list')} use:tooltip={t('library.view.list')}>
-        <Icon name="layout_list" size={13} />
-      </button>
-    </div>
+    <SegmentedControl
+      variant="icons"
+      ariaLabel="View mode"
+      value={viewMode}
+      onChange={(v) => setView(v)}
+      options={[
+        { value: 'grid',    icon: 'layout_grid',    tooltip: t('library.view.grid') },
+        { value: 'compact', icon: 'layout_compact', tooltip: t('library.view.compact') },
+        { value: 'list',    icon: 'layout_list',    tooltip: t('library.view.list') },
+      ]}
+    />
   </div>
 
   {#if error}
@@ -204,22 +205,6 @@
     animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
   .list-view { display: flex; flex-direction: column; gap: 8px; }
-  .view-seg {
-    display: inline-flex; gap: 2px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid var(--border);
-    border-radius: 9999px;
-    padding: 2px;
-  }
-  .view-btn {
-    width: 28px; height: 24px;
-    display: grid; place-items: center;
-    border-radius: 9999px;
-    background: transparent; color: var(--text3);
-    transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
-  }
-  .view-btn:hover { color: var(--text); background: var(--hover-bg); }
-  .view-btn.active { background: var(--accent); color: #fff; }
   .skeleton {
     aspect-ratio: 160 / 280;
     border-radius: var(--radius-lg);

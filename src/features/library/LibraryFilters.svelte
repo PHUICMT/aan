@@ -3,6 +3,7 @@
   import { cubicOut } from 'svelte/easing';
   import Shimmer from '../../shared/components/Shimmer.svelte';
   import Icon from '../../shared/components/Icon.svelte';
+  import SegmentedControl from '../../shared/components/ui/SegmentedControl.svelte';
   import { tooltip } from '../../shared/lib/tooltip';
   import { t } from '../../shared/lib/i18n.svelte';
   import {
@@ -63,17 +64,17 @@
         </span>
       </button>
     {/if}
-    <div class="view-seg" role="group" aria-label="View mode">
-      <button class="view-btn" class:active={filters.viewMode === 'grid'} onclick={() => filters.setView('grid')} use:tooltip={t('library.view.grid')} aria-label={t('library.view.grid')} data-test="view-grid">
-        <Icon name="layout_grid" size={13} />
-      </button>
-      <button class="view-btn" class:active={filters.viewMode === 'compact'} onclick={() => filters.setView('compact')} use:tooltip={t('library.view.compact')} aria-label={t('library.view.compact')} data-test="view-compact">
-        <Icon name="layout_compact" size={13} />
-      </button>
-      <button class="view-btn" class:active={filters.viewMode === 'list'} onclick={() => filters.setView('list')} use:tooltip={t('library.view.list')} aria-label={t('library.view.list')} data-test="view-list">
-        <Icon name="layout_list" size={13} />
-      </button>
-    </div>
+    <SegmentedControl
+      variant="icons"
+      ariaLabel="View mode"
+      value={filters.viewMode}
+      onChange={(v) => filters.setView(v)}
+      options={[
+        { value: 'grid',    icon: 'layout_grid',    tooltip: t('library.view.grid'),    testId: 'view-grid' },
+        { value: 'compact', icon: 'layout_compact', tooltip: t('library.view.compact'), testId: 'view-compact' },
+        { value: 'list',    icon: 'layout_list',    tooltip: t('library.view.list'),    testId: 'view-list' },
+      ]}
+    />
   </div>
   {#if !skeletonOnly && filters.filtersOpen}
     <div class="filters-panel" transition:slide={{ duration: 260, easing: cubicOut }}>
@@ -294,20 +295,4 @@
   .combo-btn:hover { color: var(--text); }
   .combo-btn.active { background: var(--accent); color: #fff; }
 
-  .view-seg {
-    display: inline-flex; gap: 2px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid var(--border);
-    border-radius: 9999px;
-    padding: 2px;
-  }
-  .view-btn {
-    width: 28px; height: 24px;
-    display: grid; place-items: center;
-    border-radius: 9999px;
-    background: transparent; color: var(--text3);
-    transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
-  }
-  .view-btn:hover { color: var(--text); background: var(--hover-bg); }
-  .view-btn.active { background: var(--accent); color: #fff; }
 </style>
