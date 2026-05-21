@@ -7,19 +7,17 @@
   import { slide } from 'svelte/transition';
   import BrightnessControls from './BrightnessControls.svelte';
 
-  type Mode = 'continuous' | 'paged';
-  type Layout = 'paged' | 'scroll';
+  type View = 'paged' | 'continuous' | 'spread';
   type Dpage = 'off' | 'auto' | 'always';
 
   type Props = {
-    mode: Mode;
+    view: View;
     bg: 'dark' | 'light';
     anim: boolean;
     rtl: boolean;
     dpage: Dpage;
     immersiveOn: boolean;
-    onSetMode: (m: Mode) => void;
-    onSetLayout: (l: Layout) => void;
+    onSetView: (v: View) => void;
     onToggleBg: () => void;
     onToggleAnim: () => void;
     onToggleRtl: () => void;
@@ -27,10 +25,12 @@
     onToggleImmersive: () => void;
   };
   let {
-    mode, bg, anim, rtl, dpage, immersiveOn,
-    onSetMode, onSetLayout, onToggleBg, onToggleAnim, onToggleRtl,
+    view, bg, anim, rtl, dpage, immersiveOn,
+    onSetView, onToggleBg, onToggleAnim, onToggleRtl,
     onCycleDpage, onToggleImmersive,
   }: Props = $props();
+  // `mode` here drives the dpage row gating; continuous hides it.
+  const mode = $derived(view === 'continuous' ? 'continuous' : 'paged');
 
   function popMenu(_node: Element, { duration = 180 }: { duration?: number } = {}) {
     return {
@@ -91,15 +91,16 @@
       use:closeSettingsOnOutside={() => (settingsOpen = false)}
     >
       <div class="set-row layout-row">
-        <div class="set-icon"><Icon name={mode === 'continuous' ? 'scroll' : 'file_text'} size={14} /></div>
+        <div class="set-icon"><Icon name={view === 'continuous' ? 'scroll' : view === 'spread' ? 'book_open' : 'file_text'} size={14} /></div>
         <div class="set-text">
           <div class="set-title">{t('reader.mode.title')}</div>
           <div class="set-desc">{t('reader.mode.desc')}</div>
         </div>
-        <div class="set-seg" style:--active-idx={mode === 'paged' ? 0 : 1}>
+        <div class="set-seg" style:--active-idx={view === 'paged' ? 0 : view === 'continuous' ? 1 : 2}>
           <span class="seg-indicator" aria-hidden="true"></span>
-          <button class="seg-btn" class:active={mode === 'paged'} onclick={() => { onSetMode('paged'); onSetLayout('paged'); }} data-test="reader-mode-paged">{t('reader.mode.paged')}</button>
-          <button class="seg-btn" class:active={mode === 'continuous'} onclick={() => { onSetMode('continuous'); onSetLayout('scroll'); }} data-test="reader-mode-continuous">{t('reader.mode.continuous')}</button>
+          <button class="seg-btn" class:active={view === 'paged'} onclick={() => onSetView('paged')} data-test="reader-mode-paged">{t('reader.mode.paged')}</button>
+          <button class="seg-btn" class:active={view === 'continuous'} onclick={() => onSetView('continuous')} data-test="reader-mode-continuous">{t('reader.mode.continuous')}</button>
+          <button class="seg-btn" class:active={view === 'spread'} onclick={() => onSetView('spread')} data-test="reader-mode-spread">{t('reader.mode.spread')}</button>
         </div>
       </div>
       <button class="set-row" onclick={onToggleBg} data-test="reader-bg-toggle">

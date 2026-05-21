@@ -35,7 +35,6 @@
   const RENDER_SCALE = 1.5;
 
   type Mode = 'continuous' | 'paged';
-  type Layout = 'paged' | 'scroll';
   type Fit = 'width' | 'height' | 'natural';
   type Dpage = 'off' | 'auto' | 'always';
 
@@ -58,20 +57,6 @@
     }
     return v === 'paged' ? 'paged' : 'continuous';
   })());
-  let layout = $state<Layout>(((): Layout => {
-    const v = loadPref('aan.reader.layout', '');
-    if (v === 'scroll' || v === 'paged') return v;
-    return mode === 'continuous' ? 'scroll' : 'paged';
-  })());
-  function setLayout(l: Layout) {
-    layout = l;
-    try { localStorage.setItem('aan.reader.layout', l); } catch {}
-    if (l === 'scroll') {
-      mode = 'continuous';
-    } else if (mode === 'continuous') {
-      mode = 'paged';
-    }
-  }
   let bg = $state<'dark' | 'light'>(loadPref('aan.reader.bg', 'dark') as 'dark' | 'light');
   let anim = $state<boolean>(loadPref('aan.reader.anim', 'on') === 'on');
   let rtl = $state<boolean>(loadPref('aan.reader.rtl', 'off') === 'on');
@@ -454,25 +439,32 @@
       : dpage === 'always' ? 'spread'
       : 'paged',
   );
-  function cycleMode() {
+  function setView(v: ViewState) {
     if (anim) {
       modeSwap = true;
       setTimeout(() => (modeSwap = false), 220);
     }
-    // paged → continuous → spread → paged …
-    if (toolbarView === 'paged') {
+    if (v === 'continuous') {
       mode = 'continuous';
-    } else if (toolbarView === 'continuous') {
+    } else if (v === 'spread') {
       mode = 'paged';
       dpage = 'always';
       try { localStorage.setItem('aan.reader.dpage', 'always'); } catch {}
     } else {
-      // spread → paged (drop forced double-page)
       mode = 'paged';
-      dpage = 'off';
-      try { localStorage.setItem('aan.reader.dpage', 'off'); } catch {}
+      if (dpage === 'always') {
+        dpage = 'off';
+        try { localStorage.setItem('aan.reader.dpage', 'off'); } catch {}
+      }
     }
     if (mode !== 'continuous') currentPage = 1;
+  }
+  function cycleMode() {
+    const next: ViewState =
+      toolbarView === 'paged' ? 'continuous'
+        : toolbarView === 'continuous' ? 'spread'
+        : 'paged';
+    setView(next);
   }
 
   function toggleBg() {
@@ -636,14 +628,13 @@
         onDelete={(id) => deleteBookmark(id)}
       />
       <ReaderSettingsMenu
-        {mode}
+        view={toolbarView}
         {bg}
         {anim}
         {rtl}
         {dpage}
         immersiveOn={immersive.immersiveOn}
-        onSetMode={(m) => (mode = m)}
-        onSetLayout={setLayout}
+        onSetView={setView}
         onToggleBg={toggleBg}
         onToggleAnim={toggleAnim}
         onToggleRtl={toggleRtl}
