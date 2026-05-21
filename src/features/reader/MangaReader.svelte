@@ -446,12 +446,34 @@
   }
 
   let modeSwap = $state(false);
+  // Toolbar surfaces 3 quick view states (Paged → Continuous → Spread →…)
+  // even though the underlying state is mode + dpage. "Spread" is just
+  // paged with dpage forced to 'always' — settings menu still exposes
+  // the finer dpage cycle (off/auto/always) for full control.
+  type ViewState = 'paged' | 'continuous' | 'spread';
+  const toolbarView = $derived<ViewState>(
+    mode === 'continuous' ? 'continuous'
+      : dpage === 'always' ? 'spread'
+      : 'paged',
+  );
   function cycleMode() {
     if (anim) {
       modeSwap = true;
       setTimeout(() => (modeSwap = false), 220);
     }
-    mode = mode === 'continuous' ? 'paged' : 'continuous';
+    // paged → continuous → spread → paged …
+    if (toolbarView === 'paged') {
+      mode = 'continuous';
+    } else if (toolbarView === 'continuous') {
+      mode = 'paged';
+      dpage = 'always';
+      try { localStorage.setItem('aan.reader.dpage', 'always'); } catch {}
+    } else {
+      // spread → paged (drop forced double-page)
+      mode = 'paged';
+      dpage = 'off';
+      try { localStorage.setItem('aan.reader.dpage', 'off'); } catch {}
+    }
     if (mode !== 'continuous') currentPage = 1;
   }
 
@@ -551,10 +573,14 @@
   const effectiveSpread = $derived(mode === 'paged' && visibleIndices.length === 2);
 
   const modeLabel = $derived(
-    mode === 'continuous' ? t('reader.mode.continuous') : t('reader.mode.paged'),
+    toolbarView === 'continuous' ? t('reader.mode.continuous')
+      : toolbarView === 'spread' ? t('reader.mode.spread')
+      : t('reader.mode.paged'),
   );
   const modeIcon = $derived(
-    mode === 'continuous' ? 'scroll' : 'file_text',
+    toolbarView === 'continuous' ? 'scroll'
+      : toolbarView === 'spread' ? 'book_open'
+      : 'file_text',
   );
 
   function onToolbarPrev() {
