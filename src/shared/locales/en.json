@@ -6,6 +6,8 @@
   "library.import.tooltip": "Import files or folders into your library",
   "library.import.menu_files": "Choose files (PDF / CBZ / EPUB / TXT)…",
   "library.import.menu_folder": "Choose folder of images…",
+  "library.import.kind_visual": "Visual kind (PDF / CBZ / Folder)",
+  "library.import.kind_text": "Text kind (EPUB / TXT)",
 
   "series.edit": "Edit series",
   "series.edit.title": "Edit series",

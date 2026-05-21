@@ -68,7 +68,10 @@ async function renderCoverBytes(doc: pdfjs.PDFDocumentProxy): Promise<number[] |
   }
 }
 
-async function importOnePdf(path: string, filename: string): Promise<ImportedChapter> {
+export type ImportKinds = { visual: string; text: string };
+const DEFAULT_KINDS: ImportKinds = { visual: 'manga', text: 'novel' };
+
+async function importOnePdf(path: string, filename: string, kind: string): Promise<ImportedChapter> {
   const bytes = await readImportPdf(path);
   const doc = await pdfjs.getDocument({ data: bytes }).promise;
   const pageCount = doc.numPages;
@@ -78,7 +81,7 @@ async function importOnePdf(path: string, filename: string): Promise<ImportedCha
   return importPdf({
     srcPath: path,
     seriesName: parsed.suggestedSeries,
-    kind: 'manga',
+    kind,
     chapterNo: parsed.chapterNo,
     chapterTitle: parsed.chapterTitle,
     pageCount,
@@ -86,37 +89,38 @@ async function importOnePdf(path: string, filename: string): Promise<ImportedCha
   });
 }
 
-async function importOneCbz(path: string, filename: string): Promise<ImportedChapter> {
+async function importOneCbz(path: string, filename: string, kind: string): Promise<ImportedChapter> {
   const parsed = parseImportFilename(filename);
   return importCbz({
     srcPath: path,
     seriesName: parsed.suggestedSeries,
-    kind: 'manga',
+    kind,
     chapterNo: parsed.chapterNo,
     chapterTitle: parsed.chapterTitle,
   });
 }
 
-async function importOneTxt(path: string, filename: string): Promise<ImportedChapter> {
+async function importOneTxt(path: string, filename: string, kind: string): Promise<ImportedChapter> {
   const parsed = parseImportFilename(filename);
   return importTxt({
     srcPath: path,
     seriesName: parsed.suggestedSeries,
-    kind: 'novel',
+    kind,
     chapterNo: parsed.chapterNo,
     chapterTitle: parsed.chapterTitle,
   });
 }
 
 /** EPUBs surface ImportedEpub (multi-chapter); convert to the per-file shape. */
-async function importOneEpub(path: string): Promise<ImportedChapter> {
-  const out = await importEpub({ srcPath: path, kind: 'novel' });
+async function importOneEpub(path: string, kind: string): Promise<ImportedChapter> {
+  const out = await importEpub({ srcPath: path, kind });
   return { pid: out.pid, chapter_id: `epub:${out.chapters_added}`, created_series: out.created_series };
 }
 
 export async function importFiles(
   paths: string[],
   onProgress?: (p: ImportProgress) => void,
+  kinds: ImportKinds = DEFAULT_KINDS,
 ): Promise<ImportProgress> {
   const progress: ImportProgress = {
     total: paths.length,
@@ -137,10 +141,10 @@ export async function importFiles(
       const ext = detectExt(path);
       if (!ext) throw new Error(`unsupported extension: ${filename}`);
       const imported =
-        ext === 'pdf' ? await importOnePdf(path, filename) :
-        ext === 'cbz' ? await importOneCbz(path, filename) :
-        ext === 'epub' ? await importOneEpub(path) :
-        await importOneTxt(path, filename);
+        ext === 'pdf' ? await importOnePdf(path, filename, kinds.visual) :
+        ext === 'cbz' ? await importOneCbz(path, filename, kinds.visual) :
+        ext === 'epub' ? await importOneEpub(path, kinds.text) :
+        await importOneTxt(path, filename, kinds.text);
       if ((imported as { duplicate?: boolean }).duplicate) {
         progress.duplicates.push({
           file: filename,
@@ -167,6 +171,7 @@ export async function importFiles(
 export async function importFolders(
   paths: string[],
   onProgress?: (p: ImportProgress) => void,
+  kinds: ImportKinds = DEFAULT_KINDS,
 ): Promise<ImportProgress> {
   const progress: ImportProgress = {
     total: paths.length,
@@ -188,7 +193,7 @@ export async function importFolders(
       const imported = await importImageFolder({
         srcPath: path,
         seriesName: parsed.suggestedSeries,
-        kind: 'manga',
+        kind: kinds.visual,
         chapterNo: parsed.chapterNo,
         chapterTitle: parsed.chapterTitle,
       });

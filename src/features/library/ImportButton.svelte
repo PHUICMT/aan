@@ -6,8 +6,31 @@
   import { tooltip } from '../../shared/lib/tooltip';
   import { t } from '../../shared/lib/i18n.svelte';
   import { bumpSeriesMutation } from '../../shared/lib/store.svelte';
-  import { importFiles, importFolders, type ImportProgress } from './import-flow';
+  import { importFiles, importFolders, type ImportProgress, type ImportKinds } from './import-flow';
   import { portal } from '../../shared/lib/portal';
+  import { KIND_OPTIONS, isVisualKind } from '../../shared/lib/constants';
+
+  const VISUAL_KINDS = KIND_OPTIONS.filter((k) => isVisualKind(k.id));
+  const TEXT_KINDS   = KIND_OPTIONS.filter((k) => !isVisualKind(k.id));
+
+  function loadKind(key: string, fallback: string): string {
+    try {
+      const v = localStorage.getItem(key);
+      if (v && KIND_OPTIONS.some((k) => k.id === v)) return v;
+    } catch { /* localStorage may be unavailable */ }
+    return fallback;
+  }
+  let visualKind = $state(loadKind('aan.import.visualKind', 'manga'));
+  let textKind   = $state(loadKind('aan.import.textKind',   'novel'));
+  function setVisualKind(id: string) {
+    visualKind = id;
+    try { localStorage.setItem('aan.import.visualKind', id); } catch {}
+  }
+  function setTextKind(id: string) {
+    textKind = id;
+    try { localStorage.setItem('aan.import.textKind', id); } catch {}
+  }
+  const kinds = $derived<ImportKinds>({ visual: visualKind, text: textKind });
 
   let busy = $state(false);
   let progress = $state<ImportProgress | null>(null);
@@ -56,7 +79,7 @@
     if (!picked) return;
     const paths = Array.isArray(picked) ? picked : [picked];
     if (paths.length === 0) return;
-    await runImport(() => importFiles(paths, (p) => { progress = { ...p }; }), paths.length);
+    await runImport(() => importFiles(paths, (p) => { progress = { ...p }; }, kinds), paths.length);
   }
 
   async function pickFolder() {
@@ -66,7 +89,7 @@
     if (!picked) return;
     const paths = Array.isArray(picked) ? picked : [picked];
     if (paths.length === 0) return;
-    await runImport(() => importFolders(paths, (p) => { progress = { ...p }; }), paths.length);
+    await runImport(() => importFolders(paths, (p) => { progress = { ...p }; }, kinds), paths.length);
   }
 
   function closeMenuOnOutside(node: HTMLElement) {
@@ -111,26 +134,57 @@
   </button>
 
   {#if menuOpen}
-    <ul
+    <div
       class="menu"
       role="menu"
       transition:scale={{ duration: 140, start: 0.94, easing: cubicOut }}
       use:closeMenuOnOutside
       data-test="import-menu"
     >
-      <li style:--i={0}>
-        <button type="button" class="menu-item" onclick={pickFiles} role="menuitem" data-test="import-menu-files">
-          <span class="mi-icon"><Icon name="file_text" size={13} /></span>
-          <span>{t('library.import.menu_files')}</span>
-        </button>
-      </li>
-      <li style:--i={1}>
-        <button type="button" class="menu-item" onclick={pickFolder} role="menuitem" data-test="import-menu-folder">
-          <span class="mi-icon"><Icon name="folder_open" size={13} /></span>
-          <span>{t('library.import.menu_folder')}</span>
-        </button>
-      </li>
-    </ul>
+      <div class="kind-group" style:--i={0} data-test="import-kind-visual">
+        <div class="kind-label">{t('library.import.kind_visual')}</div>
+        <div class="chips">
+          {#each VISUAL_KINDS as k (k.id)}
+            <button
+              type="button"
+              class="kind-chip"
+              class:active={visualKind === k.id}
+              onclick={() => setVisualKind(k.id)}
+              data-test="import-kind-visual-{k.id}"
+            >{t(k.labelKey)}</button>
+          {/each}
+        </div>
+      </div>
+      <div class="kind-group" style:--i={1} data-test="import-kind-text">
+        <div class="kind-label">{t('library.import.kind_text')}</div>
+        <div class="chips">
+          {#each TEXT_KINDS as k (k.id)}
+            <button
+              type="button"
+              class="kind-chip"
+              class:active={textKind === k.id}
+              onclick={() => setTextKind(k.id)}
+              data-test="import-kind-text-{k.id}"
+            >{t(k.labelKey)}</button>
+          {/each}
+        </div>
+      </div>
+      <div class="sep" style:--i={2}></div>
+      <ul class="menu-list">
+        <li style:--i={3}>
+          <button type="button" class="menu-item" onclick={pickFiles} role="menuitem" data-test="import-menu-files">
+            <span class="mi-icon"><Icon name="file_text" size={13} /></span>
+            <span>{t('library.import.menu_files')}</span>
+          </button>
+        </li>
+        <li style:--i={4}>
+          <button type="button" class="menu-item" onclick={pickFolder} role="menuitem" data-test="import-menu-folder">
+            <span class="mi-icon"><Icon name="folder_open" size={13} /></span>
+            <span>{t('library.import.menu_folder')}</span>
+          </button>
+        </li>
+      </ul>
+    </div>
   {/if}
 </div>
 
@@ -326,7 +380,7 @@
     list-style: none;
     margin: 0;
     padding: 6px;
-    min-width: 240px;
+    min-width: 280px;
     background: color-mix(in srgb, var(--menu-bg) 88%, transparent);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -337,18 +391,54 @@
       0 0 0 1px rgba(255,255,255,0.04) inset;
     transform-origin: top right;
   }
-  .menu li {
+  .menu-list { list-style: none; margin: 0; padding: 0; }
+  .menu li, .menu .kind-group, .menu .sep {
     margin: 0;
     opacity: 0;
     transform: translateY(-6px);
     animation: mi-in 220ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    animation-delay: calc(var(--i, 0) * 50ms + 30ms);
+    animation-delay: calc(var(--i, 0) * 40ms + 30ms);
   }
   @keyframes mi-in {
     to { opacity: 1; transform: translateY(0); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .menu li { opacity: 1; transform: none; animation: none; }
+    .menu li, .menu .kind-group, .menu .sep { opacity: 1; transform: none; animation: none; }
+  }
+  .kind-group { padding: 8px 10px 4px; }
+  .kind-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 6px;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .kind-chip {
+    padding: 4px 9px;
+    font-size: 11px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--menu-bg) 40%, transparent);
+    color: var(--text2);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 140ms var(--ease-out), color 140ms, border-color 140ms, transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .kind-chip:hover { transform: translateY(-1px); color: var(--text); }
+  .kind-chip.active {
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
+    color: #fff;
+    border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+  .sep {
+    height: 1px;
+    margin: 6px 8px;
+    background: var(--border);
   }
   .menu-item {
     display: flex;

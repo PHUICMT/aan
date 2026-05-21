@@ -285,7 +285,7 @@ export async function deleteChapter(chapterId: string): Promise<void> {
 export type PdfImportArgs = {
   srcPath: string;
   seriesName: string;
-  kind: 'manga' | 'comic' | 'novel' | 'original_novel';
+  kind: string;
   chapterNo: number;
   chapterTitle: string;
   pageCount: number;
@@ -321,7 +321,7 @@ export async function importPdf(input: PdfImportArgs): Promise<ImportedChapter> 
 export type ArchiveImportArgs = {
   srcPath: string;
   seriesName: string;
-  kind: 'manga' | 'comic' | 'novel' | 'original_novel';
+  kind: string;
   chapterNo: number;
   chapterTitle: string;
 };
@@ -353,7 +353,7 @@ export async function importTxt(input: ArchiveImportArgs): Promise<ImportedChapt
 export type EpubImportArgs = {
   srcPath: string;
   seriesNameOverride?: string | null;
-  kind: 'novel' | 'original_novel';
+  kind: string;
 };
 
 export type ImportedEpub = {
