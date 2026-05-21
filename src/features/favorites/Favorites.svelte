@@ -87,13 +87,17 @@
   });
 
   // Drop stale filters when de-favoriting removes their last match,
-  // otherwise the grid goes empty for a non-obvious reason.
+  // otherwise the grid goes empty for a non-obvious reason. Gate on
+  // !loading so the initial mount doesn't reset a persisted filter
+  // before the catalog arrives.
   $effect(() => {
+    if (loading) return;
     if (typeFilter !== 'all' && !availableTypes.find((f) => f.id === typeFilter)) {
       typeFilter = 'all';
     }
   });
   $effect(() => {
+    if (loading) return;
     const tagSet = new Set(availableTags.map((t) => t.name));
     const pruned = selectedTags.filter((t) => tagSet.has(t));
     if (pruned.length !== selectedTags.length) selectedTags = pruned;
@@ -149,6 +153,7 @@
             class="filter"
             class:active={typeFilter === f.id}
             onclick={() => (typeFilter = f.id)}
+            data-test={`filter-type-${f.id}`}
           >
             {t(f.labelKey)}
             <span class="filter-count" class:zero={count === 0}>{count}</span>
