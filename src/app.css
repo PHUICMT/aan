@@ -72,7 +72,7 @@
   /* 60% balances see-through (you can still read what's behind through
      the blur) with legibility (text on the panel stays readable even
      when the underlying content is bright white). */
-  --panel-bg:           color-mix(in srgb, var(--menu-bg) 60%, transparent);
+  --panel-bg:           color-mix(in srgb, var(--menu-bg) 80%, transparent);
   --panel-blur:         blur(40px) saturate(180%);
   --panel-shadow:       0 24px 60px -16px rgba(0,0,0,0.55);
 
