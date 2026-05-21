@@ -82,19 +82,24 @@ pub(crate) struct ImportedChapter {
     pub duplicate: bool,
 }
 
-const KIND_MANGA: &str = "manga";
-const KIND_COMIC: &str = "comic";
-const KIND_NOVEL: &str = "novel";
-const KIND_ORIGINAL_NOVEL: &str = "original_novel";
+// Specific kinds the user can pick at import time. Frontend filter chips
+// collapse these into the 4 broad buckets (manga/comic/novel/original_novel)
+// via categoryOf() in constants.ts.
+const ALLOWED_KINDS: &[&str] = &[
+    "manga", "comic", "manhwa", "manhua", "doujinshi", "magazine", "artbook",
+    "novel", "light_novel", "web_novel", "original_novel",
+];
 
-fn normalize_kind(kind: &str) -> Result<&str, String> {
-    match kind {
-        KIND_MANGA => Ok(KIND_MANGA),
-        KIND_COMIC => Ok(KIND_COMIC),
-        KIND_NOVEL => Ok(KIND_NOVEL),
-        KIND_ORIGINAL_NOVEL => Ok(KIND_ORIGINAL_NOVEL),
-        other => Err(format!("unsupported kind: {other}")),
-    }
+fn normalize_kind(kind: &str) -> Result<&'static str, String> {
+    ALLOWED_KINDS
+        .iter()
+        .copied()
+        .find(|k| *k == kind)
+        .ok_or_else(|| format!("unsupported kind: {kind}"))
+}
+
+fn is_text_kind(kind: &str) -> bool {
+    matches!(kind, "novel" | "light_novel" | "web_novel" | "original_novel")
 }
 
 fn now_iso() -> String {
@@ -997,8 +1002,8 @@ pub(crate) fn import_epub_inner(
     args: EpubImportArgs,
 ) -> Result<ImportedEpub, String> {
     let kind = normalize_kind(&args.kind)?;
-    if kind != KIND_NOVEL && kind != KIND_ORIGINAL_NOVEL {
-        return Err("epub import only supports novel/original_novel".into());
+    if !is_text_kind(kind) {
+        return Err("epub import only supports novel kinds".into());
     }
     let src = PathBuf::from(&args.src_path);
     if !src.is_file() {
@@ -1212,8 +1217,8 @@ pub(crate) fn import_txt_inner(
     args: TxtImportArgs,
 ) -> Result<ImportedChapter, String> {
     let kind = normalize_kind(&args.kind)?;
-    if kind != KIND_NOVEL && kind != KIND_ORIGINAL_NOVEL {
-        return Err("text import only supports novel/original_novel".into());
+    if !is_text_kind(kind) {
+        return Err("text import only supports novel kinds".into());
     }
     let src = PathBuf::from(&args.src_path);
     if !src.exists() {

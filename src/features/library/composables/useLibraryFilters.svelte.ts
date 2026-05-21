@@ -5,6 +5,7 @@
 // dedicated store helpers and are not part of this composable's surface.
 
 import { app } from '../../../shared/lib/store.svelte';
+import { categoryOf } from '../../../shared/lib/constants';
 import type { SeriesCard } from '../../../shared/lib/types';
 
 export type DlFilter = 'all' | 'complete' | 'failed' | 'missing';
@@ -105,7 +106,7 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
   const filtered = $derived.by(() => {
     const series = seriesSrc();
     const base = series.filter((s) => {
-      if (typeFilter !== 'all' && s.type !== typeFilter) return false;
+      if (typeFilter !== 'all' && categoryOf(s.type) !== typeFilter) return false;
       if (!matchDl(s, dlFilter)) return false;
       if (!matchRs(s, rsFilter)) return false;
       if (app.selectedGenres.length > 0) {
@@ -149,7 +150,7 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
   function countFor(id: string): number {
     const series = seriesSrc();
     if (id === 'all') return series.length;
-    return series.filter((s) => s.type === id).length;
+    return series.filter((s) => categoryOf(s.type) === id).length;
   }
   function dlCount(id: DlFilter): number {
     const series = seriesSrc();

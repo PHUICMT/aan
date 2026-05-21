@@ -65,6 +65,18 @@
   "filter.novel": "Novel",
   "filter.original": "Original",
 
+  "kind.manga": "Manga",
+  "kind.comic": "Comic",
+  "kind.manhwa": "Manhwa",
+  "kind.manhua": "Manhua",
+  "kind.doujinshi": "Doujinshi",
+  "kind.magazine": "Magazine",
+  "kind.artbook": "Artbook",
+  "kind.novel": "Novel",
+  "kind.light_novel": "Light Novel",
+  "kind.web_novel": "Web Novel",
+  "kind.original_novel": "Original Novel",
+
   "series.back": "Back",
   "series.author": "Author",
   "series.artist": "Artist",
