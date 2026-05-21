@@ -203,20 +203,12 @@
                   onclick={() => selectMode ? toggleSelect(tg.name) : startEdit(tg.name)}
                   data-test="tag-name"
                 >{tg.name}</button>
-                <div class="right">
+                <div class="right" class:confirming={confirmDelete === tg.name}>
                   <span class="count">{tg.count}</span>
                   {#if !selectMode}
-                    <div class="action-stack" class:show-confirm={confirmDelete === tg.name}>
-                      <div class="action default">
-                        <button class="btn-icon edit" onclick={() => startEdit(tg.name)} aria-label={t('settings.tags.rename')} use:tooltip={t('settings.tags.rename')} data-test="tag-rename">
-                          <Icon name="pencil" size={11} />
-                        </button>
-                        <button class="btn-icon trash" onclick={() => (confirmDelete = tg.name)} aria-label={t('settings.tags.delete')} use:tooltip={t('settings.tags.delete')} data-test="tag-delete">
-                          <Icon name="trash" size={11} />
-                        </button>
-                      </div>
-                      <div class="action confirm">
-                        <span>{t('settings.tags.delete_confirm')}</span>
+                    {#if confirmDelete === tg.name}
+                      <div class="action confirm" in:fade={{ duration: 140 }}>
+                        <span class="confirm-label">{t('settings.tags.delete_confirm')}</span>
                         <button class="btn-icon danger" onclick={() => doDelete(tg.name)} disabled={busy} data-test="tag-delete-confirm">
                           <Icon name="check" size={12} />
                         </button>
@@ -224,7 +216,16 @@
                           <Icon name="x" size={11} />
                         </button>
                       </div>
-                    </div>
+                    {:else}
+                      <div class="action default" in:fade={{ duration: 140 }}>
+                        <button class="btn-icon edit" onclick={() => startEdit(tg.name)} aria-label={t('settings.tags.rename')} use:tooltip={t('settings.tags.rename')} data-test="tag-rename">
+                          <Icon name="pencil" size={11} />
+                        </button>
+                        <button class="btn-icon trash" onclick={() => (confirmDelete = tg.name)} aria-label={t('settings.tags.delete')} use:tooltip={t('settings.tags.delete')} data-test="tag-delete">
+                          <Icon name="trash" size={11} />
+                        </button>
+                      </div>
+                    {/if}
                   {/if}
                 </div>
               {/if}
@@ -381,30 +382,30 @@
   .btn-icon.trash:hover { background: rgba(248,113,113,0.14); border-color: rgba(248,113,113,0.5); }
   .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  /* Count + action-stack pinned to the right; count sits next to the
-     buttons (not floating in the middle of the row). */
+  /* Count + actions pinned to the right; count hugs the buttons and
+     pops a little when confirm prompt appears. */
   .right {
     display: flex; align-items: center; gap: 8px;
     flex-shrink: 0;
   }
-  /* Cross-fade between [edit/trash] and [confirm + check/x] in place so
-     the row width never jumps during the toggle. */
-  /* Default width = just the two icon buttons; confirm overlay extends
-     leftward so the row layout stays compact and count hugs the buttons. */
-  .action-stack { position: relative; width: 58px; height: 26px; }
-  .action {
-    position: absolute; top: 0; right: 0; height: 100%;
-    display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px;
-    white-space: nowrap;
-    transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
+  .right .count {
+    transition:
+      background 180ms var(--ease-out),
+      color 180ms var(--ease-out),
+      transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
-  .action.default { opacity: 1; transform: translateX(0); }
+  .right.confirming .count {
+    background: color-mix(in srgb, var(--accent) 28%, transparent);
+    color: var(--sidebar-hi);
+    transform: scale(1.12);
+  }
+  .action {
+    display: inline-flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+  }
   .action.confirm {
-    opacity: 0; transform: translateX(6px);
-    pointer-events: none;
     font-size: 11px;
     color: var(--text2);
   }
-  .action-stack.show-confirm .default { opacity: 0; transform: translateX(-6px); pointer-events: none; }
-  .action-stack.show-confirm .confirm { opacity: 1; transform: translateX(0); pointer-events: auto; }
+  .confirm-label { padding: 0 2px; }
 </style>
