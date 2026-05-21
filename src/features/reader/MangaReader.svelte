@@ -642,6 +642,7 @@
       class="pages"
       class:paged={mode !== 'continuous'}
       class:spread={effectiveSpread}
+      class:single={effectiveSpread && visibleIndices.length === 1}
       class:anim
       class:swap={modeSwap}
       class:dir-next={pageDir === 1}
@@ -668,28 +669,28 @@
           {/if}
         </div>
       {/each}
-
-      {#if mode === 'continuous' || currentPage >= pageCount}
-        <div class="ch-footer">
-          <button
-            class="ch-nav-btn"
-            onclick={() => readerPrev()}
-            disabled={!readerHasPrev()}
-          >
-            <Icon name="chevron_left" size={14} />
-            {t('reader.prev_chapter')}
-          </button>
-          <button
-            class="ch-nav-btn primary"
-            onclick={() => readerNext()}
-            disabled={!readerHasNext()}
-          >
-            {t('reader.next_chapter')}
-            <Icon name="chevron_right" size={14} />
-          </button>
-        </div>
-      {/if}
     </div>
+
+    {#if mode === 'continuous' || currentPage >= pageCount}
+      <div class="ch-footer">
+        <button
+          class="ch-nav-btn"
+          onclick={() => readerPrev()}
+          disabled={!readerHasPrev()}
+        >
+          <Icon name="chevron_left" size={14} />
+          {t('reader.prev_chapter')}
+        </button>
+        <button
+          class="ch-nav-btn primary"
+          onclick={() => readerNext()}
+          disabled={!readerHasNext()}
+        >
+          {t('reader.next_chapter')}
+          <Icon name="chevron_right" size={14} />
+        </button>
+      </div>
+    {/if}
 
     {#if mode !== 'continuous'}
       <ReaderTapZones
@@ -740,11 +741,14 @@
     align-items: flex-start;
   }
   .pages.rtl.spread { flex-direction: row-reverse; }
+  /* Last page of an odd-count chapter sits alone — center it instead of left-anchoring. */
+  .pages.spread.single { justify-content: center; }
   .ch-footer {
     width: 100%; max-width: 1100px;
     margin: 32px auto 16px;
     padding: 0 16px;
     display: flex; justify-content: space-between; gap: 12px;
+    position: relative; z-index: 5; /* sit above tap zones (z:3) so buttons stay clickable */
   }
   .ch-nav-btn {
     display: inline-flex; align-items: center; gap: 6px;
