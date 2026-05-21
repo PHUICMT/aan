@@ -1,7 +1,7 @@
 // Library filter state, persistence, and derived filtered/counts.
 // Factory pattern: pass a getter for the source series array so this
-// stays decoupled from the fetch. Genre filtering reads the global
-// `app` store directly (selectedGenres/genreCombo) — those mutate via
+// stays decoupled from the fetch. Tag filtering reads the global
+// `app` store directly (selectedTags/tagCombo) — those mutate via
 // dedicated store helpers and are not part of this composable's surface.
 
 import { app } from '../../../shared/lib/store.svelte';
@@ -109,10 +109,10 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
       if (typeFilter !== 'all' && categoryOf(s.type) !== typeFilter) return false;
       if (!matchDl(s, dlFilter)) return false;
       if (!matchRs(s, rsFilter)) return false;
-      if (app.selectedGenres.length > 0) {
+      if (app.selectedTags.length > 0) {
         const tags = s.tags ?? [];
-        const fn = app.genreCombo === 'and' ? 'every' : 'some';
-        if (!app.selectedGenres[fn]((g) => tags.includes(g))) return false;
+        const fn = app.tagCombo === 'and' ? 'every' : 'some';
+        if (!app.selectedTags[fn]((g) => tags.includes(g))) return false;
       }
       if (query.trim()) {
         const q = query.toLowerCase();
@@ -142,7 +142,7 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
   });
 
   const activeFilterCount = $derived(
-    app.selectedGenres.length
+    app.selectedTags.length
       + (dlFilter !== 'all' ? 1 : 0)
       + (rsFilter !== 'all' ? 1 : 0),
   );
@@ -172,8 +172,10 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
     dl?: DlFilter;
     rs?: RsFilter;
     sort?: SortKey;
+    tags?: string[];
+    /** Legacy field name kept for snapshots saved before the genre→tag rename. */
     genres?: string[];
-    genreCombo?: 'or' | 'and';
+    tagCombo?: 'or' | 'and';
     query?: string;
   };
 
@@ -183,11 +185,17 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
       dl: dlFilter,
       rs: rsFilter,
       sort: sortKey,
-      genres: [...app.selectedGenres],
-      genreCombo: app.genreCombo,
+      tags: [...app.selectedTags],
+      tagCombo: app.tagCombo,
       query: query.trim() || undefined,
     };
     return JSON.stringify(snap);
+  }
+
+  function snapTags(snap: Snapshot): string[] {
+    if (Array.isArray(snap.tags)) return snap.tags;
+    if (Array.isArray(snap.genres)) return snap.genres;
+    return [];
   }
 
   function applyFilters(json: string): boolean {
@@ -198,15 +206,15 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
     if (snap.dl) dlFilter = snap.dl;
     if (snap.rs) rsFilter = snap.rs;
     if (snap.sort) sortKey = snap.sort;
-    if (Array.isArray(snap.genres)) app.selectedGenres = snap.genres.filter((g) => typeof g === 'string');
-    if (snap.genreCombo === 'or' || snap.genreCombo === 'and') app.genreCombo = snap.genreCombo;
+    app.selectedTags = snapTags(snap).filter((g) => typeof g === 'string');
+    if (snap.tagCombo === 'or' || snap.tagCombo === 'and') app.tagCombo = snap.tagCombo;
     query = snap.query ?? '';
     return true;
   }
 
   /** True if the live filter state matches the saved snapshot — used to
    *  highlight the currently active collection chip. Order-independent
-   *  array comparison for genres. */
+   *  array comparison for tags. */
   function matchesSnapshot(json: string): boolean {
     let snap: Snapshot;
     try { snap = JSON.parse(json); } catch { return false; }
@@ -214,10 +222,10 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
     if ((snap.dl ?? 'all') !== dlFilter) return false;
     if ((snap.rs ?? 'all') !== rsFilter) return false;
     if ((snap.sort ?? 'updated') !== sortKey) return false;
-    const g1 = [...(snap.genres ?? [])].sort();
-    const g2 = [...app.selectedGenres].sort();
+    const g1 = [...snapTags(snap)].sort();
+    const g2 = [...app.selectedTags].sort();
     if (g1.length !== g2.length || g1.some((g, i) => g !== g2[i])) return false;
-    if ((snap.genreCombo ?? 'or') !== app.genreCombo) return false;
+    if ((snap.tagCombo ?? 'or') !== app.tagCombo) return false;
     if ((snap.query ?? '') !== query.trim()) return false;
     return true;
   }

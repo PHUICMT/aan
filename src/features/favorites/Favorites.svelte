@@ -162,36 +162,36 @@
       </div>
 
       {#if availableTags.length > 0}
-        <section class="genre-section">
-          <h4 class="section-label">{t('library.filters.genre')}</h4>
-          <div class="genre-pills">
+        <section class="tag-section">
+          <h4 class="section-label">{t('library.filters.tag')}</h4>
+          <div class="tag-pills">
             {#each availableTags as g (g.name)}
               {@const sel = selectedTags.includes(g.name)}
               <button
-                class="genre-pill"
+                class="tag-pill"
                 class:selected={sel}
                 onclick={() => toggleTag(g.name)}
               >
-                <span class="genre-name">{g.name}</span>
-                <span class="genre-count">{g.count}</span>
+                <span class="tag-name">{g.name}</span>
+                <span class="tag-count">{g.count}</span>
               </button>
             {/each}
             {#if selectedTags.length >= 2}
-              <div class="combo-seg" use:tooltip={t('genre.combo.desc')}>
+              <div class="combo-seg" use:tooltip={t('tag.combo.desc')}>
                 <button
                   class="combo-btn"
                   class:active={tagCombo === 'or'}
                   onclick={() => (tagCombo = 'or')}
-                >{t('genre.combo.or')}</button>
+                >{t('tag.combo.or')}</button>
                 <button
                   class="combo-btn"
                   class:active={tagCombo === 'and'}
                   onclick={() => (tagCombo = 'and')}
-                >{t('genre.combo.and')}</button>
+                >{t('tag.combo.and')}</button>
               </div>
             {/if}
             {#if selectedTags.length > 0}
-              <button class="clear-tags" onclick={clearTags}>{t('genre.clear')}</button>
+              <button class="clear-tags" onclick={clearTags}>{t('tag.clear')}</button>
             {/if}
           </div>
         </section>
@@ -271,7 +271,7 @@
   .type-row {
     display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
   }
-  .genre-section {
+  .tag-section {
     display: flex; flex-direction: column; gap: 8px;
   }
   .section-label {
@@ -308,10 +308,10 @@
   .filter:not(.active) .filter-count { background: var(--surface2); }
   .filter-count.zero { visibility: hidden; }
 
-  .genre-pills {
+  .tag-pills {
     display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
   }
-  .genre-pill {
+  .tag-pill {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 4px 11px; border-radius: 9999px;
     border: 1px solid var(--border);
@@ -320,15 +320,15 @@
     font-size: 11px; font-weight: 500;
     transition: background 0.15s var(--ease-out), border-color 0.15s var(--ease-out), color 0.15s var(--ease-out);
   }
-  .genre-pill:hover { background: var(--surface2); color: var(--text); }
-  .genre-pill.selected {
+  .tag-pill:hover { background: var(--surface2); color: var(--text); }
+  .tag-pill.selected {
     background: var(--accent-dim);
     border-color: var(--accent);
     color: var(--text);
     font-weight: 600;
   }
-  .genre-name { line-height: 1; }
-  .genre-count {
+  .tag-name { line-height: 1; }
+  .tag-count {
     font-size: 9px; padding: 1px 6px; border-radius: 9999px;
     background: rgba(255,255,255,0.10);
     color: inherit; font-weight: 700;

@@ -15,7 +15,7 @@
   const VIRT_THRESHOLD = 200;
   import Shimmer from '../../shared/components/Shimmer.svelte';
   import ImportButton from './ImportButton.svelte';
-  import { listLocalSeries, listGenres, searchChapters, listChapters } from '../../shared/lib/api';
+  import { listLocalSeries, listTags, searchChapters, listChapters } from '../../shared/lib/api';
   import Icon from '../../shared/components/Icon.svelte';
   import { LIBRARY_FILTERS, ANIM } from '../../shared/lib/constants';
   import { t } from '../../shared/lib/i18n.svelte';
@@ -25,19 +25,19 @@
     openSeries,
     setReaderChapters,
   } from '../../shared/lib/store.svelte';
-  import type { SeriesCard, GenreCount, ChapterMatch } from '../../shared/lib/types';
+  import type { SeriesCard, TagCount, ChapterMatch } from '../../shared/lib/types';
   import { portal, anchorBelow } from '../../shared/lib/portal';
 
   //───── State ─────
   const SKELETON_KEY = 'aan.library.lastCount';
-  const GENRE_SKELETON_KEY = 'aan.library.lastGenres';
+  const TAGS_SKELETON_KEY = 'aan.library.lastTags';
   const skeletonCount = (() => {
     const n = parseInt(localStorage.getItem(SKELETON_KEY) ?? '0', 10);
     return Number.isFinite(n) && n > 0 ? Math.min(n, 24) : 0;
   })();
 
   let series = $state<SeriesCard[]>([]);
-  let genres = $state<GenreCount[]>([]);
+  let tags = $state<TagCount[]>([]);
   let loading = $state(true);
   let error = $state<string | null>(null);
   let chapterMatches = $state<ChapterMatch[]>([]);
@@ -147,12 +147,12 @@
 
   onMount(async () => {
     try {
-      const [s, g] = await Promise.all([listLocalSeries(), listGenres()]);
+      const [s, g] = await Promise.all([listLocalSeries(), listTags()]);
       series = s;
-      genres = g;
+      tags = g;
       try {
         localStorage.setItem(SKELETON_KEY, String(s.length));
-        localStorage.setItem(GENRE_SKELETON_KEY, String(g.length));
+        localStorage.setItem(TAGS_SKELETON_KEY, String(g.length));
       } catch {}
     } catch (e) {
       error = String(e);
@@ -271,10 +271,10 @@
     </div>
   </div>
 
-  {#if loading && genres.length === 0}
-    <LibraryFilters {filters} genres={[]} {loading} skeletonOnly />
-  {:else if genres.length > 0}
-    <LibraryFilters {filters} {genres} {loading} />
+  {#if loading && tags.length === 0}
+    <LibraryFilters {filters} tags={[]} {loading} skeletonOnly />
+  {:else if tags.length > 0}
+    <LibraryFilters {filters} {tags} {loading} />
   {/if}
 
   <CollectionChips {filters} />

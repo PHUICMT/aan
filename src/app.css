@@ -95,10 +95,10 @@
   --chip-original-bg: rgba(245,158,11,0.25);
   --chip-original-fg: #fcd34d;
 
-  /* Genre/tag chips */
-  --genre-chip-bg:     rgba(139, 92, 246, 0.12);
-  --genre-chip-fg:     #c4b5fd;
-  --genre-chip-border: rgba(139, 92, 246, 0.25);
+  /* Tag chips */
+  --tag-chip-bg:     rgba(139, 92, 246, 0.12);
+  --tag-chip-fg:     #c4b5fd;
+  --tag-chip-border: rgba(139, 92, 246, 0.25);
 
   /* Format chips (PDF/IMG/HTML) */
   --fmt-pdf-bg:  rgba(244, 63, 94, 0.18);
@@ -178,9 +178,9 @@
   --chip-novel-fg:    #065f46;
   --chip-original-bg: rgba(217,119,6,0.18);
   --chip-original-fg: #92400e;
-  --genre-chip-bg:     rgba(124, 58, 237, 0.10);
-  --genre-chip-fg:     #5b21b6;
-  --genre-chip-border: rgba(124, 58, 237, 0.40);
+  --tag-chip-bg:     rgba(124, 58, 237, 0.10);
+  --tag-chip-fg:     #5b21b6;
+  --tag-chip-border: rgba(124, 58, 237, 0.40);
   --fmt-pdf-bg:  rgba(190, 18, 60, 0.14);
   --fmt-pdf-fg:  #9f1239;
   --fmt-img-bg:  rgba(37, 99, 235, 0.14);

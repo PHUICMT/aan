@@ -44,7 +44,7 @@ export type SeriesDetail = {
   reading_status: ReadingStatus | null;
 };
 
-export type GenreCount = {
+export type TagCount = {
   name: string;
   count: number;
 };

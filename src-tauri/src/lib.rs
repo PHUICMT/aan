@@ -137,7 +137,7 @@ pub fn run() {
             commands::shell::series_folder,
             commands::shell::list_chapter_images,
             commands::shell::read_image,
-            commands::series::list_genres,
+            commands::series::list_tags,
             commands::chapter::set_chapter_progress,
             commands::chapter::backfill_chapter_page_count,
             commands::bookmark::add_bookmark,

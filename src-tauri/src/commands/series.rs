@@ -41,7 +41,7 @@ pub(crate) struct SeriesCard {
 }
 
 #[derive(Serialize)]
-pub(crate) struct GenreCount {
+pub(crate) struct TagCount {
     name: String,
     count: i64,
 }
@@ -168,18 +168,18 @@ pub(crate) fn get_series(pid: i64) -> Result<SeriesDetail, String> {
     get_series_inner(&conn, pid)
 }
 
-pub(crate) fn list_genres_inner(conn: &Connection) -> Result<Vec<GenreCount>, String> {
+pub(crate) fn list_tags_inner(conn: &Connection) -> Result<Vec<TagCount>, String> {
     let rows = db::list_all_tags(conn)?;
     Ok(rows
         .into_iter()
-        .map(|(name, count)| GenreCount { name, count })
+        .map(|(name, count)| TagCount { name, count })
         .collect())
 }
 
 #[tauri::command]
-pub(crate) fn list_genres() -> Result<Vec<GenreCount>, String> {
+pub(crate) fn list_tags() -> Result<Vec<TagCount>, String> {
     let conn = db::open(&data_root())?;
-    list_genres_inner(&conn)
+    list_tags_inner(&conn)
 }
 
 #[tauri::command]
@@ -818,7 +818,7 @@ mod tests {
     }
 
     #[test]
-    fn test_list_genres_aggregates_tags() {
+    fn test_list_tags_aggregates_tags() {
         let (_tmp, root) = temp_data_root();
         let conn = fresh_db(&root);
         insert_test_series(&conn, 1, "A", "manga", 1, 0, None, None, None);
@@ -826,7 +826,7 @@ mod tests {
         let tid = insert_tag(&conn, "action");
         link_tag(&conn, 1, tid);
         link_tag(&conn, 2, tid);
-        let out = list_genres_inner(&conn).unwrap();
+        let out = list_tags_inner(&conn).unwrap();
         assert_eq!(out.len(), 1);
         assert_eq!(out[0].name, "action");
         assert_eq!(out[0].count, 2);

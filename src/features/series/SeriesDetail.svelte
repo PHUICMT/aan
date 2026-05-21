@@ -368,9 +368,9 @@
         </div>
 
         {#if detail.tags && detail.tags.length > 0}
-          <div class="genres">
+          <div class="tags">
             {#each detail.tags as g}
-              <span class="genre-chip">{g}</span>
+              <span class="tag-chip">{g}</span>
             {/each}
           </div>
         {/if}
@@ -511,16 +511,16 @@
   .meta-label { color: var(--text3); min-width: 80px; }
   .meta-value { color: var(--text); font-weight: 500; }
 
-  .genres {
+  .tags {
     display: flex; flex-wrap: wrap; gap: 6px;
     margin-bottom: 14px;
   }
-  .genre-chip {
+  .tag-chip {
     display: inline-block; padding: 3px 10px;
     border-radius: 9999px; font-size: 11px; font-weight: 500;
-    background: var(--genre-chip-bg);
-    color: var(--genre-chip-fg);
-    border: 1px solid var(--genre-chip-border);
+    background: var(--tag-chip-bg);
+    color: var(--tag-chip-fg);
+    border: 1px solid var(--tag-chip-border);
   }
 
   .synopsis {

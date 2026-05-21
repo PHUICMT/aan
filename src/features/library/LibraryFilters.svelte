@@ -7,12 +7,12 @@
   import { t } from '../../shared/lib/i18n.svelte';
   import {
     app,
-    toggleFavGenre,
-    toggleSelectedGenre,
-    clearSelectedGenres,
-    setGenreCombo,
+    toggleFavTag,
+    toggleSelectedTag,
+    clearSelectedTags,
+    setTagCombo,
   } from '../../shared/lib/store.svelte';
-  import type { GenreCount } from '../../shared/lib/types';
+  import type { TagCount } from '../../shared/lib/types';
   import {
     RS_FILTERS,
     type LibraryFilters,
@@ -20,25 +20,25 @@
 
   type Props = {
     filters: LibraryFilters;
-    genres: GenreCount[];
+    tags: TagCount[];
     loading: boolean;
     skeletonOnly?: boolean;
   };
 
-  let { filters, genres, loading, skeletonOnly = false }: Props = $props();
+  let { filters, tags, loading, skeletonOnly = false }: Props = $props();
 
-  let showAllGenres = $state(false);
+  let showAllTags = $state(false);
 
   // Favorites first (preserving fav order), then by count desc.
-  const sortedGenres = $derived.by(() => {
-    const fav = new Set(app.favGenres);
-    const favList = app.favGenres
-      .map((name) => genres.find((g) => g.name === name))
-      .filter((g): g is GenreCount => !!g);
-    const rest = genres.filter((g) => !fav.has(g.name));
+  const sortedTags = $derived.by(() => {
+    const fav = new Set(app.favTags);
+    const favList = app.favTags
+      .map((name) => tags.find((g) => g.name === name))
+      .filter((g): g is TagCount => !!g);
+    const rest = tags.filter((g) => !fav.has(g.name));
     return [...favList, ...rest];
   });
-  const visibleGenres = $derived(showAllGenres ? sortedGenres : sortedGenres.slice(0, 12));
+  const visibleTags = $derived(showAllTags ? sortedTags : sortedTags.slice(0, 12));
 </script>
 
 <div class="filters-disclosure">
@@ -99,48 +99,48 @@
         </div>
       </section>
       <section class="filter-section">
-        <h4 class="section-label">{t('library.filters.genre')}</h4>
-        <div class="genre-pills">
-          {#each visibleGenres as g (g.name)}
-            {@const isFav = app.favGenres.includes(g.name)}
-            {@const isSelected = app.selectedGenres.includes(g.name)}
-            <div class="genre-pill" class:selected={isSelected} class:fav={isFav} data-test="genre-pill" data-genre={g.name}>
-              <button class="genre-name" onclick={() => toggleSelectedGenre(g.name)}>
+        <h4 class="section-label">{t('library.filters.tag')}</h4>
+        <div class="tag-pills">
+          {#each visibleTags as g (g.name)}
+            {@const isFav = app.favTags.includes(g.name)}
+            {@const isSelected = app.selectedTags.includes(g.name)}
+            <div class="tag-pill" class:selected={isSelected} class:fav={isFav} data-test="tag-pill" data-tag={g.name}>
+              <button class="tag-name" onclick={() => toggleSelectedTag(g.name)}>
                 {g.name}
-                <span class="genre-count">{g.count}</span>
+                <span class="tag-count">{g.count}</span>
               </button>
               <button
                 class="fav-btn"
                 class:on={isFav}
-                onclick={() => toggleFavGenre(g.name)}
-                use:tooltip={isFav ? t('genre.unfav') : t('genre.fav')}
-                aria-label={isFav ? t('genre.unfav') : t('genre.fav')}
+                onclick={() => toggleFavTag(g.name)}
+                use:tooltip={isFav ? t('tag.unfav') : t('tag.fav')}
+                aria-label={isFav ? t('tag.unfav') : t('tag.fav')}
               >★</button>
             </div>
           {/each}
-          {#if sortedGenres.length > 12}
-            <button class="show-all" onclick={() => (showAllGenres = !showAllGenres)}>
-              {showAllGenres ? t('genre.show_less') : t('genre.show_all').replace('{n}', String(sortedGenres.length - 12))}
+          {#if sortedTags.length > 12}
+            <button class="show-all" onclick={() => (showAllTags = !showAllTags)}>
+              {showAllTags ? t('tag.show_less') : t('tag.show_all').replace('{n}', String(sortedTags.length - 12))}
             </button>
           {/if}
-          {#if app.selectedGenres.length >= 2}
-            <div class="combo-seg" use:tooltip={t('genre.combo.desc')}>
+          {#if app.selectedTags.length >= 2}
+            <div class="combo-seg" use:tooltip={t('tag.combo.desc')}>
               <button
                 class="combo-btn"
-                class:active={app.genreCombo === 'or'}
-                onclick={() => setGenreCombo('or')}
-                data-test="genre-combo-or"
-              >{t('genre.combo.or')}</button>
+                class:active={app.tagCombo === 'or'}
+                onclick={() => setTagCombo('or')}
+                data-test="tag-combo-or"
+              >{t('tag.combo.or')}</button>
               <button
                 class="combo-btn"
-                class:active={app.genreCombo === 'and'}
-                onclick={() => setGenreCombo('and')}
-                data-test="genre-combo-and"
-              >{t('genre.combo.and')}</button>
+                class:active={app.tagCombo === 'and'}
+                onclick={() => setTagCombo('and')}
+                data-test="tag-combo-and"
+              >{t('tag.combo.and')}</button>
             </div>
           {/if}
-          {#if app.selectedGenres.length > 0}
-            <button class="clear-genres" onclick={clearSelectedGenres}>{t('genre.clear')}</button>
+          {#if app.selectedTags.length > 0}
+            <button class="clear-tags" onclick={clearSelectedTags}>{t('tag.clear')}</button>
           {/if}
         </div>
       </section>
@@ -235,8 +235,8 @@
     to   { opacity: 1; transform: scale(1); }
   }
 
-  .genre-pills { display: flex; flex-wrap: wrap; gap: 6px; }
-  .genre-pill {
+  .tag-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag-pill {
     display: inline-flex; align-items: stretch;
     border: 1px solid var(--border);
     border-radius: 9999px;
@@ -244,21 +244,21 @@
     overflow: hidden;
     transition: background 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
   }
-  .genre-pill:hover { background: var(--surface2); }
-  .genre-pill.selected {
+  .tag-pill:hover { background: var(--surface2); }
+  .tag-pill.selected {
     background: var(--accent-dim);
     border-color: var(--accent);
   }
-  .genre-pill.fav { border-color: rgba(251, 191, 36, 0.45); }
-  .genre-name {
+  .tag-pill.fav { border-color: rgba(251, 191, 36, 0.45); }
+  .tag-name {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 4px 4px 4px 11px;
     font-size: 11px; font-weight: 500;
     color: var(--text2);
     background: transparent;
   }
-  .genre-pill.selected .genre-name { color: var(--text); font-weight: 600; }
-  .genre-count {
+  .tag-pill.selected .tag-name { color: var(--text); font-weight: 600; }
+  .tag-count {
     font-size: 9px; padding: 1px 6px; border-radius: 9999px;
     background: rgba(255,255,255,0.10); color: inherit; font-weight: 700;
   }
@@ -270,14 +270,14 @@
   }
   .fav-btn:hover { color: #fbbf24; }
   .fav-btn.on { color: #fbbf24; }
-  .show-all, .clear-genres {
+  .show-all, .clear-tags {
     padding: 4px 11px; border-radius: 9999px;
     border: 1px dashed var(--border);
     background: transparent; color: var(--text3);
     font-size: 11px; font-weight: 500;
     transition: color 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
   }
-  .show-all:hover, .clear-genres:hover { color: var(--text); border-color: var(--accent); }
+  .show-all:hover, .clear-tags:hover { color: var(--text); border-color: var(--accent); }
   .combo-seg {
     display: inline-flex; gap: 1px;
     background: rgba(255,255,255,0.04);

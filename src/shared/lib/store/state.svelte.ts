@@ -107,9 +107,19 @@ applyFonts(initialFontUi, initialFontUiSize, initialFontNovel, initialFontNovelS
 
 const initialNovel = loadNovelPrefs();
 
-function loadFavGenres(): string[] {
+function loadFavTags(): string[] {
   try {
-    const raw = localStorage.getItem('aan.fav_genres');
+    // One-shot migration from the old "genres" key. Drops the old entry on
+    // read so this only fires once per profile.
+    let raw = localStorage.getItem('aan.fav_tags');
+    if (!raw) {
+      const legacy = localStorage.getItem('aan.fav_genres');
+      if (legacy) {
+        localStorage.setItem('aan.fav_tags', legacy);
+        localStorage.removeItem('aan.fav_genres');
+        raw = legacy;
+      }
+    }
     if (!raw) return [];
     const arr = JSON.parse(raw);
     return Array.isArray(arr) ? arr.filter((x) => typeof x === 'string') : [];
@@ -132,11 +142,19 @@ export const app = $state({
   navDir: 'forward' as NavDir,
   sidebarCollapsed: initialSidebar,
   theme: initialTheme as Theme,
-  favGenres: loadFavGenres(),
-  selectedGenres: [] as string[],
+  favTags: loadFavTags(),
+  selectedTags: [] as string[],
   /** 'or' = any tag matches; 'and' = all selected tags required. */
-  genreCombo: ((): 'or' | 'and' => {
-    const v = localStorage.getItem('aan.library.genre_combo');
+  tagCombo: ((): 'or' | 'and' => {
+    let v = localStorage.getItem('aan.library.tag_combo');
+    if (v === null) {
+      const legacy = localStorage.getItem('aan.library.genre_combo');
+      if (legacy !== null) {
+        localStorage.setItem('aan.library.tag_combo', legacy);
+        localStorage.removeItem('aan.library.genre_combo');
+        v = legacy;
+      }
+    }
     return v === 'and' ? 'and' : 'or';
   })(),
   fontUi: initialFontUi,

@@ -8,24 +8,24 @@ export function bumpChapterProgress() {
   app.chapterProgressTick++;
 }
 
-export function toggleFavGenre(name: string) {
-  const i = app.favGenres.indexOf(name);
-  if (i >= 0) app.favGenres.splice(i, 1);
-  else app.favGenres.push(name);
-  localStorage.setItem('aan.fav_genres', JSON.stringify(app.favGenres));
+export function toggleFavTag(name: string) {
+  const i = app.favTags.indexOf(name);
+  if (i >= 0) app.favTags.splice(i, 1);
+  else app.favTags.push(name);
+  localStorage.setItem('aan.fav_tags', JSON.stringify(app.favTags));
 }
 
-export function toggleSelectedGenre(name: string) {
-  const i = app.selectedGenres.indexOf(name);
-  if (i >= 0) app.selectedGenres.splice(i, 1);
-  else app.selectedGenres.push(name);
+export function toggleSelectedTag(name: string) {
+  const i = app.selectedTags.indexOf(name);
+  if (i >= 0) app.selectedTags.splice(i, 1);
+  else app.selectedTags.push(name);
 }
 
-export function clearSelectedGenres() {
-  app.selectedGenres = [];
+export function clearSelectedTags() {
+  app.selectedTags = [];
 }
 
-export function setGenreCombo(mode: 'or' | 'and') {
-  app.genreCombo = mode;
-  try { localStorage.setItem('aan.library.genre_combo', mode); } catch {}
+export function setTagCombo(mode: 'or' | 'and') {
+  app.tagCombo = mode;
+  try { localStorage.setItem('aan.library.tag_combo', mode); } catch {}
 }

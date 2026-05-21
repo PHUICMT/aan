@@ -3,7 +3,7 @@ import type {
   SeriesCard,
   SeriesDetail,
   Chapter,
-  GenreCount,
+  TagCount,
   RecentRead,
   LibraryStats,
   ReadingStats,
@@ -74,8 +74,8 @@ export async function seriesFolder(pid: number, kind: string): Promise<string> {
   return await invoke<string>('series_folder', { pid, kind });
 }
 
-export async function listGenres(): Promise<GenreCount[]> {
-  return await invoke<GenreCount[]>('list_genres');
+export async function listTags(): Promise<TagCount[]> {
+  return await invoke<TagCount[]>('list_tags');
 }
 
 export async function setChapterProgress(chapterId: string, page: number): Promise<void> {
