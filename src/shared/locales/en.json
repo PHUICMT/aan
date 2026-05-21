@@ -412,6 +412,7 @@
   "settings.backup.restoring": "Restoring…",
   "settings.backup.preview": "{n} files · {b} · created {when}",
 
+  "settings.section.reader": "Reader",
   "settings.section.tags": "Tags",
   "settings.tags.desc": "Rename, merge, or delete tags across your library.",
   "settings.tags.search": "Search tags…",

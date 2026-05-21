@@ -8,6 +8,7 @@
   import GeneralSection from './sections/GeneralSection.svelte';
   import AppearanceSection from './sections/AppearanceSection.svelte';
   import TypographySection from './sections/TypographySection.svelte';
+  import ReaderSection from './sections/ReaderSection.svelte';
   import TraySection from './sections/TraySection.svelte';
   import WatchFoldersSection from './sections/WatchFoldersSection.svelte';
   import ResetSection from './sections/ResetSection.svelte';
@@ -17,10 +18,10 @@
 
   //───── Collapse + search ─────
   type SectionId =
-    | 'general' | 'appearance' | 'typography'
+    | 'general' | 'appearance' | 'typography' | 'reader'
     | 'datafolder' | 'watch' | 'auto' | 'tags' | 'dicts' | 'backup' | 'reset';
   const SECTION_IDS: SectionId[] = [
-    'general', 'appearance', 'typography',
+    'general', 'appearance', 'typography', 'reader',
     'datafolder', 'watch', 'auto', 'tags', 'dicts', 'backup', 'reset',
   ];
 
@@ -74,6 +75,7 @@
   const visBackup = $derived(matches(t('settings.section.backup'), t('settings.backup.desc'), 'backup', 'restore', 'สำรอง'));
   const visDicts  = $derived(matches(t('settings.section.dicts'), t('settings.dicts.desc'), 'dictionary', 'พจนานุกรม', 'lookup'));
   const visTags   = $derived(matches(t('settings.section.tags'), t('settings.tags.desc'), 'tag', 'แท็ก'));
+  const visReader = $derived(matches(t('settings.section.reader'), t('reader.pdf_load.title'), t('reader.pdf_load.desc'), 'pdf', 'lazy', 'eager'));
 
   const secVisGeneral    = $derived(!searching || visLang);
   const secVisAppearance = $derived(!searching || visTheme);
@@ -85,6 +87,7 @@
   const secVisBackup     = $derived(!searching || visBackup);
   const secVisDicts      = $derived(!searching || visDicts);
   const secVisTags       = $derived(!searching || visTags);
+  const secVisReader     = $derived(!searching || visReader);
 
   // Force-expand sections while searching so hits are always visible.
   const openGeneral    = $derived(searching || !collapsed.general);
@@ -97,11 +100,12 @@
   const openBackup     = $derived(searching || !collapsed.backup);
   const openDicts      = $derived(searching || !collapsed.dicts);
   const openTags       = $derived(searching || !collapsed.tags);
+  const openReader     = $derived(searching || !collapsed.reader);
 
   const anyVisible = $derived(
     !searching ||
     secVisGeneral || secVisAppearance || secVisTypography ||
-    secVisDataFolder || secVisWatch || secVisAuto || secVisTags || secVisDicts || secVisBackup || secVisReset,
+    secVisDataFolder || secVisWatch || secVisAuto || secVisTags || secVisReader || secVisDicts || secVisBackup || secVisReset,
   );
 </script>
 
@@ -185,6 +189,15 @@
     query={q}
     onToggle={() => toggle('auto')}
   />
+
+  {#if secVisReader}
+    <ReaderSection
+      open={openReader}
+      {searching}
+      query={q}
+      onToggle={() => toggle('reader')}
+    />
+  {/if}
 
   {#if secVisTags}
     <TagsSection

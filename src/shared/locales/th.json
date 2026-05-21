@@ -389,6 +389,7 @@
   "settings.backup.restoring": "กำลังกู้คืน…",
   "settings.backup.preview": "{n} ไฟล์ · {b} · สร้าง {when}",
 
+  "settings.section.reader": "เครื่องอ่าน",
   "settings.section.tags": "แท็ก",
   "settings.tags.desc": "เปลี่ยนชื่อ รวม หรือลบแท็กในไลบรารี",
   "settings.tags.search": "ค้นหาแท็ก…",
