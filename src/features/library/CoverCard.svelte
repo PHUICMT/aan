@@ -152,9 +152,6 @@
       ? Math.min(100, Math.round((series.local_chapter_count / series.chapter_count) * 100))
       : 0
   );
-  const newCount = $derived(
-    Math.max(0, series.chapter_count - series.local_chapter_count)
-  );
 
   //───── Cover loading ─────
   // Lazy-fetch via IntersectionObserver — eager fetch of hundreds of
@@ -228,10 +225,6 @@
         {t(chip.labelKey)}
       </span>
     </div>
-
-    {#if newCount > 0}
-      <div class="new-badge">+{newCount}</div>
-    {/if}
 
     {#if series.is_favorite}
       <div class="fav-badge" use:tooltip={"Favorite"}>
@@ -430,13 +423,6 @@
     border-radius: inherit;
     background: rgba(0,0,0,0.45);
     z-index: -1;
-  }
-  .new-badge {
-    position: absolute; top: 36px; right: 8px;
-    background: var(--accent); color: #fff;
-    font-size: 10px; font-weight: 700;
-    padding: 2px 7px; border-radius: 9999px;
-    box-shadow: 0 4px 12px -2px var(--accent-glow);
   }
   .fav-badge {
     position: absolute; bottom: 8px; right: 8px;

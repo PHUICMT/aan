@@ -43,7 +43,6 @@
       ? Math.min(100, Math.round((series.local_chapter_count / series.chapter_count) * 100))
       : 0,
   );
-  const newCount = $derived(Math.max(0, series.chapter_count - series.local_chapter_count));
 
   // Lazy-fetch on viewport intersect — see CoverCard.
   async function fetchCover() {
@@ -107,9 +106,6 @@
     </div>
     <div class="line2">
       <span class="ch-count">{series.local_chapter_count} / {series.chapter_count} {t('series.ch')}</span>
-      {#if newCount > 0}
-        <span class="new">+{newCount}</span>
-      {/if}
     </div>
     <div class="prog">
       <div class="bar"><div class="fill" style:width="{progress}%"></div></div>
@@ -218,10 +214,6 @@
   .fav { color: #f87171; }
   .line2 { display: flex; align-items: center; gap: 10px; }
   .ch-count { font-size: 11px; color: var(--text2); }
-  .new {
-    font-size: 9px; padding: 1px 7px; border-radius: 9999px;
-    background: var(--accent); color: #fff; font-weight: 700;
-  }
   .prog { display: flex; align-items: center; gap: 8px; }
   .bar { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.08); overflow: hidden; }
   .fill { height: 100%; background: var(--accent); transition: width 0.3s var(--ease-out); }
