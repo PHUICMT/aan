@@ -444,9 +444,9 @@
   @keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
   .modal {
     width: min(560px, 92vw);
-    background: color-mix(in srgb, var(--menu-bg) 55%, transparent);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    background: var(--panel-bg);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
     border: 1px solid var(--glass-border);
     border-radius: 14px;
     padding: 18px 22px;

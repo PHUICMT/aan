@@ -532,9 +532,9 @@
     min-width: 180px;
     margin: 0; padding: 4px;
     list-style: none;
-    background: color-mix(in srgb, var(--menu-bg) 55%, transparent);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    background: var(--panel-bg);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
     box-shadow: 0 18px 40px -12px rgba(0,0,0,0.55), 0 2px 8px -2px rgba(0,0,0,0.4);
@@ -604,9 +604,9 @@
     display: flex; align-items: center; gap: 12px;
     padding: 10px 14px 10px 18px;
     border-radius: 9999px;
-    background: color-mix(in srgb, var(--menu-bg) 92%, transparent);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    background: var(--panel-bg);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
     border: 1px solid var(--glass-border);
     box-shadow: 0 22px 50px -12px rgba(0,0,0,0.55);
     animation: bulk-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);

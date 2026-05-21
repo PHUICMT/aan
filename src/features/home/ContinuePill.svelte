@@ -92,12 +92,12 @@
     position: fixed; right: 14px; bottom: 18px; z-index: 60;
     display: inline-flex; align-items: stretch;
     max-width: 340px;
-    background: color-mix(in srgb, var(--menu-bg) 55%, transparent);
+    background: var(--panel-bg);
     border: 1px solid var(--accent);
     border-radius: 9999px;
     box-shadow: 0 14px 38px -10px rgba(0,0,0,0.55), 0 0 0 4px var(--accent-dim);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
     color: var(--text);
     overflow: hidden;
     transition:

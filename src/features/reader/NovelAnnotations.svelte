@@ -265,9 +265,9 @@
     width: 280px;
     padding: 10px;
     display: flex; flex-direction: column; gap: 8px;
-    background: color-mix(in srgb, var(--menu-bg) 92%, transparent);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    background: var(--panel-bg);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
     border: 1px solid var(--glass-border);
     border-radius: 10px;
     box-shadow: 0 14px 32px -10px rgba(0,0,0,0.55);

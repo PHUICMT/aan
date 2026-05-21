@@ -501,9 +501,9 @@
     margin: 0;
     padding: 6px;
     min-width: 280px;
-    background: color-mix(in srgb, var(--menu-bg) 88%, transparent);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background: var(--panel-bg);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
     border: 1px solid var(--glass-border, var(--border));
     border-radius: 12px;
     box-shadow:

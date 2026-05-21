@@ -596,9 +596,9 @@
     min-width: 200px;
     margin: 0; padding: 4px;
     list-style: none;
-    background: color-mix(in srgb, var(--menu-bg) 55%, transparent);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    background: var(--panel-bg);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
     box-shadow: 0 18px 40px -12px rgba(0,0,0,0.55);
