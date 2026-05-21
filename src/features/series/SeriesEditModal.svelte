@@ -29,7 +29,6 @@
   let info = $state(untrack(() => series.info ?? ''));
   let authorName = $state(untrack(() => series.author_name ?? ''));
   let artistName = $state(untrack(() => series.artist_name ?? ''));
-  let status = $state(untrack(() => series.status));
 
   let saving = $state(false);
   let pickingCover = $state(false);
@@ -70,7 +69,6 @@
         info,
         authorName,
         artistName,
-        status,
       });
       onSaved();
     } catch (e) {
@@ -149,14 +147,6 @@
         </label>
       </div>
       <label class="field">
-        <span>{t('series.edit.status')}</span>
-        <select bind:value={status} data-test="series-edit-status">
-          <option value={0}>{t('series.edit.status_unknown')}</option>
-          <option value={1}>{t('series.edit.status_ongoing')}</option>
-          <option value={2}>{t('series.edit.status_completed')}</option>
-        </select>
-      </label>
-      <label class="field">
         <span>{t('series.edit.info')}</span>
         <textarea bind:value={info} rows="5" data-test="series-edit-info"></textarea>
       </label>
@@ -221,7 +211,7 @@
   }
   .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
   .field span { font-size: 11.5px; color: var(--muted, rgba(255,255,255,0.7)); }
-  .field input, .field select, .field textarea {
+  .field input, .field textarea {
     background: rgba(255,255,255,0.05);
     color: var(--text, #fff);
     border: 1px solid var(--border, rgba(255,255,255,0.12));
@@ -231,7 +221,7 @@
     font-family: inherit;
     resize: vertical;
   }
-  .field input:focus, .field select:focus, .field textarea:focus {
+  .field input:focus, .field textarea:focus {
     outline: none;
     border-color: var(--accent, #7c5cff);
   }

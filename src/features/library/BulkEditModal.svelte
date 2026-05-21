@@ -16,7 +16,6 @@
 
   let authorName = $state('');
   let artistName = $state('');
-  let status = $state<'' | '0' | '1' | '2'>('');
   let readingStatus = $state<'' | 'plan' | 'reading' | 'completed' | 'on_hold' | 'dropped' | 'clear'>('');
   let addTagsText = $state('');
   let removeTagsText = $state('');
@@ -35,7 +34,6 @@
       await bulkUpdateSeries(pids, {
         authorName: authorName.trim() || undefined,
         artistName: artistName.trim() || undefined,
-        status: status === '' ? undefined : Number(status),
         readingStatus: (readingStatus === '' || readingStatus === 'clear') ? undefined : readingStatus,
         clearReadingStatus: readingStatus === 'clear',
         addTags: splitTags(addTagsText),
@@ -90,15 +88,6 @@
       <label>
         <span>{t('series.artist')}</span>
         <input type="text" bind:value={artistName} placeholder={t('library.bulk.leave')} data-test="bulk-artist" />
-      </label>
-      <label>
-        <span>{t('series.status')}</span>
-        <select bind:value={status} data-test="bulk-status">
-          <option value="">{t('library.bulk.leave')}</option>
-          <option value="0">{t('status.unknown')}</option>
-          <option value="1">{t('status.ongoing')}</option>
-          <option value="2">{t('status.completed')}</option>
-        </select>
       </label>
       <label>
         <span>{t('rs.set')}</span>

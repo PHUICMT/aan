@@ -7,18 +7,10 @@
 import { app } from '../../../shared/lib/store.svelte';
 import type { SeriesCard } from '../../../shared/lib/types';
 
-export type StatusFilter = 'all' | 'ongoing' | 'completed' | 'unknown';
 export type DlFilter = 'all' | 'complete' | 'failed' | 'missing';
 export type RsFilter = 'all' | 'none' | 'plan' | 'reading' | 'completed' | 'on_hold' | 'dropped';
 export type ViewMode = 'grid' | 'compact' | 'list';
 export type SortKey = 'updated' | 'name' | 'progress' | 'last_read';
-
-export const STATUS_FILTERS: { id: StatusFilter; labelKey: string }[] = [
-  { id: 'all',       labelKey: 'filter.all' },
-  { id: 'ongoing',   labelKey: 'status.ongoing' },
-  { id: 'completed', labelKey: 'status.completed' },
-  { id: 'unknown',   labelKey: 'status.unknown' },
-];
 
 export const DL_FILTERS: { id: DlFilter; labelKey: string }[] = [
   { id: 'all',      labelKey: 'library.download.all' },
@@ -45,13 +37,6 @@ export const SORT_LABELS: Record<SortKey, string> = {
   name: 'library.sort.name',
 };
 
-function matchStatus(s: SeriesCard, f: StatusFilter): boolean {
-  if (f === 'all') return true;
-  if (f === 'ongoing')   return s.status === 1;
-  if (f === 'completed') return s.status === 2;
-  return s.status === 0 || s.status == null;
-}
-
 function matchDl(s: SeriesCard, f: DlFilter): boolean {
   if (f === 'all') return true;
   if (f === 'complete') return s.local_chapter_count >= s.chapter_count;
@@ -66,10 +51,6 @@ function matchRs(s: SeriesCard, f: RsFilter): boolean {
 
 export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
   // ───── Initial loads from localStorage ─────
-  const initStatus = ((): StatusFilter => {
-    const v = localStorage.getItem('aan.lib.status');
-    return v === 'ongoing' || v === 'completed' || v === 'unknown' ? v : 'all';
-  })();
   const initDl = ((): DlFilter => {
     const v = localStorage.getItem('aan.lib.dl');
     return v === 'complete' || v === 'failed' || v === 'missing' ? v : 'all';
@@ -91,7 +72,6 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
 
   // ───── State ─────
   let typeFilter = $state<string>('all');
-  let statusFilter = $state<StatusFilter>(initStatus);
   let dlFilter = $state<DlFilter>(initDl);
   let rsFilter = $state<RsFilter>(initRs);
   let viewMode = $state<ViewMode>(initView);
@@ -100,7 +80,6 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
   let query = $state<string>('');
 
   // ───── Persistence ─────
-  $effect(() => { try { localStorage.setItem('aan.lib.status', statusFilter); } catch {} });
   $effect(() => { try { localStorage.setItem('aan.lib.dl', dlFilter); } catch {} });
   $effect(() => { try { localStorage.setItem('aan.lib.rs', rsFilter); } catch {} });
   $effect(() => { try { localStorage.setItem('aan.lib.sort', sortKey); } catch {} });
@@ -127,7 +106,6 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
     const series = seriesSrc();
     const base = series.filter((s) => {
       if (typeFilter !== 'all' && s.type !== typeFilter) return false;
-      if (!matchStatus(s, statusFilter)) return false;
       if (!matchDl(s, dlFilter)) return false;
       if (!matchRs(s, rsFilter)) return false;
       if (app.selectedGenres.length > 0) {
@@ -164,7 +142,6 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
 
   const activeFilterCount = $derived(
     app.selectedGenres.length
-      + (statusFilter !== 'all' ? 1 : 0)
       + (dlFilter !== 'all' ? 1 : 0)
       + (rsFilter !== 'all' ? 1 : 0),
   );
@@ -173,11 +150,6 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
     const series = seriesSrc();
     if (id === 'all') return series.length;
     return series.filter((s) => s.type === id).length;
-  }
-  function statusCount(id: StatusFilter): number {
-    const series = seriesSrc();
-    if (id === 'all') return series.length;
-    return series.filter((s) => matchStatus(s, id)).length;
   }
   function dlCount(id: DlFilter): number {
     const series = seriesSrc();
@@ -196,7 +168,6 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
   // keys (undefined → default for that field).
   type Snapshot = {
     type?: string;
-    status?: StatusFilter;
     dl?: DlFilter;
     rs?: RsFilter;
     sort?: SortKey;
@@ -208,7 +179,6 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
   function serializeFilters(): string {
     const snap: Snapshot = {
       type: typeFilter,
-      status: statusFilter,
       dl: dlFilter,
       rs: rsFilter,
       sort: sortKey,
@@ -224,7 +194,6 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
     try { snap = JSON.parse(json); } catch { return false; }
     if (typeof snap !== 'object' || snap === null) return false;
     if (typeof snap.type === 'string') typeFilter = snap.type;
-    if (snap.status) statusFilter = snap.status;
     if (snap.dl) dlFilter = snap.dl;
     if (snap.rs) rsFilter = snap.rs;
     if (snap.sort) sortKey = snap.sort;
@@ -241,7 +210,6 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
     let snap: Snapshot;
     try { snap = JSON.parse(json); } catch { return false; }
     if ((snap.type ?? 'all') !== typeFilter) return false;
-    if ((snap.status ?? 'all') !== statusFilter) return false;
     if ((snap.dl ?? 'all') !== dlFilter) return false;
     if ((snap.rs ?? 'all') !== rsFilter) return false;
     if ((snap.sort ?? 'updated') !== sortKey) return false;
@@ -256,7 +224,6 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
   return {
     // filter state
     get typeFilter() { return typeFilter; }, set typeFilter(v: string) { typeFilter = v; },
-    get statusFilter() { return statusFilter; }, set statusFilter(v: StatusFilter) { statusFilter = v; },
     get dlFilter() { return dlFilter; }, set dlFilter(v: DlFilter) { dlFilter = v; },
     get rsFilter() { return rsFilter; }, set rsFilter(v: RsFilter) { rsFilter = v; },
     get query() { return query; }, set query(v: string) { query = v; },
@@ -273,7 +240,6 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
     matchesSnapshot,
     // counts
     countFor,
-    statusCount,
     dlCount,
     rsCount,
   };

@@ -17,7 +17,7 @@
     setReadingStatus,
   } from '../../shared/lib/api';
   import { getCoverUrl } from '../../shared/lib/covers';
-  import { STATUS_KEY, TYPE_CHIP, READING_STATUSES } from '../../shared/lib/constants';
+  import { TYPE_CHIP, READING_STATUSES } from '../../shared/lib/constants';
   import { t } from '../../shared/lib/i18n.svelte';
   import { app, bumpSeriesMutation, setReaderChapters, openReader, goBack } from '../../shared/lib/store.svelte';
   import type { Chapter, SeriesDetail } from '../../shared/lib/types';
@@ -71,7 +71,6 @@
 
   const pid = $derived(app.seriesPid);
   const chip = $derived(detail ? TYPE_CHIP[detail.type] ?? TYPE_CHIP.manga : null);
-  const statusKey = $derived(detail ? STATUS_KEY[detail.status] ?? 'status.unknown' : 'status.unknown');
 
   // Continue chapter precedence: unfinished-read > most-recently-read >
   // lowest-numbered downloaded.
@@ -277,10 +276,6 @@
               <span class="meta-value">{detail.artist_name}</span>
             </div>
           {/if}
-          <div class="meta-row">
-            <span class="meta-label">{t('series.status')}</span>
-            <span class="meta-value">{t(statusKey)}</span>
-          </div>
           <div class="meta-row">
             <span class="meta-label">{t('series.chapters')}</span>
             <span class="meta-value">

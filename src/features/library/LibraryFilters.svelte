@@ -14,7 +14,7 @@
   } from '../../shared/lib/store.svelte';
   import type { GenreCount } from '../../shared/lib/types';
   import {
-    STATUS_FILTERS, RS_FILTERS,
+    RS_FILTERS,
     type LibraryFilters,
   } from './composables/useLibraryFilters.svelte';
 
@@ -77,27 +77,6 @@
   </div>
   {#if !skeletonOnly && filters.filtersOpen}
     <div class="filters-panel" transition:slide={{ duration: 260, easing: cubicOut }}>
-      <section class="filter-section">
-        <h4 class="section-label">{t('series.status')}</h4>
-        <div class="status-pills">
-          {#each STATUS_FILTERS as f (f.id)}
-            {@const count = filters.statusCount(f.id)}
-            <button
-              class="filter status-filter"
-              class:active={filters.statusFilter === f.id}
-              onclick={() => (filters.statusFilter = f.id)}
-              data-test={`filter-status-${f.id}`}
-            >
-              {t(f.labelKey)}
-              {#if loading}
-                <span class="filter-count-skel"><Shimmer radius={9999} height="100%" /></span>
-              {:else}
-                <span class="filter-count" class:zero={count === 0}>{count}</span>
-              {/if}
-            </button>
-          {/each}
-        </div>
-      </section>
       <section class="filter-section">
         <h4 class="section-label">{t('library.filters.reading_status')}</h4>
         <div class="status-pills">
