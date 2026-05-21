@@ -41,3 +41,10 @@ tests/fixtures/build/
 
 # Vitest coverage
 coverage/
+
+# UI review tooling — not for shipping (screenshots + interactive viewer + helper scripts)
+docs/ui-review/
+scripts/capture-ui.mts
+scripts/build-ui-review.mts
+scripts/transform-docs.mts
+scripts/strip-ascii-mockups.mts

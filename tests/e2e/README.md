@@ -2,6 +2,8 @@
 
 Playwright drives the real Tauri binary over CDP. One app instance is spawned in `global-setup.ts`, attached via `chromium.connectOverCDP`, and torn down in `global-teardown.ts`. Specs run **serially** (`workers: 1`) because they share a single window.
 
+> **Planning the next batch of specs?** Start with [TEST_FLOWS.md](TEST_FLOWS.md) — comprehensive flow backlog (544 flows across 10 areas, ~72 covered today) — and [fixtures-needed.md](fixtures-needed.md) for prep work (data-test hooks, new fixtures, seed commands).
+
 ## Run it
 
 ```bash
