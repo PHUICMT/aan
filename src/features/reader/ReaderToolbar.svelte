@@ -61,15 +61,15 @@
     <Icon name="chevron_right" size={14} />
   </button>
   <div class="sep"></div>
-  <button class="mode" onclick={onCycleMode} use:tooltip={"{t('reader.mode.title')} — {t('reader.mode.desc')}"} data-test="reader-mode-cycle">
+  <button class="mode" onclick={onCycleMode} use:tooltip={`${t('reader.mode.title')} — ${t('reader.mode.desc')}`} data-test="reader-mode-cycle">
     <Icon name={modeIcon} size={12} />
     {modeLabel}
   </button>
-  <button class="mode" onclick={onCycleFit} use:tooltip={"{t('reader.fit.title')} — {t('reader.fit.desc')}"} data-test="reader-fit-cycle">
+  <button class="mode" onclick={onCycleFit} use:tooltip={`${t('reader.fit.title')} — ${t('reader.fit.desc')}`} data-test="reader-fit-cycle">
     <Icon name={fitIcon} size={12} />
     {fitLabel}
   </button>
-  <div class="zoom-ctrl" use:tooltip={"{t('reader.zoom.title')} — {t('reader.zoom.desc')}"}>
+  <div class="zoom-ctrl" use:tooltip={`${t('reader.zoom.title')} — ${t('reader.zoom.desc')}`}>
     <button class="mode zoom-btn" onclick={onZoomOut} aria-label="Zoom out" data-test="reader-zoom-out">−</button>
     <button class="mode zoom-label" onclick={onZoomReset} use:tooltip={"Reset zoom"} data-test="reader-zoom-reset">{Math.round(zoom * 100)}%</button>
     <button class="mode zoom-btn" onclick={onZoomIn} aria-label="Zoom in" data-test="reader-zoom-in">+</button>
