@@ -4,7 +4,7 @@
   import { getCoverUrl } from '../../shared/lib/covers';
   import { TYPE_CHIP } from '../../shared/lib/constants';
   import { t } from '../../shared/lib/i18n.svelte';
-  import { app, dismissContinue, restoreContinue, resumeLastReader, setLastReader } from '../../shared/lib/store.svelte';
+  import { app, markContinueSeen, resumeLastReader, setLastReader } from '../../shared/lib/store.svelte';
   import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import Icon from '../../shared/components/Icon.svelte';
@@ -44,12 +44,11 @@
   }
 </script>
 
-{#if app.lastReader && app.page !== 'reader'}
+{#if app.lastReader && app.page !== 'reader' && app.lastReader.pid !== app.continueSeenPid}
   {@const lr = app.lastReader}
   {@const chip = TYPE_CHIP[lr.kind] ?? TYPE_CHIP.manga}
   <div
     class="pill"
-    class:collapsed={app.continueDismissed}
     role="region"
     aria-label={t('continue.resume')}
     in:fly={{ y: 16, duration: 280, easing: cubicOut }}
@@ -58,8 +57,8 @@
   >
     <button
       class="main"
-      onclick={app.continueDismissed ? restoreContinue : onResume}
-      use:tooltip={app.continueDismissed ? t('continue.resume') : t('continue.resume')}
+      onclick={onResume}
+      use:tooltip={t('continue.resume')}
       aria-label={t('continue.resume')}
       data-test="continue-resume"
     >
@@ -70,7 +69,6 @@
           {:else}
             <div class="cover-fallback">{(lr.seriesName || '?').charAt(0)}</div>
           {/if}
-          <div class="pull"><span class="pull-icon"><Icon name="chevron_left" size={16} /></span></div>
         </div>
         <div class="play"><Icon name="chevron_right" size={12} /></div>
       </div>
@@ -83,7 +81,7 @@
         <div class="meta">{t('series.ch_no')} {lr.chapterNo}</div>
       </div>
     </button>
-    <button class="close" onclick={dismissContinue} aria-label={t('continue.dismiss')} use:tooltip={t('continue.dismiss')} data-test="continue-close">
+    <button class="close" onclick={markContinueSeen} aria-label={t('continue.dismiss')} use:tooltip={t('continue.dismiss')} data-test="continue-close">
       <Icon name="x" size={11} />
     </button>
   </div>
@@ -111,70 +109,8 @@
     transform: translateY(-1px);
     box-shadow: 0 18px 44px -10px rgba(0,0,0,0.65), 0 0 0 4px var(--accent-dim);
   }
-  /* Collapsed: half-tucked off the right edge so it reads as a drawer pull. */
-  .pill.collapsed {
-    max-width: 48px;
-    width: 48px; height: 48px;
-    right: -22px;
-    border-width: 2px;
-    box-shadow:
-      0 0 0 5px var(--accent-dim),
-      0 0 18px var(--accent-glow),
-      0 10px 26px -10px rgba(0,0,0,0.55);
-    cursor: pointer;
-    transition:
-      transform 0.32s var(--ease-out),
-      box-shadow 0.32s var(--ease-out),
-      max-width 0.32s var(--ease-out),
-      right 0.32s var(--ease-out);
-  }
-  /* Hover pulls the full circle into view for a proper click target. */
-  .pill.collapsed:hover {
-    right: -4px;
-    transform: translateY(-1px);
-  }
-  /* Clip rather than display:none so height stays constant during the
-     width animation (no vertical pop). */
-  .pill.collapsed .info,
-  .pill.collapsed .close {
-    opacity: 0;
-    pointer-events: none;
-  }
-  .pill.collapsed .info { transition: opacity 0.18s var(--ease-out); }
-  .pill .info, .pill .close { transition: opacity 0.24s var(--ease-out) 0.08s; }
-  .pill.collapsed .main {
-    padding: 0; min-height: 44px;
-    width: 44px; height: 44px;
-    overflow: hidden;
-    flex: 0 0 44px;
-  }
-  /* Collapse .close to 0 width so .main keeps its full 44px (otherwise
-     the cover gets squished to a sliver). */
-  .pill.collapsed .close { width: 0; min-width: 0; border-left: none; }
-  /* Drop the inner radius + border so the pill's own circular clip
-     handles the edge — no dark crescent gap on the right. */
-  .pill.collapsed .cover-clip { border-radius: 0; border: none; }
   .close { flex-shrink: 0; }
   .cover { flex-shrink: 0; }
-  .pull {
-    position: absolute; inset: 0;
-    display: grid; place-items: center;
-    background: rgba(0, 0, 0, 0.55);
-    color: #fff;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s var(--ease-out);
-  }
-  .pill.collapsed .pull { opacity: 1; }
-  .pill.collapsed .pull-icon {
-    display: inline-flex;
-    animation: nudge 1.6s var(--ease-in-out) infinite;
-  }
-  .pill.collapsed .play { display: none; }
-  @keyframes nudge {
-    0%, 100% { transform: translateX(0); }
-    50%      { transform: translateX(-3px); }
-  }
   .main {
     display: flex; align-items: center; gap: 10px;
     padding: 7px 6px 7px 7px;

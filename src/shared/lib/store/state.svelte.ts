@@ -165,7 +165,16 @@ export const app = $state({
   listStatus: 'reading' as ReadingStatus,
   closeToTray: localStorage.getItem('aan.close_to_tray') === '1',
   lastReader: loadLastReader() as LastReader | null,
-  continueDismissed: false,
+  /** PID for which the Continue pill has already been acknowledged. Pill
+   *  stays hidden while lastReader.pid matches this; resets implicitly
+   *  when a different series becomes lastReader. */
+  continueSeenPid: ((): number | null => {
+    try {
+      const v = localStorage.getItem('aan.continue_seen_pid');
+      const n = v == null ? NaN : Number(v);
+      return Number.isFinite(n) ? n : null;
+    } catch { return null; }
+  })(),
   /** Bumped on any series mutation; Sidebar/Library invalidate cached counts. */
   seriesMutationTick: 0,
   /** Bumped after chapter progress is persisted; SeriesDetail re-fetches. */

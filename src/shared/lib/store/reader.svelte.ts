@@ -17,12 +17,16 @@ export function setLastReader(info: LastReader) {
   try { localStorage.setItem('aan.last_reader', JSON.stringify(info)); } catch {}
 }
 
-export function dismissContinue() {
-  app.continueDismissed = true;
-}
-
-export function restoreContinue() {
-  app.continueDismissed = false;
+/** Mark the current lastReader series as already-seen so the Continue
+ *  pill stops re-appearing for it. Triggered by the dismiss button and
+ *  also implicitly by opening the reader. */
+export function markContinueSeen() {
+  const pid = app.lastReader?.pid ?? null;
+  app.continueSeenPid = pid;
+  try {
+    if (pid == null) localStorage.removeItem('aan.continue_seen_pid');
+    else localStorage.setItem('aan.continue_seen_pid', String(pid));
+  } catch {}
 }
 
 /** Mark current page so Continue-pill resumes there. */
@@ -86,7 +90,10 @@ export function openReader(chapter: Chapter) {
   app.readerChapter = chapter;
   app.navDir = 'forward';
   app.page = 'reader';
-  app.continueDismissed = false;
+  // Opening the reader implicitly acknowledges the pill for this series;
+  // user is actively engaging, no need to re-prompt them later.
+  app.continueSeenPid = chapter.pid;
+  try { localStorage.setItem('aan.continue_seen_pid', String(chapter.pid)); } catch {}
   try {
     const prev = app.lastReader;
     const sameSeries = prev?.pid === chapter.pid;
