@@ -222,8 +222,6 @@
   .set-scrim {
     position: fixed; inset: 0;
     background: var(--scrim-bg);
-    backdrop-filter: var(--scrim-blur);
-    -webkit-backdrop-filter: var(--scrim-blur);
     z-index: 1999;
     /* Visual-only — clicks pass through; closeOnOutside already handles
        outside dismiss via document-level mousedown. */

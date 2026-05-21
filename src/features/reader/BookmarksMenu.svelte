@@ -118,8 +118,6 @@
   .bm-scrim {
     position: fixed; inset: 0;
     background: var(--scrim-bg);
-    backdrop-filter: var(--scrim-blur);
-    -webkit-backdrop-filter: var(--scrim-blur);
     z-index: 1999;
     pointer-events: none;
     animation: bm-fade 180ms var(--ease-out) both;
