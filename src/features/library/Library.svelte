@@ -5,6 +5,7 @@
   import CoverRow from './CoverRow.svelte';
   import VirtualGrid from './VirtualGrid.svelte';
   import LibraryFilters from './LibraryFilters.svelte';
+  import CollectionChips from './CollectionChips.svelte';
   import LibrarySearchResults from './LibrarySearchResults.svelte';
   import LibraryEmptyState from './LibraryEmptyState.svelte';
   import { useLibraryFilters, SORT_KEYS, SORT_LABELS, type SortKey } from './composables/useLibraryFilters.svelte';
@@ -230,6 +231,8 @@
   {:else if genres.length > 0}
     <LibraryFilters {filters} {genres} {loading} />
   {/if}
+
+  <CollectionChips {filters} />
 
   {#if chapterMatches.length > 0 || (chapterSearchPending && filters.query.trim().length >= 2)}
     <LibrarySearchResults

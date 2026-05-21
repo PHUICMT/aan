@@ -371,5 +371,12 @@
   "settings.dicts.desc": "ติดตั้งไฟล์ .tsv (คำ ⇥ ความหมาย) เพื่อใช้ดับเบิลคลิกค้นคำใน novel reader",
   "settings.dicts.install": "เพิ่มพจนานุกรม…",
   "settings.dicts.installing": "กำลังเพิ่ม…",
-  "settings.dicts.format_hint": "รูปแบบ: หนึ่งคำต่อบรรทัด คำกับความหมายคั่นด้วย Tab บรรทัดขึ้นต้นด้วย # ถือว่าเป็นคอมเมนต์"
+  "settings.dicts.format_hint": "รูปแบบ: หนึ่งคำต่อบรรทัด คำกับความหมายคั่นด้วย Tab บรรทัดขึ้นต้นด้วย # ถือว่าเป็นคอมเมนต์",
+
+  "library.collections.save": "บันทึกเป็นชั้น",
+  "library.collections.save_tooltip": "เก็บฟิลเตอร์ปัจจุบันไว้เป็นชั้นถาวร",
+  "library.collections.save_title": "บันทึก Smart Collection",
+  "library.collections.save_hint": "เก็บฟิลเตอร์ปัจจุบัน (ประเภท สถานะ ดาวน์โหลด สถานะอ่าน หมวด เรียง ค้นหา) ไว้เป็นชั้นที่ตั้งชื่อได้",
+  "library.collections.save_confirm": "บันทึก",
+  "library.collections.name_placeholder": "เช่น Cyberpunk รอต่อ"
 }

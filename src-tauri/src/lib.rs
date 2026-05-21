@@ -203,6 +203,11 @@ pub fn run() {
             commands::dictionary::install_dictionary,
             commands::dictionary::remove_dictionary,
             commands::dictionary::lookup_term,
+            commands::collections::list_collections,
+            commands::collections::create_collection,
+            commands::collections::update_collection,
+            commands::collections::delete_collection,
+            commands::collections::reorder_collections,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -207,6 +207,23 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
+    // Smart collections: a named snapshot of Library filter state stored
+    // as opaque JSON. The shape is owned by the frontend; the backend
+    // doesn't peek inside, which lets us evolve the filter set without
+    // a migration on every change.
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS collections (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            name         TEXT NOT NULL,
+            filter_json  TEXT NOT NULL,
+            position     INTEGER NOT NULL DEFAULT 0,
+            created_at   TIMESTAMP NOT NULL DEFAULT (datetime('now')),
+            updated_at   TIMESTAMP NOT NULL DEFAULT (datetime('now'))
+        )",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+
     Ok(())
 }
 

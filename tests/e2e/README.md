@@ -25,7 +25,7 @@ npm run e2e:report                     # open the HTML report
 
 ## Test catalogue
 
-> 41 tests across 19 spec files. Runtime ≈ 35 seconds.
+> 44 tests across 20 spec files. Runtime ≈ 35 seconds.
 
 ### `smoke.spec.ts`
 Sanity that the suite is wired right.
@@ -101,6 +101,14 @@ Novel highlights persist as rows in the `annotations` table, get re-applied as `
 - **annotations created via command surface as wrappers + panel rows** — `add_annotation` twice in different colours, opens the panel, asserts both rows render with the right colour class.
 - **annotation list survives chapter swap and reload** — adds one with a note, reloads the app cold, re-enters the chapter, asserts the row + note are still there.
 - **export_series_annotations_md emits chapter-grouped markdown** — adds two annotations, calls the export command, asserts the markdown contains `## Chapter` headings + both snippets.
+
+### `collections.spec.ts` *(mutates — cleans up in afterEach)*
+
+Smart collections store a named snapshot of Library filter state in the `collections` table; chips render above the grid. afterEach deletes every collection row.
+
+- **save current filters as a collection, chip appears and persists** — narrows the type + reading-status filters, clicks `Save as collection`, names it, then asserts the chip is visible and the row in `list_collections` has the expected `filter_json`.
+- **clicking a chip re-applies the saved filter snapshot** — seeds a `Novels only` collection via the Rust command, opens Library with a manga filter active, clicks the chip, and asserts the novel type chip is now active.
+- **deleting a chip drops it from the row and the backend** — seeds a row, clicks the `×` on its chip, asserts the chip is gone from the DOM and `list_collections` returns `[]`.
 
 ### `dictionary.spec.ts` *(mutates — cleans up in afterEach)*
 

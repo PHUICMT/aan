@@ -394,5 +394,12 @@
   "settings.dicts.desc": "Install .tsv files (term ⇥ definition per line) for double-click lookups in the novel reader.",
   "settings.dicts.install": "Install dictionary…",
   "settings.dicts.installing": "Installing…",
-  "settings.dicts.format_hint": "Format: one entry per line, term and definition separated by a tab. Comments lines starting with # are ignored."
+  "settings.dicts.format_hint": "Format: one entry per line, term and definition separated by a tab. Comments lines starting with # are ignored.",
+
+  "library.collections.save": "Save as collection",
+  "library.collections.save_tooltip": "Bookmark the current filters as a shelf",
+  "library.collections.save_title": "Save smart collection",
+  "library.collections.save_hint": "Stores your current filters (type, status, download, reading status, genres, sort, search) as a named shelf.",
+  "library.collections.save_confirm": "Save",
+  "library.collections.name_placeholder": "e.g. Cyberpunk on hold"
 }

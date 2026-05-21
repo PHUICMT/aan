@@ -371,6 +371,31 @@ export async function importEpub(input: EpubImportArgs): Promise<ImportedEpub> {
   });
 }
 
+export type Collection = {
+  id: number;
+  name: string;
+  filter_json: string;
+  position: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function listCollections(): Promise<Collection[]> {
+  return await invoke<Collection[]>('list_collections');
+}
+export async function createCollection(name: string, filterJson: string): Promise<number> {
+  return await invoke<number>('create_collection', { name, filterJson });
+}
+export async function updateCollection(id: number, name?: string, filterJson?: string): Promise<void> {
+  await invoke('update_collection', { id, name: name ?? null, filterJson: filterJson ?? null });
+}
+export async function deleteCollection(id: number): Promise<void> {
+  await invoke('delete_collection', { id });
+}
+export async function reorderCollections(orderedIds: number[]): Promise<void> {
+  await invoke('reorder_collections', { orderedIds });
+}
+
 export type Dictionary = { filename: string; name: string; entries: number; bytes: number };
 export type DictMatch = { dictionary: string; term: string; definition: string };
 

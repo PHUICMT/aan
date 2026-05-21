@@ -190,6 +190,69 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
     return series.filter((s) => matchRs(s, id)).length;
   }
 
+  // ───── Smart collections: serialise / apply ─────
+  // The JSON shape is owned here — backend stores opaque text. Bumping
+  // a field is forwards-compatible because `apply` tolerates missing
+  // keys (undefined → default for that field).
+  type Snapshot = {
+    type?: string;
+    status?: StatusFilter;
+    dl?: DlFilter;
+    rs?: RsFilter;
+    sort?: SortKey;
+    genres?: string[];
+    genreCombo?: 'or' | 'and';
+    query?: string;
+  };
+
+  function serializeFilters(): string {
+    const snap: Snapshot = {
+      type: typeFilter,
+      status: statusFilter,
+      dl: dlFilter,
+      rs: rsFilter,
+      sort: sortKey,
+      genres: [...app.selectedGenres],
+      genreCombo: app.genreCombo,
+      query: query.trim() || undefined,
+    };
+    return JSON.stringify(snap);
+  }
+
+  function applyFilters(json: string): boolean {
+    let snap: Snapshot;
+    try { snap = JSON.parse(json); } catch { return false; }
+    if (typeof snap !== 'object' || snap === null) return false;
+    if (typeof snap.type === 'string') typeFilter = snap.type;
+    if (snap.status) statusFilter = snap.status;
+    if (snap.dl) dlFilter = snap.dl;
+    if (snap.rs) rsFilter = snap.rs;
+    if (snap.sort) sortKey = snap.sort;
+    if (Array.isArray(snap.genres)) app.selectedGenres = snap.genres.filter((g) => typeof g === 'string');
+    if (snap.genreCombo === 'or' || snap.genreCombo === 'and') app.genreCombo = snap.genreCombo;
+    query = snap.query ?? '';
+    return true;
+  }
+
+  /** True if the live filter state matches the saved snapshot — used to
+   *  highlight the currently active collection chip. Order-independent
+   *  array comparison for genres. */
+  function matchesSnapshot(json: string): boolean {
+    let snap: Snapshot;
+    try { snap = JSON.parse(json); } catch { return false; }
+    if ((snap.type ?? 'all') !== typeFilter) return false;
+    if ((snap.status ?? 'all') !== statusFilter) return false;
+    if ((snap.dl ?? 'all') !== dlFilter) return false;
+    if ((snap.rs ?? 'all') !== rsFilter) return false;
+    if ((snap.sort ?? 'updated') !== sortKey) return false;
+    const g1 = [...(snap.genres ?? [])].sort();
+    const g2 = [...app.selectedGenres].sort();
+    if (g1.length !== g2.length || g1.some((g, i) => g !== g2[i])) return false;
+    if ((snap.genreCombo ?? 'or') !== app.genreCombo) return false;
+    if ((snap.query ?? '') !== query.trim()) return false;
+    return true;
+  }
+
   return {
     // filter state
     get typeFilter() { return typeFilter; }, set typeFilter(v: string) { typeFilter = v; },
@@ -205,6 +268,9 @@ export function useLibraryFilters(seriesSrc: () => SeriesCard[]) {
     get activeFilterCount() { return activeFilterCount; },
     // actions
     setView,
+    serializeFilters,
+    applyFilters,
+    matchesSnapshot,
     // counts
     countFor,
     statusCount,
