@@ -124,6 +124,11 @@
   let pdfDoc: pdfjs.PDFDocumentProxy | null = null;
   let imageUrls: string[] = [];
   let isImageDir = $state(false);
+  // Aspect ratio (w/h) of page 1, used as the placeholder for every
+  // .page-wrap so unrendered pages still have real height — without it,
+  // scrollIntoView(startPage) lands at the wrong scroll offset (especially
+  // with lazy PDF streaming, where canvases stay 0×0 longer).
+  let docAspect = $state<number | null>(null);
 
   let rootEl: HTMLDivElement | null = $state(null);
   let jumpValue = $state('');
@@ -510,6 +515,13 @@
           pdfDoc = await pdfjs.getDocument({ data: bytes }).promise;
         }
         pageCount = pdfDoc.numPages;
+        // Cheap range request — gives every page a placeholder height
+        // before any canvas renders.
+        try {
+          const p1 = await pdfDoc.getPage(1);
+          const vp = p1.getViewport({ scale: 1 });
+          docAspect = vp.width / vp.height;
+        } catch { /* aspect-less fallback is fine */ }
       }
       const startPage = Math.min(Math.max(1, initialPage), pageCount);
       currentPage = startPage;
@@ -674,7 +686,12 @@
       bind:this={rootEl}
     >
       {#each visibleIndices as i (i)}
-        <div class="page-wrap" data-idx={i} class:bookmarked={bookmarkedPages.has(i + 1)}>
+        <div
+          class="page-wrap"
+          data-idx={i}
+          class:bookmarked={bookmarkedPages.has(i + 1)}
+          style:--doc-aspect={docAspect ?? ''}
+        >
           {#if isImageDir}
             <img alt="page {i + 1}" use:attachImage={i} />
           {:else}
@@ -815,6 +832,16 @@
     border-radius: 8px; overflow: hidden;
     background: #161826;
     scroll-margin-top: 60px;
+    /* Placeholder aspect from page 1 so unrendered .page-wrap divs have
+       real height (otherwise scrollIntoView(startPage) lands at scrollTop=0
+       because all pages collapse to 0 height before their canvas renders).
+       Canvas's intrinsic dimensions override this once rendered. */
+    aspect-ratio: var(--doc-aspect, 3 / 4);
+  }
+  .page-wrap > canvas,
+  .page-wrap > img {
+    /* Once rendered, canvas grows past the aspect placeholder. */
+    position: relative;
   }
   canvas, img {
     display: block;
