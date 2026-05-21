@@ -88,7 +88,7 @@
     {#if open}
       <div class="group-body" transition:slide={{ duration: 220, easing: cubicOut }}>
         {#if visFontUi}
-          <div class="row">
+          <div class="row" data-test="settings-row-font-ui">
             <div class="label">
               <div class="title">{t('settings.font.ui.title')}</div>
               <div class="desc">{t('settings.font.ui.desc')}</div>
@@ -98,7 +98,7 @@
         {/if}
 
         {#if visFontUiSize}
-          <div class="row">
+          <div class="row" data-test="settings-row-font-ui-size">
             <div class="label">
               <div class="title">{t('settings.font.ui.size')}</div>
               <div class="desc">{app.fontUiSize}px</div>
@@ -116,7 +116,7 @@
         {/if}
 
         {#if visFontNovel}
-          <div class="row">
+          <div class="row" data-test="settings-row-font-novel">
             <div class="label">
               <div class="title">{t('settings.font.novel.title')}</div>
               <div class="desc">{t('settings.font.novel.desc')}</div>
@@ -126,7 +126,7 @@
         {/if}
 
         {#if visFontNovelSize}
-          <div class="row">
+          <div class="row" data-test="settings-row-font-novel-size">
             <div class="label">
               <div class="title">{t('settings.font.novel.size')}</div>
               <div class="desc">{app.fontNovelSize}px</div>

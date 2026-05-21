@@ -48,11 +48,11 @@
 </script>
 
 <div class="tray-menu">
-  <div class="row" role="button" tabindex="0" onclick={showApp} onkeydown={(e) => e.key === 'Enter' && showApp()}>
+  <div class="row" role="button" tabindex="0" onclick={showApp} onkeydown={(e) => e.key === 'Enter' && showApp()} data-test="tray-show">
     <Icon name="book_open" size={13} />
     <span>{t('tray.show')}</span>
   </div>
-  <div class="row danger" role="button" tabindex="0" onclick={quitApp} onkeydown={(e) => e.key === 'Enter' && quitApp()}>
+  <div class="row danger" role="button" tabindex="0" onclick={quitApp} onkeydown={(e) => e.key === 'Enter' && quitApp()} data-test="tray-quit">
     <Icon name="x" size={13} />
     <span>{t('tray.quit')}</span>
   </div>

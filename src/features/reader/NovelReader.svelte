@@ -436,6 +436,7 @@
         onclick={() => readerPrev()}
         disabled={!readerHasPrev()}
         use:tooltip={"Previous chapter"}
+        data-test="novel-prev-ch"
       >
         <Icon name="chevron_left" size={12} />
         Prev
@@ -445,6 +446,7 @@
         onclick={() => readerNext()}
         disabled={!readerHasNext()}
         use:tooltip={"Next chapter"}
+        data-test="novel-next-ch"
       >
         Next
         <Icon name="chevron_right" size={12} />
@@ -461,11 +463,12 @@
           onclick={() => setTocOpen(!tocOpen)}
           use:tooltip={"Outline"}
           aria-label="Outline"
+          data-test="novel-outline-open"
         >
           ≡
         </button>
       {/if}
-      <button class="bg-toggle" onclick={openFind} use:tooltip={"Search (Ctrl+F)"} aria-label="Search">
+      <button class="bg-toggle" onclick={openFind} use:tooltip={"Search (Ctrl+F)"} aria-label="Search" data-test="novel-find-open">
         <Icon name="search" size={12} />
       </button>
       <button
@@ -550,7 +553,7 @@
     <aside class="toc-panel" aria-label="Outline" use:portal>
       <div class="toc-head">
         <span>Outline</span>
-        <button class="find-btn" onclick={() => setTocOpen(false)} aria-label="Close outline">×</button>
+        <button class="find-btn" onclick={() => setTocOpen(false)} aria-label="Close outline" data-test="novel-outline-close">×</button>
       </div>
       <ul class="toc-list">
         {#each toc as item (item.anchorId)}

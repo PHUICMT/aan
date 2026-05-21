@@ -16,12 +16,12 @@
   }
 </script>
 
-<div class="titlebar" data-tauri-drag-region>
+<div class="titlebar" data-tauri-drag-region data-test="titlebar">
   <div class="brand" data-tauri-drag-region>
     <img class="brand-mark" src={logoMark} alt="" />
     <span class="brand-wordmark" aria-label="Aan">{@html logoWordmark}</span>
   </div>
-  <div class="drag" data-tauri-drag-region></div>
+  <div class="drag" data-tauri-drag-region data-test="title-drag"></div>
   <div class="wm">
     <button class="wm-btn" onclick={() => win.minimize()} data-test="title-min">
       <Icon name="minus" size={14} />

@@ -54,12 +54,14 @@
     aria-label={t('continue.resume')}
     in:fly={{ y: 16, duration: 280, easing: cubicOut }}
     out:fly={{ y: 24, duration: 220, easing: cubicOut }}
+    data-test="continue-pill"
   >
     <button
       class="main"
       onclick={app.continueDismissed ? restoreContinue : onResume}
       use:tooltip={app.continueDismissed ? t('continue.resume') : t('continue.resume')}
       aria-label={t('continue.resume')}
+      data-test="continue-resume"
     >
       <div class="cover">
         <div class="cover-clip">
@@ -81,7 +83,7 @@
         <div class="meta">{t('series.ch_no')} {lr.chapterNo}</div>
       </div>
     </button>
-    <button class="close" onclick={dismissContinue} aria-label={t('continue.dismiss')} use:tooltip={t('continue.dismiss')}>
+    <button class="close" onclick={dismissContinue} aria-label={t('continue.dismiss')} use:tooltip={t('continue.dismiss')} data-test="continue-close">
       <Icon name="x" size={11} />
     </button>
   </div>

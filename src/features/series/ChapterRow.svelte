@@ -200,7 +200,7 @@
         <Icon name="x" size={10} />
       </button>
     {:else if confirmingDelete}
-      <button class="confirm-yes danger" onclick={doDelete}>
+      <button class="confirm-yes danger" onclick={doDelete} data-test={`chapter-delete-confirm-${chapter.chapter_id}`}>
         <Icon name="trash" size={11} />
         {t('series.edit.delete_now')}
       </button>
@@ -222,6 +222,7 @@
         onclick={askDelete}
         use:tooltip={t('series.edit.delete')}
         aria-label={t('series.edit.delete')}
+        data-test={`chapter-delete-${chapter.chapter_id}`}
       >
         <Icon name="trash" size={11} />
       </button>
@@ -234,7 +235,7 @@
       {#if isPdf || isImageDir}
         {#if confirming}
           <span class="confirm-wrap">
-            <button class="confirm-yes" disabled={converting} onclick={doConvert}>
+            <button class="confirm-yes" disabled={converting} onclick={doConvert} data-test={`chapter-convert-confirm-${chapter.chapter_id}`}>
               <Icon name="check" size={11} />
               {isPdf ? t('chapter.to_images') : t('chapter.to_pdf')}?
             </button>
@@ -249,6 +250,7 @@
             onclick={askConvert}
             use:tooltip={isPdf ? t('chapter.to_images') : t('chapter.to_pdf')}
             aria-label={isPdf ? t('chapter.to_images') : t('chapter.to_pdf')}
+            data-test={`chapter-convert-${chapter.chapter_id}`}
           >
             <Icon name={isPdf ? 'folder_open' : 'file_text'} size={11} />
           </button>

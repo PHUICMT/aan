@@ -20,10 +20,10 @@
   }
 </script>
 
-<section class="block">
+<section class="block" data-test="home-continue">
   <div class="block-head">
     <h2>{t('home.continue')}</h2>
-    <button class="more" onclick={() => navigate('history')}>
+    <button class="more" onclick={() => navigate('history')} data-test="home-continue-see-all">
       {t('home.see_all')}
       <Icon name="chevron_right" size={11} />
     </button>
@@ -31,7 +31,7 @@
   <div class="continue-row">
     {#each items as it (it.chapter_id + it.read_at)}
       {@const chip = TYPE_CHIP[it.kind] ?? TYPE_CHIP.manga}
-      <button class="continue-card" onclick={() => onResume(it)}>
+      <button class="continue-card" onclick={() => onResume(it)} data-test="home-continue-card">
         <div class="cover-sm">
           {#if covers[it.pid]}
             <img src={covers[it.pid]} alt={it.series_name} />

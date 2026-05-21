@@ -21,7 +21,7 @@
   );
 </script>
 
-<button class="hero-card" onclick={onResume}>
+<button class="hero-card" onclick={onResume} data-test="home-hero">
   {#if coverUrl}
     <img class="hero-bg" src={coverUrl} alt="" aria-hidden="true" />
   {/if}
@@ -44,7 +44,7 @@
       <div class="hero-title" use:tooltip={hero.series_name}>{hero.series_name}</div>
       <div class="hero-meta">{t('series.ch_no')} {hero.chapter_no} · {hero.last_page_read}/{hero.page_count} pages</div>
       <div class="hero-progress">
-        <div class="hero-progress-fill" style:width="{pct}%"></div>
+        <div class="hero-progress-fill" style:width="{pct}%" data-test="home-hero-progress"></div>
       </div>
     </div>
     <div class="hero-cta">

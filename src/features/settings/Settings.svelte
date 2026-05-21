@@ -120,10 +120,10 @@
         {/if}
       </div>
       {#if !searching}
-        <button class="head-btn" type="button" onclick={expandAll} use:tooltip={"Expand all"}>
+        <button class="head-btn" type="button" onclick={expandAll} use:tooltip={"Expand all"} data-test="settings-expand-all">
           <Icon name="chevron_down" size={10} />
         </button>
-        <button class="head-btn" type="button" onclick={collapseAll} use:tooltip={"Collapse all"}>
+        <button class="head-btn" type="button" onclick={collapseAll} use:tooltip={"Collapse all"} data-test="settings-collapse-all">
           <Icon name="minus" size={10} />
         </button>
       {/if}

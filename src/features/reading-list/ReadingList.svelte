@@ -72,7 +72,7 @@
   });
 </script>
 
-<div class="page">
+<div class="page" data-test="reading-list">
   <header class="hero">
     <div class="hero-l">
       {#if statusInfo}

@@ -15,13 +15,13 @@
   <button class="chip random" disabled={randomBusy} onclick={onPickRandom} data-test="home-pick-random">
     <Icon name="sync" size={12} />{t('home.quick.random')}
   </button>
-  <button class="chip" onclick={() => navigate('favorites')}>
+  <button class="chip" onclick={() => navigate('favorites')} data-test="home-chip-favorites">
     <Icon name="heart" size={12} />{t('home.quick.favorites')}
   </button>
-  <button class="chip" onclick={() => navigate('library')}>
+  <button class="chip" onclick={() => navigate('library')} data-test="home-chip-library">
     <Icon name="book" size={12} />{t('home.quick.library')}
   </button>
-  <button class="chip" onclick={() => navigate('history')}>
+  <button class="chip" onclick={() => navigate('history')} data-test="home-chip-history">
     <Icon name="clock" size={12} />{t('home.quick.history')}
   </button>
 </div>

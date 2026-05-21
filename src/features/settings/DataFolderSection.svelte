@@ -178,7 +178,7 @@
       <div class="desc">{t('data_folder.current.desc')}</div>
     </div>
     <div class="path-box">
-      <code>{info?.current ?? '...'}</code>
+      <code data-test="datafolder-current-path">{info?.current ?? '...'}</code>
       {#if info?.is_custom}
         <span class="chip">{t('data_folder.chip.custom')}</span>
       {:else}

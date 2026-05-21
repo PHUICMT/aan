@@ -42,6 +42,7 @@
   aria-label={rtl ? 'Next page' : 'Previous page'}
   aria-disabled={leftDisabled}
   tabindex="-1"
+  data-test="reader-tap-left"
 ></button>
 <button
   class="tap-zone right"
@@ -55,6 +56,7 @@
   aria-label={rtl ? 'Previous page' : 'Next page'}
   aria-disabled={rightDisabled}
   tabindex="-1"
+  data-test="reader-tap-right"
 ></button>
 {#if tapCursor}
   <div

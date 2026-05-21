@@ -268,8 +268,9 @@
     role="menu"
     use:portal
     transition:scale={{ duration: 160, start: 0.92, easing: cubicOut }}
+    data-test="card-ctx-menu"
   >
-    <button class="ctx-item" type="button" onclick={actToggleFav}>
+    <button class="ctx-item" type="button" onclick={actToggleFav} data-test="card-ctx-fav">
       <Icon name="heart" size={12} />
       {series.is_favorite === 1 ? t('card.menu.unfavorite') : t('card.menu.favorite')}
     </button>
@@ -281,13 +282,14 @@
         class:active={series.reading_status === rs.id}
         type="button"
         onclick={() => actSetStatus(rs.id as ReadingStatus)}
+        data-test={`card-ctx-rs-${rs.id}`}
       >
         <span class="rs-dot" style:background={rs.chipColor}></span>
         {t(rs.labelKey)}
       </button>
     {/each}
     {#if series.reading_status}
-      <button class="ctx-item" type="button" onclick={() => actSetStatus(null)}>
+      <button class="ctx-item" type="button" onclick={() => actSetStatus(null)} data-test="card-ctx-clear">
         <Icon name="x" size={10} />
         {t('card.menu.clear_status')}
       </button>

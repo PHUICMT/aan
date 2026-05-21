@@ -51,11 +51,12 @@
         class:open={filters.filtersOpen}
         onclick={() => (filters.filtersOpen = !filters.filtersOpen)}
         aria-expanded={filters.filtersOpen}
+        data-test="library-filters-toggle"
       >
         <Icon name="settings" size={12} />
         <span>{t('library.filters')}</span>
         {#if filters.activeFilterCount > 0}
-          <span class="filters-count">{filters.activeFilterCount}</span>
+          <span class="filters-count" data-test="library-filter-count">{filters.activeFilterCount}</span>
         {/if}
         <span class="filters-caret" class:flip={filters.filtersOpen}>
           <Icon name="chevron_down" size={11} />
@@ -145,7 +146,7 @@
           {#each visibleGenres as g (g.name)}
             {@const isFav = app.favGenres.includes(g.name)}
             {@const isSelected = app.selectedGenres.includes(g.name)}
-            <div class="genre-pill" class:selected={isSelected} class:fav={isFav}>
+            <div class="genre-pill" class:selected={isSelected} class:fav={isFav} data-test="genre-pill" data-genre={g.name}>
               <button class="genre-name" onclick={() => toggleSelectedGenre(g.name)}>
                 {g.name}
                 <span class="genre-count">{g.count}</span>
@@ -170,11 +171,13 @@
                 class="combo-btn"
                 class:active={app.genreCombo === 'or'}
                 onclick={() => setGenreCombo('or')}
+                data-test="genre-combo-or"
               >{t('genre.combo.or')}</button>
               <button
                 class="combo-btn"
                 class:active={app.genreCombo === 'and'}
                 onclick={() => setGenreCombo('and')}
+                data-test="genre-combo-and"
               >{t('genre.combo.and')}</button>
             </div>
           {/if}

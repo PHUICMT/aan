@@ -357,6 +357,7 @@
             onclick={onOpenFolder}
             use:tooltip={t('series.open_folder')}
             aria-label={t('series.open_folder')}
+            data-test="series-folder"
           >
             <Icon name="folder" size={13} />
           </button>
@@ -397,12 +398,12 @@
             </button>
           {/if}
           {#if !selectMode}
-            <button class="head-btn" onclick={() => (selectMode = true)} use:tooltip={t('series.select')}>
+            <button class="head-btn" onclick={() => (selectMode = true)} use:tooltip={t('series.select')} data-test="series-select-toggle">
               <Icon name="check" size={12} />
               {t('series.select')}
             </button>
           {:else}
-            <button class="head-btn" onclick={exitSelectMode}>
+            <button class="head-btn" onclick={exitSelectMode} data-test="series-select-exit">
               <Icon name="x" size={12} />
               {t('series.sel.exit')}
             </button>
@@ -425,10 +426,10 @@
     </section>
 
     {#if selectMode && selectedIds.size > 0}
-      <div class="bulk-bar">
+      <div class="bulk-bar" data-test="series-bulk-bar">
         <span class="bulk-count">{selectedIds.size} {t('series.sel.count')}</span>
         <span class="bulk-spacer"></span>
-        <button class="bulk-btn" onclick={clearSelection}>{t('series.sel.clear')}</button>
+        <button class="bulk-btn" onclick={clearSelection} data-test="series-bulk-clear">{t('series.sel.clear')}</button>
       </div>
     {/if}
 

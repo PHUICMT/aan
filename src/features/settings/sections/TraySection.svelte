@@ -41,6 +41,7 @@
             onclick={() => setCloseToTrayLocal(!app.closeToTray)}
             aria-pressed={app.closeToTray}
             aria-label={t('settings.tray.close_to_tray.title')}
+            data-test="tray-toggle"
           ></button>
         </div>
       </div>

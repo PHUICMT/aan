@@ -89,7 +89,7 @@
   }
 </script>
 
-<div class="page">
+<div class="page" data-test="history-page">
   <header class="hero">
     <div>
       <h1>{t('history.title')}</h1>

@@ -44,6 +44,7 @@
         class="fav-card"
         class:abandoned-card={dimmed}
         onclick={() => onClick(s)}
+        data-test={`home-card-${s.pid}`}
       >
         <div class="cover-fav">
           {#if covers[s.pid]}

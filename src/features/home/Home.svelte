@@ -144,7 +144,7 @@
   </header>
 
   {#if loading}
-    <div class="phase" out:fade={{ duration: 160, easing: cubicOut }}>
+    <div class="phase" out:fade={{ duration: 160, easing: cubicOut }} data-test="home-skeleton">
       <div class="skel-hero"><Shimmer radius={16} height="100%" /></div>
       <div class="skel-chips">
         {#each Array(5) as _, i (i)}
@@ -210,7 +210,7 @@
       {/if}
 
       {#if !hero && favorites.length === 0}
-        <div class="empty">
+        <div class="empty" data-test="home-empty">
           <Icon name="book" size={28} />
           <p>{t('home.empty')}</p>
           <p class="hint">{t('home.empty.hint')}</p>

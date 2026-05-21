@@ -39,7 +39,7 @@
 </script>
 
 {#if visible && job}
-  <button class="banner status-{job.status}" onclick={open} use:tooltip={t('data_folder.banner.open_settings')}>
+  <button class="banner status-{job.status}" onclick={open} use:tooltip={t('data_folder.banner.open_settings')} data-test="move-job-banner">
     <span class="dot"></span>
     <span class="text">
       {#if job.status === 'running'}{t('data_folder.banner.running').replace('{pct}', String(pct))}

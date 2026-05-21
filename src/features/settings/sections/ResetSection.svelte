@@ -58,16 +58,16 @@
             </div>
             {#if confirmReset}
               <span class="confirm-wrap">
-                <button class="action danger" onclick={doReset}>
+                <button class="action danger" onclick={doReset} data-test="reset-confirm">
                   <Icon name="check" size={12} />
                   {t('settings.reset.confirm')}
                 </button>
-                <button class="confirm-no" onclick={cancelReset} aria-label={t('common.cancel')}>
+                <button class="confirm-no" onclick={cancelReset} aria-label={t('common.cancel')} data-test="reset-cancel">
                   <Icon name="x" size={11} />
                 </button>
               </span>
             {:else}
-              <button class="action warn" onclick={askReset}>
+              <button class="action warn" onclick={askReset} data-test="reset-ask">
                 <Icon name="sync" size={12} />
                 {t('settings.reset.cta')}
               </button>

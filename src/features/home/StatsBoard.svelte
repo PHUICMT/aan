@@ -120,20 +120,20 @@
 
 <section class="stats-board">
   <div class="kpis">
-    <div class="kpi streak">
+    <div class="kpi streak" data-test="stats-kpi-streak">
       <span class="kpi-icon">🔥</span>
       <div class="kpi-body">
         <div class="kpi-num">{currentStreak}<span class="kpi-unit">{t('home.stats.days')}</span></div>
         <div class="kpi-lbl">{t('home.stats.streak')} · {t('home.stats.longest').toLowerCase()} {longestStreak}</div>
       </div>
     </div>
-    <div class="kpi">
+    <div class="kpi" data-test="stats-kpi-today">
       <div class="kpi-body">
         <div class="kpi-num">{minToday}<span class="kpi-unit">{t('home.stats.minutes')}</span> · {stats.today}<span class="kpi-unit">{t('home.stats.chapters').toLowerCase()}</span></div>
         <div class="kpi-lbl">{t('home.stats.today')}</div>
       </div>
     </div>
-    <div class="kpi">
+    <div class="kpi" data-test="stats-kpi-week">
       <div class="kpi-body">
         <div class="kpi-num">{min7d}<span class="kpi-unit">{t('home.stats.minutes')}</span> · {stats.week}<span class="kpi-unit">{t('home.stats.chapters').toLowerCase()}</span></div>
         <div class="kpi-lbl">{t('home.stats.this_week')}</div>
@@ -161,7 +161,7 @@
             <span class="month" style:--col={ml.col}>{ml.label}</span>
           {/each}
         </div>
-        <div class="heatmap">
+        <div class="heatmap" data-test="stats-heatmap">
           {#each grid as col, ci (ci)}
             <div class="col">
               {#each col as cell (cell.date)}
@@ -190,7 +190,7 @@
             {@const mins = Math.max(1, Math.round(s.seconds / 60))}
             {@const pct = Math.max(6, Math.round((s.seconds / maxSeconds) * 100))}
             <li>
-              <button class="top-item" onclick={() => openSeries(s.pid)} use:tooltip={s.name}>
+              <button class="top-item" onclick={() => openSeries(s.pid)} use:tooltip={s.name} data-test={`stats-top-item-${s.pid}`}>
                 <span class="rank">{i + 1}</span>
                 <div class="top-cover">
                   {#if topCovers[s.pid]}

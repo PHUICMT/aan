@@ -128,7 +128,7 @@
   );
 </script>
 
-<div class="page">
+<div class="page" data-test="favorites-page">
   <header class="hero">
     <div>
       <h1>{t('favorites.title')}</h1>
@@ -212,7 +212,7 @@
       {/each}
     </div>
   {:else if series.length === 0}
-    <div class="empty">
+    <div class="empty" data-test="favorites-empty">
       <Icon name="heart" size={28} />
       <p>{t('favorites.empty')}</p>
       <p class="hint">{t('favorites.empty.hint')}</p>
