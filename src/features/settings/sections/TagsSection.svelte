@@ -389,10 +389,13 @@
   }
   /* Cross-fade between [edit/trash] and [confirm + check/x] in place so
      the row width never jumps during the toggle. */
-  .action-stack { position: relative; min-width: 140px; height: 26px; }
+  /* Default width = just the two icon buttons; confirm overlay extends
+     leftward so the row layout stays compact and count hugs the buttons. */
+  .action-stack { position: relative; width: 58px; height: 26px; }
   .action {
-    position: absolute; inset: 0;
+    position: absolute; top: 0; right: 0; height: 100%;
     display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px;
+    white-space: nowrap;
     transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
   }
   .action.default { opacity: 1; transform: translateX(0); }
