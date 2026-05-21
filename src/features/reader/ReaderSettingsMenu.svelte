@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '../../shared/components/Icon.svelte';
+  import SegmentedControl from '../../shared/components/ui/SegmentedControl.svelte';
   import { tooltip } from '../../shared/lib/tooltip';
   import { portal, anchorBelow } from '../../shared/lib/portal';
   import { t } from '../../shared/lib/i18n.svelte';
@@ -33,6 +34,12 @@
   }: Props = $props();
   // `mode` here drives the dpage row gating; continuous hides it.
   const mode = $derived(view === 'continuous' ? 'continuous' : 'paged');
+
+  const viewOptions = $derived([
+    { value: 'paged'      as const, label: t('reader.mode.paged'),      testId: 'reader-mode-paged' },
+    { value: 'continuous' as const, label: t('reader.mode.continuous'), testId: 'reader-mode-continuous' },
+    { value: 'spread'     as const, label: t('reader.mode.spread'),     testId: 'reader-mode-spread' },
+  ]);
 
   function popMenu(_node: Element, { duration = 180 }: { duration?: number } = {}) {
     return {
@@ -98,12 +105,13 @@
           <div class="set-title">{t('reader.mode.title')}</div>
           <div class="set-desc">{t('reader.mode.desc')}</div>
         </div>
-        <div class="set-seg" style:--active-idx={view === 'paged' ? 0 : view === 'continuous' ? 1 : 2}>
-          <span class="seg-indicator" aria-hidden="true"></span>
-          <button class="seg-btn" class:active={view === 'paged'} onclick={() => onSetView('paged')} data-test="reader-mode-paged">{t('reader.mode.paged')}</button>
-          <button class="seg-btn" class:active={view === 'continuous'} onclick={() => onSetView('continuous')} data-test="reader-mode-continuous">{t('reader.mode.continuous')}</button>
-          <button class="seg-btn" class:active={view === 'spread'} onclick={() => onSetView('spread')} data-test="reader-mode-spread">{t('reader.mode.spread')}</button>
-        </div>
+        <SegmentedControl
+          options={viewOptions}
+          value={view}
+          onChange={onSetView}
+          size="sm"
+          ariaLabel={t('reader.mode.title')}
+        />
       </div>
       <button class="set-row" onclick={onToggleBg} data-test="reader-bg-toggle">
         <div class="set-icon"><Icon name={bg === 'dark' ? 'moon' : 'sun'} size={14} /></div>
@@ -257,41 +265,6 @@
   .set-value.on { background: var(--accent); color: #fff; }
   .set-row.layout-row { cursor: default; }
   .set-row.layout-row:hover { background: transparent; }
-  .set-seg {
-    position: relative;
-    display: inline-grid;
-    grid-template-columns: repeat(3, 1fr);
-    padding: 2px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 9999px;
-    flex-shrink: 0;
-  }
-  .seg-indicator {
-    position: absolute;
-    top: 2px; bottom: 2px; left: 2px;
-    width: calc((100% - 4px) / 3);
-    background: var(--accent);
-    border-radius: 9999px;
-    box-shadow: 0 2px 10px rgba(139, 92, 246, 0.45);
-    transform: translateX(calc(var(--active-idx, 0) * 100%));
-    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0.24, 1);
-    z-index: 0;
-    pointer-events: none;
-  }
-  .seg-btn {
-    position: relative; z-index: 1;
-    padding: 5px 14px; border-radius: 9999px;
-    background: transparent; color: var(--text2);
-    font-size: 10px; font-weight: 700;
-    transition: color 0.2s var(--ease-out);
-    white-space: nowrap;
-  }
-  .seg-btn:hover { color: var(--text); }
-  .seg-btn.active { color: #fff; }
-  :global(.reader-root.bg-light) .set-seg { background: rgba(0,0,0,0.06); }
-  :global(.reader-root.bg-light) .seg-btn { color: #6b7280; }
-  :global(.reader-root.bg-light) .seg-btn:hover { color: #1f2233; }
-  :global(.reader-root.bg-light) .seg-btn.active { color: #fff; }
   :global(.reader-root.bg-light) .set-menu {
     background: rgba(255, 255, 255, 0.92);
     border-color: rgba(0,0,0,0.10);

@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '../../shared/components/Icon.svelte';
+  import SegmentedControl from '../../shared/components/ui/SegmentedControl.svelte';
   import { tooltip } from '../../shared/lib/tooltip';
   import { portal, anchorBelow } from '../../shared/lib/portal';
   import { t } from '../../shared/lib/i18n.svelte';
@@ -23,6 +24,11 @@
   const overrideActive = $derived(
     app.novelOverridePid != null && app.novelOverridePid === app.readerChapter?.pid,
   );
+
+  const layoutOptions = $derived([
+    { value: 'scroll' as const, label: t('novel.layout.scroll'), testId: 'novel-layout-scroll' },
+    { value: 'paged'  as const, label: t('novel.layout.paged'),  testId: 'novel-layout-paged' },
+  ]);
   const canOverride = $derived(app.readerChapter?.pid != null);
 
   function popMenu(_node: Element, { duration = 180 }: { duration?: number } = {}) {
@@ -98,11 +104,13 @@
           <div class="set-title">{t('novel.layout.title')}</div>
           <div class="set-desc">{t('novel.layout.desc')}</div>
         </div>
-        <div class="set-seg seg-2" style:--active-idx={app.novelLayout === 'scroll' ? 0 : 1}>
-          <span class="seg-indicator" aria-hidden="true"></span>
-          <button class="seg-btn" class:active={app.novelLayout === 'scroll'} onclick={() => setNovelLayout('scroll' as NovelLayout)} data-test="novel-layout-scroll">{t('novel.layout.scroll')}</button>
-          <button class="seg-btn" class:active={app.novelLayout === 'paged'} onclick={() => setNovelLayout('paged' as NovelLayout)} data-test="novel-layout-paged">{t('novel.layout.paged')}</button>
-        </div>
+        <SegmentedControl
+          options={layoutOptions}
+          value={app.novelLayout}
+          onChange={(v) => setNovelLayout(v as NovelLayout)}
+          size="sm"
+          ariaLabel={t('novel.layout.title')}
+        />
       </div>
 
       {#if app.novelLayout === 'paged'}
@@ -266,37 +274,6 @@
     padding: 4px 12px 2px;
   }
 
-  .set-seg {
-    position: relative;
-    display: inline-grid;
-    padding: 2px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 9999px;
-    flex-shrink: 0;
-  }
-  .seg-2 { grid-template-columns: repeat(2, 1fr); }
-  .seg-indicator {
-    position: absolute;
-    top: 2px; bottom: 2px; left: 2px;
-    width: calc((100% - 4px) / 2);
-    background: var(--accent);
-    border-radius: 9999px;
-    box-shadow: 0 2px 10px rgba(139, 92, 246, 0.45);
-    transform: translateX(calc(var(--active-idx, 0) * 100%));
-    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0.24, 1);
-    z-index: 0;
-    pointer-events: none;
-  }
-  .seg-btn {
-    position: relative; z-index: 1;
-    padding: 5px 14px; border-radius: 9999px;
-    background: transparent; color: var(--text2);
-    font-size: 10px; font-weight: 700;
-    transition: color 0.2s var(--ease-out);
-    white-space: nowrap;
-  }
-  .seg-btn:hover { color: var(--text); }
-  .seg-btn.active { color: #fff; }
 
   .swatches { display: inline-flex; gap: 6px; }
   .swatch {
@@ -355,8 +332,5 @@
   }
   :global(.novel-root.bg-light) .set-title { color: #1f2233; }
   :global(.novel-root.bg-light) .set-desc { color: #6b7280; }
-  :global(.novel-root.bg-light) .set-seg { background: rgba(0,0,0,0.06); }
-  :global(.novel-root.bg-light) .seg-btn { color: #6b7280; }
-  :global(.novel-root.bg-light) .seg-btn:hover { color: #1f2233; }
   :global(.novel-root.bg-light) .step-ctl button { background: rgba(0,0,0,0.06); color: #4b5263; }
 </style>
