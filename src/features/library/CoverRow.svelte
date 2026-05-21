@@ -94,8 +94,9 @@
 <style>
   .row {
     display: grid; grid-template-columns: 48px 1fr auto;
-    gap: 16px; align-items: center;
-    padding: 12px 22px;
+    gap: 14px; align-items: center;
+    padding: 10px 18px 10px 14px;
+    overflow: hidden;
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -108,10 +109,18 @@
   }
   .row:hover { background: var(--surface2); border-color: var(--accent); transform: translateY(-1px); }
   .chev {
-    display: inline-flex; color: var(--text3);
-    transition: transform 0.22s var(--ease-out), color 0.22s var(--ease-out);
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px;
+    border-radius: 9999px;
+    color: var(--text3);
+    background: transparent;
+    transition: transform 0.22s var(--ease-out), color 0.22s var(--ease-out), background 0.22s var(--ease-out);
   }
-  .row:hover .chev { transform: translateX(4px); color: var(--accent); }
+  .row:hover .chev {
+    transform: translateX(3px);
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
   .cover {
     width: 48px; height: 68px; border-radius: 6px; overflow: hidden;
     border: 1px solid var(--border); background: #14182a;
