@@ -237,6 +237,7 @@
     display: grid;
     grid-template-columns: 22px 1fr auto;
     align-items: center;
+    width: 100%;
     gap: 10px;
     padding: 8px 10px;
     border-radius: 8px;
