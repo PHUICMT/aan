@@ -149,52 +149,55 @@ function ensureDir(p: string): void {
   mkdirSync(p, { recursive: true });
 }
 
-// Minimal ZIP writer for the CBZ sample. Deflated entries only; no
-// extensions needed — the importer just uses zip-rs's basic reader.
-function buildCbz(entries: { name: string; data: Buffer }[]): Buffer {
+type ZipEntry = { name: string; data: Buffer; stored?: boolean };
+
+// Minimal ZIP writer. Default is deflate; pass `stored: true` for entries that
+// must be uncompressed (e.g. the EPUB `mimetype` header).
+function buildZip(entries: ZipEntry[]): Buffer {
   const localParts: Buffer[] = [];
   const central: Buffer[] = [];
   let offset = 0;
   for (const e of entries) {
     const crc = crc32(e.data);
-    const compressed = deflateRawSync(e.data);
+    const method = e.stored ? 0 : 8;
+    const payload = e.stored ? e.data : deflateRawSync(e.data);
     const nameBuf = Buffer.from(e.name, 'utf8');
 
     const local = Buffer.alloc(30);
-    local.writeUInt32LE(0x04034b50, 0);     // local file header sig
-    local.writeUInt16LE(20, 4);              // version needed
-    local.writeUInt16LE(0, 6);               // gp flags
-    local.writeUInt16LE(8, 8);               // method: deflate
-    local.writeUInt16LE(0, 10);              // mod time
-    local.writeUInt16LE(0, 12);              // mod date
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0, 6);
+    local.writeUInt16LE(method, 8);
+    local.writeUInt16LE(0, 10);
+    local.writeUInt16LE(0, 12);
     local.writeUInt32LE(crc, 14);
-    local.writeUInt32LE(compressed.length, 18);
+    local.writeUInt32LE(payload.length, 18);
     local.writeUInt32LE(e.data.length, 22);
     local.writeUInt16LE(nameBuf.length, 26);
-    local.writeUInt16LE(0, 28);              // extra len
-    localParts.push(local, nameBuf, compressed);
+    local.writeUInt16LE(0, 28);
+    localParts.push(local, nameBuf, payload);
 
     const cen = Buffer.alloc(46);
     cen.writeUInt32LE(0x02014b50, 0);
-    cen.writeUInt16LE(20, 4);                // version made by
-    cen.writeUInt16LE(20, 6);                // version needed
-    cen.writeUInt16LE(0, 8);                 // gp flags
-    cen.writeUInt16LE(8, 10);                // method
+    cen.writeUInt16LE(20, 4);
+    cen.writeUInt16LE(20, 6);
+    cen.writeUInt16LE(0, 8);
+    cen.writeUInt16LE(method, 10);
     cen.writeUInt16LE(0, 12);
     cen.writeUInt16LE(0, 14);
     cen.writeUInt32LE(crc, 16);
-    cen.writeUInt32LE(compressed.length, 20);
+    cen.writeUInt32LE(payload.length, 20);
     cen.writeUInt32LE(e.data.length, 24);
     cen.writeUInt16LE(nameBuf.length, 28);
-    cen.writeUInt16LE(0, 30);                // extra
-    cen.writeUInt16LE(0, 32);                // comment
-    cen.writeUInt16LE(0, 34);                // disk no
-    cen.writeUInt16LE(0, 36);                // internal attrs
-    cen.writeUInt32LE(0, 38);                // external attrs
+    cen.writeUInt16LE(0, 30);
+    cen.writeUInt16LE(0, 32);
+    cen.writeUInt16LE(0, 34);
+    cen.writeUInt16LE(0, 36);
+    cen.writeUInt32LE(0, 38);
     cen.writeUInt32LE(offset, 42);
     central.push(cen, nameBuf);
 
-    offset += local.length + nameBuf.length + compressed.length;
+    offset += local.length + nameBuf.length + payload.length;
   }
   const centralBuf = Buffer.concat(central);
   const eocd = Buffer.alloc(22);
@@ -207,6 +210,72 @@ function buildCbz(entries: { name: string; data: Buffer }[]): Buffer {
   eocd.writeUInt32LE(offset, 16);
   eocd.writeUInt16LE(0, 20);
   return Buffer.concat([...localParts, centralBuf, eocd]);
+}
+
+// Backwards-compat alias for the CBZ sample (deflated entries only).
+const buildCbz = (entries: { name: string; data: Buffer }[]) => buildZip(entries);
+
+// Mini EPUB 3 with nav + 2 chapters. The `mimetype` entry MUST be the first
+// file in the archive AND stored (not deflated), per the EPUB spec.
+function buildEpub(): Buffer {
+  const container = `<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`;
+
+  const opf = `<?xml version="1.0" encoding="UTF-8"?>
+<package version="3.0" unique-identifier="bookid" xmlns="http://www.idpf.org/2007/opf">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="bookid">aan-fixture-epub-001</dc:identifier>
+    <dc:title>Aan Fixture Novel</dc:title>
+    <dc:creator>Aan QA</dc:creator>
+    <dc:language>en</dc:language>
+    <meta property="dcterms:modified">2026-01-01T00:00:00Z</meta>
+  </metadata>
+  <manifest>
+    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    <item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>
+    <item id="ch2" href="ch2.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="ch1"/>
+    <itemref idref="ch2"/>
+  </spine>
+</package>`;
+
+  const nav = `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+  <head><title>Contents</title></head>
+  <body>
+    <nav epub:type="toc" id="toc"><h1>Contents</h1>
+      <ol>
+        <li><a href="ch1.xhtml">Chapter 1</a></li>
+        <li><a href="ch2.xhtml">Chapter 2</a></li>
+      </ol>
+    </nav>
+  </body>
+</html>`;
+
+  const chapter = (n: number) => `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head><title>Chapter ${n}</title></head>
+  <body>
+    <h1>Chapter ${n}</h1>
+    <p>This is paragraph 1 of chapter ${n}. Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+    <p>This is paragraph 2 of chapter ${n}. Sed do eiusmod tempor incididunt ut labore et dolore magna.</p>
+  </body>
+</html>`;
+
+  return buildZip([
+    { name: 'mimetype', data: Buffer.from('application/epub+zip'), stored: true },
+    { name: 'META-INF/container.xml', data: Buffer.from(container) },
+    { name: 'OEBPS/content.opf', data: Buffer.from(opf) },
+    { name: 'OEBPS/nav.xhtml', data: Buffer.from(nav) },
+    { name: 'OEBPS/ch1.xhtml', data: Buffer.from(chapter(1)) },
+    { name: 'OEBPS/ch2.xhtml', data: Buffer.from(chapter(2)) },
+  ]);
 }
 
 const CRC_TABLE = (() => {
@@ -264,6 +333,8 @@ async function main(): Promise<void> {
   // importer to extract + create one chapter.
   const jpegBytes = buildCoverJpeg('cbz', 1);
   writeFileSync(join(samplesDir, 'sample.cbz'), buildCbz([{ name: 'page1.jpg', data: jpegBytes }]));
+  // Mini EPUB: nav.xhtml + 2 chapters. Used by the EPUB import flow specs.
+  writeFileSync(join(samplesDir, 'sample.epub'), buildEpub());
 
   // --- DB ---
   const dbPath = join(BUILD, 'library.db');
