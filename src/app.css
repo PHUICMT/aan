@@ -69,8 +69,8 @@
   /* Unified scrim + frosted-panel tokens used by every modal/menu overlay. */
   --scrim-bg:           rgba(0, 0, 0, 0.55);
   --scrim-blur:         blur(14px) saturate(120%);
-  --panel-bg:           color-mix(in srgb, var(--menu-bg) 70%, transparent);
-  --panel-blur:         blur(30px) saturate(180%);
+  --panel-bg:           color-mix(in srgb, var(--menu-bg) 45%, transparent);
+  --panel-blur:         blur(40px) saturate(180%);
   --panel-shadow:       0 24px 60px -16px rgba(0,0,0,0.55);
 
   /* Chrome surfaces (sidebar, titlebar) — translucent over Mica */
