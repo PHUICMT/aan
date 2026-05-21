@@ -232,7 +232,7 @@
   {#if error}
     <div class="empty error">{error}</div>
   {:else if loading || !detail}
-    <div class="series-hero is-loading" out:fade={{ duration: 160, easing: cubicOut }}>
+    <div class="series-hero is-loading">
       <div class="cover-skel"><Shimmer radius={16} /></div>
       <div class="info-skel">
         <div class="skel-line w70"><Shimmer radius={6} height="100%" /></div>

@@ -144,7 +144,7 @@
   </header>
 
   {#if loading}
-    <div class="phase" out:fade={{ duration: 160, easing: cubicOut }} data-test="home-skeleton">
+    <div class="phase" data-test="home-skeleton">
       <div class="skel-hero"><Shimmer radius={16} height="100%" /></div>
       <div class="skel-chips">
         {#each Array(5) as _, i (i)}
@@ -159,7 +159,7 @@
       <div class="skel-heatmap"><Shimmer radius={14} height="100%" /></div>
     </div>
   {:else}
-    <div class="phase" in:fade={{ duration: 240, delay: 120, easing: cubicOut }}>
+    <div class="phase" in:fade={{ duration: 200, easing: cubicOut }}>
       {#if hero}
         <HomeHero
           hero={hero}
