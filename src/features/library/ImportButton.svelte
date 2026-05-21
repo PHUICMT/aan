@@ -7,7 +7,7 @@
   import { t } from '../../shared/lib/i18n.svelte';
   import { bumpSeriesMutation } from '../../shared/lib/store.svelte';
   import { importFiles, importFolders, type ImportProgress, type ImportKinds } from './import-flow';
-  import { portal } from '../../shared/lib/portal';
+  import { portal, anchorBelow } from '../../shared/lib/portal';
   import { KIND_OPTIONS, isVisualKind } from '../../shared/lib/constants';
   import { listTags } from '../../shared/lib/api';
   import type { TagCount } from '../../shared/lib/types';
@@ -40,6 +40,12 @@
   let summary = $state<ImportProgress | null>(null);
   let menuOpen = $state(false);
   let triggerEl: HTMLButtonElement | undefined = $state();
+  let menuPos = $state({ top: 0, right: 16 });
+  $effect(() => {
+    if (menuOpen && triggerEl) {
+      menuPos = anchorBelow(triggerEl, { gap: 8 });
+    }
+  });
 
   //───── Tag picker ─────
   function loadImportTags(): string[] {
@@ -208,7 +214,10 @@
       class="menu"
       role="menu"
       transition:scale={{ duration: 140, start: 0.94, easing: cubicOut }}
+      use:portal
       use:closeMenuOnOutside
+      style:top="{menuPos.top}px"
+      style:right="{menuPos.right}px"
       data-test="import-menu"
     >
       <div class="kind-group" style:--i={0} data-test="import-kind-visual">
@@ -491,12 +500,12 @@
     .busy-ring { animation: none; }
   }
 
-  /* Menu polish: glassy backdrop, larger hit area, stagger entrance. */
+  /* Menu polish: glassy backdrop, larger hit area, stagger entrance.
+     Portaled to body (style:top/right set by anchorBelow) so the panel
+     escapes parent transforms that would otherwise kill backdrop-filter. */
   .menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    z-index: 50;
+    position: fixed;
+    z-index: 100;
     list-style: none;
     margin: 0;
     padding: 6px;

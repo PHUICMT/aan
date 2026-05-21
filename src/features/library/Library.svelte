@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { fly } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
   import { tooltip } from '../../shared/lib/tooltip';
   import CoverCard from './CoverCard.svelte';
   import CoverRow from './CoverRow.svelte';
@@ -356,7 +358,14 @@
   {/if}
 
   {#if selectMode}
-    <div class="bulk-bar" role="toolbar" aria-label="Bulk actions" data-test="bulk-bar">
+    <div
+      class="bulk-bar"
+      role="toolbar"
+      aria-label="Bulk actions"
+      data-test="bulk-bar"
+      in:fly={{ y: 14, duration: 220, easing: cubicOut }}
+      out:fly={{ y: 14, duration: 180, easing: cubicOut }}
+    >
       <span class="bulk-count">
         <strong data-test="bulk-count">{selectedPids.size}</strong>
         {t('series.sel.count')}
@@ -609,11 +618,6 @@
     -webkit-backdrop-filter: var(--panel-blur);
     border: 1px solid var(--glass-border);
     box-shadow: 0 22px 50px -12px rgba(0,0,0,0.55);
-    animation: bulk-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-  @keyframes bulk-in {
-    from { opacity: 0; transform: translate(-50%, 14px); }
-    to   { opacity: 1; transform: translate(-50%, 0); }
   }
   .bulk-count { font-size: 12px; color: var(--text2); }
   .bulk-count strong { font-size: 13px; color: var(--text); font-weight: 700; margin-right: 4px; }

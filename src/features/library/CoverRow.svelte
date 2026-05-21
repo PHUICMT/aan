@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { scale } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
   import { tooltip } from '../../shared/lib/tooltip';
   import Icon from '../../shared/components/Icon.svelte';
   import { getCoverUrl } from '../../shared/lib/covers';
@@ -113,7 +115,12 @@
     </div>
   </div>
   {#if selectMode}
-    <span class="sel-mark" class:on={selected} aria-hidden="true">
+    <span
+      class="sel-mark"
+      class:on={selected}
+      aria-hidden="true"
+      transition:scale={{ duration: 180, start: 0.4, easing: cubicOut }}
+    >
       {#if selected}
         <Icon name="check" size={12} />
       {/if}
