@@ -203,9 +203,9 @@
                   onclick={() => selectMode ? toggleSelect(tg.name) : startEdit(tg.name)}
                   data-test="tag-name"
                 >{tg.name}</button>
-                <span class="count">{tg.count}</span>
-                {#if !selectMode}
-                  <div class="row-actions">
+                <div class="right">
+                  <span class="count">{tg.count}</span>
+                  {#if !selectMode}
                     <div class="action-stack" class:show-confirm={confirmDelete === tg.name}>
                       <div class="action default">
                         <button class="btn-icon edit" onclick={() => startEdit(tg.name)} aria-label={t('settings.tags.rename')} use:tooltip={t('settings.tags.rename')} data-test="tag-rename">
@@ -225,8 +225,8 @@
                         </button>
                       </div>
                     </div>
-                  </div>
-                {/if}
+                  {/if}
+                </div>
               {/if}
             </li>
           {/each}
@@ -381,15 +381,15 @@
   .btn-icon.trash:hover { background: rgba(248,113,113,0.14); border-color: rgba(248,113,113,0.5); }
   .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
 
+  /* Count + action-stack pinned to the right; count sits next to the
+     buttons (not floating in the middle of the row). */
+  .right {
+    display: flex; align-items: center; gap: 8px;
+    flex-shrink: 0;
+  }
   /* Cross-fade between [edit/trash] and [confirm + check/x] in place so
      the row width never jumps during the toggle. */
-  .row-actions {
-    position: relative;
-    min-width: 156px;
-    height: 26px;
-    display: flex; align-items: center; justify-content: flex-end;
-  }
-  .action-stack { position: relative; width: 100%; height: 100%; }
+  .action-stack { position: relative; min-width: 140px; height: 26px; }
   .action {
     position: absolute; inset: 0;
     display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px;
