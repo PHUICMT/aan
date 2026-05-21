@@ -382,6 +382,7 @@
   "library.collections.name_placeholder": "เช่น Cyberpunk รอต่อ",
 
   "library.select_tooltip": "เลือกหลายเรื่องเพื่อแก้พร้อมกัน",
+  "library.select": "เลือก",
   "library.select_exit": "เสร็จ",
   "library.select_all_visible": "เลือกทั้งหมดที่เห็น",
   "library.bulk.edit": "แก้ไขที่เลือก",

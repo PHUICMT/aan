@@ -91,7 +91,7 @@
     mask: linear-gradient(#fff, #fff) content-box, linear-gradient(#fff, #fff);
     -webkit-mask-composite: xor; mask-composite: exclude;
     opacity: 0;
-    transition: opacity 0.35s var(--ease-out), background-position 1.4s var(--ease-out);
+    transition: opacity 0.22s var(--ease-out), background-position 0.4s var(--ease-out);
     pointer-events: none;
     z-index: 2;
   }
@@ -114,7 +114,7 @@
     opacity: 0.55;
     transform: scale(1.1);
     pointer-events: none;
-    transition: opacity 0.4s var(--ease-out), transform 1.2s var(--ease-out), filter 0.4s var(--ease-out);
+    transition: opacity 0.25s var(--ease-out), transform 0.3s var(--ease-out), filter 0.25s var(--ease-out);
   }
   .hero-card:hover .hero-bg {
     opacity: 0.72;
@@ -132,6 +132,7 @@
   }
   .hero-inner {
     position: relative;
+    z-index: 3; /* keep cover/text above ::before sheen so the gradient doesn't flash across it on hover */
     display: flex; align-items: center; gap: 22px;
     padding: 22px 26px;
   }
@@ -150,7 +151,7 @@
   }
   .hero-cover img {
     width: 100%; height: 100%; object-fit: cover; display: block;
-    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   }
   .hero-card:hover .hero-cover img { transform: scale(1.06); }
   .cover-fallback {

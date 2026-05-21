@@ -405,6 +405,7 @@
   "library.collections.name_placeholder": "e.g. Cyberpunk on hold",
 
   "library.select_tooltip": "Toggle multi-select for bulk edits",
+  "library.select": "Select",
   "library.select_exit": "Done",
   "library.select_all_visible": "Select all visible",
   "library.bulk.edit": "Edit selected",

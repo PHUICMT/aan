@@ -14,7 +14,7 @@
   } from '../../shared/lib/store.svelte';
   import type { GenreCount } from '../../shared/lib/types';
   import {
-    STATUS_FILTERS, DL_FILTERS, RS_FILTERS,
+    STATUS_FILTERS, RS_FILTERS,
     type LibraryFilters,
   } from './composables/useLibraryFilters.svelte';
 
@@ -108,27 +108,6 @@
               class:active={filters.rsFilter === f.id}
               onclick={() => (filters.rsFilter = f.id)}
               data-test={`filter-rs-${f.id}`}
-            >
-              {t(f.labelKey)}
-              {#if loading}
-                <span class="filter-count-skel"><Shimmer radius={9999} height="100%" /></span>
-              {:else}
-                <span class="filter-count" class:zero={count === 0}>{count}</span>
-              {/if}
-            </button>
-          {/each}
-        </div>
-      </section>
-      <section class="filter-section">
-        <h4 class="section-label">{t('library.filters.download')}</h4>
-        <div class="status-pills">
-          {#each DL_FILTERS as f (f.id)}
-            {@const count = filters.dlCount(f.id)}
-            <button
-              class="filter status-filter"
-              class:active={filters.dlFilter === f.id}
-              onclick={() => (filters.dlFilter = f.id)}
-              data-test={`filter-dl-${f.id}`}
             >
               {t(f.labelKey)}
               {#if loading}
