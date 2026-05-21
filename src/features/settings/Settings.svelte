@@ -101,7 +101,7 @@
   );
 </script>
 
-<div class="page">
+<div class="page settings-page">
   <header class="page-head">
     <h1>{t('settings.title')}</h1>
     <div class="head-controls">
@@ -273,14 +273,14 @@
 
   /* Shared section shell — applied to .group inside this page AND inside
      child <Section> components via :global(). */
-  :global(.page .group) {
+  :global(.settings-page .group) {
     margin-bottom: 14px;
     background: rgba(255,255,255,0.02);
     border: 1px solid var(--border);
     border-radius: 14px;
     overflow: hidden;
   }
-  :global(.page .group-head) {
+  :global(.settings-page .group-head) {
     width: 100%;
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px 20px;
@@ -289,17 +289,17 @@
     border-radius: 14px;
     transition: background 0.15s var(--ease-out);
   }
-  :global(.page .group-head:hover:not(:disabled)) { background: var(--hover-bg); }
-  :global(.page .group-head:disabled) { cursor: default; }
-  :global(.page .group-head h2) {
+  :global(.settings-page .group-head:hover:not(:disabled)) { background: var(--hover-bg); }
+  :global(.settings-page .group-head:disabled) { cursor: default; }
+  :global(.settings-page .group-head h2) {
     font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
     text-transform: uppercase; color: var(--text3);
     margin: 0;
     flex: 1;
     text-align: left;
   }
-  :global(.page .group.open .group-head h2) { color: var(--text2); }
-  :global(.page .sec-icon) {
+  :global(.settings-page .group.open .group-head h2) { color: var(--text2); }
+  :global(.settings-page .sec-icon) {
     display: inline-flex; align-items: center; justify-content: center;
     width: 22px; height: 22px;
     margin-right: 10px;
@@ -308,39 +308,39 @@
     background: var(--hover-bg);
     transition: color 0.15s var(--ease-out), background 0.15s var(--ease-out);
   }
-  :global(.page .group.open .sec-icon) { color: var(--accent); background: var(--accent-dim); }
-  :global(.page .caret) {
+  :global(.settings-page .group.open .sec-icon) { color: var(--accent); background: var(--accent-dim); }
+  :global(.settings-page .caret) {
     display: inline-flex; align-items: center; justify-content: center;
     width: 18px; height: 18px;
     color: var(--text3);
     transition: transform 0.18s var(--ease-out), color 0.15s var(--ease-out);
   }
-  :global(.page .caret.up) { transform: rotate(180deg); color: var(--text2); }
-  :global(.page .group-head:disabled .caret) { opacity: 0.3; }
-  :global(.page .group-body) {
+  :global(.settings-page .caret.up) { transform: rotate(180deg); color: var(--text2); }
+  :global(.settings-page .group-head:disabled .caret) { opacity: 0.3; }
+  :global(.settings-page .group-body) {
     padding: 0 20px 14px;
     overflow: hidden;
   }
   /* DataFolderSection has its own .group + <h2>; strip them to avoid
      double-boxing and double-title. */
-  :global(.page .data-folder-body .group) {
+  :global(.settings-page .data-folder-body .group) {
     margin-bottom: 0;
     background: transparent;
     border: none;
     padding: 0;
   }
-  :global(.page .data-folder-body .group > h2) {
+  :global(.settings-page .data-folder-body .group > h2) {
     display: none;
   }
 
-  :global(.page .row) {
+  :global(.settings-page .row) {
     display: flex; align-items: center; justify-content: space-between;
     gap: 20px; padding: 12px 0;
     border-bottom: 1px solid var(--border-soft);
   }
-  :global(.page .row:last-child) { border-bottom: none; }
-  :global(.page .label .title) { font-size: 13px; font-weight: 500; color: var(--text); }
-  :global(.page .label .desc)  { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  :global(.settings-page .row:last-child) { border-bottom: none; }
+  :global(.settings-page .label .title) { font-size: 13px; font-weight: 500; color: var(--text); }
+  :global(.settings-page .label .desc)  { font-size: 11px; color: var(--text3); margin-top: 2px; }
 
   .no-results {
     display: flex; flex-direction: column; align-items: center; gap: 8px;
