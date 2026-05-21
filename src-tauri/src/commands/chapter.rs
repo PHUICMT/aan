@@ -83,12 +83,18 @@ pub(crate) fn list_chapters(pid: i64) -> Result<Vec<Chapter>, String> {
 }
 
 #[tauri::command]
-pub(crate) fn read_chapter_bytes(pdf_path: String) -> Result<Vec<u8>, String> {
-    let path = resolve_path(&pdf_path);
-    if !path.exists() {
-        return Err(format!("file not found: {}", path.display()));
-    }
-    std::fs::read(&path).map_err(|e| e.to_string())
+pub(crate) async fn read_chapter_bytes(pdf_path: String) -> Result<Vec<u8>, String> {
+    // Loading a multi-hundred-MB PDF on the UI thread freezes the window
+    // long enough for Windows to flag it Not Responding. Push to a worker.
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = resolve_path(&pdf_path);
+        if !path.exists() {
+            return Err(format!("file not found: {}", path.display()));
+        }
+        std::fs::read(&path).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| format!("read_chapter_bytes join: {e}"))?
 }
 
 #[tauri::command]

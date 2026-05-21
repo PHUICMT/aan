@@ -310,10 +310,16 @@ pub(crate) fn import_pdf_inner(
 }
 
 #[tauri::command]
-pub(crate) fn import_pdf(args: PdfImportArgs) -> Result<ImportedChapter, String> {
-    let root = data_root();
-    let conn = db::open(&root)?;
-    import_pdf_inner(&conn, &root, args)
+pub(crate) async fn import_pdf(args: PdfImportArgs) -> Result<ImportedChapter, String> {
+    // Hashing + copying a multi-hundred-MB PDF on the UI thread freezes
+    // the window long enough for Windows to flag Not Responding.
+    tauri::async_runtime::spawn_blocking(move || {
+        let root = data_root();
+        let conn = db::open(&root)?;
+        import_pdf_inner(&conn, &root, args)
+    })
+    .await
+    .map_err(|e| format!("import_pdf join: {e}"))?
 }
 
 #[derive(Deserialize)]
@@ -480,10 +486,14 @@ pub(crate) fn import_cbz_inner(
 }
 
 #[tauri::command]
-pub(crate) fn import_cbz(args: CbzImportArgs) -> Result<ImportedChapter, String> {
-    let root = data_root();
-    let conn = db::open(&root)?;
-    import_cbz_inner(&conn, &root, args)
+pub(crate) async fn import_cbz(args: CbzImportArgs) -> Result<ImportedChapter, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let root = data_root();
+        let conn = db::open(&root)?;
+        import_cbz_inner(&conn, &root, args)
+    })
+    .await
+    .map_err(|e| format!("import_cbz join: {e}"))?
 }
 
 #[derive(Deserialize)]
@@ -600,10 +610,14 @@ pub(crate) fn import_image_folder_inner(
 }
 
 #[tauri::command]
-pub(crate) fn import_image_folder(args: FolderImportArgs) -> Result<ImportedChapter, String> {
-    let root = data_root();
-    let conn = db::open(&root)?;
-    import_image_folder_inner(&conn, &root, args)
+pub(crate) async fn import_image_folder(args: FolderImportArgs) -> Result<ImportedChapter, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let root = data_root();
+        let conn = db::open(&root)?;
+        import_image_folder_inner(&conn, &root, args)
+    })
+    .await
+    .map_err(|e| format!("import_image_folder join: {e}"))?
 }
 
 // ── EPUB ─────────────────────────────────────────────────────────────
@@ -1134,10 +1148,14 @@ pub(crate) fn import_epub_inner(
 }
 
 #[tauri::command]
-pub(crate) fn import_epub(args: EpubImportArgs) -> Result<ImportedEpub, String> {
-    let root = data_root();
-    let conn = db::open(&root)?;
-    import_epub_inner(&conn, &root, args)
+pub(crate) async fn import_epub(args: EpubImportArgs) -> Result<ImportedEpub, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let root = data_root();
+        let conn = db::open(&root)?;
+        import_epub_inner(&conn, &root, args)
+    })
+    .await
+    .map_err(|e| format!("import_epub join: {e}"))?
 }
 
 /// Natural-order comparator: "page2" sorts before "page10". Falls back
@@ -1269,10 +1287,14 @@ pub(crate) fn import_txt_inner(
 }
 
 #[tauri::command]
-pub(crate) fn import_txt(args: TxtImportArgs) -> Result<ImportedChapter, String> {
-    let root = data_root();
-    let conn = db::open(&root)?;
-    import_txt_inner(&conn, &root, args)
+pub(crate) async fn import_txt(args: TxtImportArgs) -> Result<ImportedChapter, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let root = data_root();
+        let conn = db::open(&root)?;
+        import_txt_inner(&conn, &root, args)
+    })
+    .await
+    .map_err(|e| format!("import_txt join: {e}"))?
 }
 
 fn strip_utf8_bom(b: &[u8]) -> &[u8] {
@@ -1308,20 +1330,24 @@ fn html_escape(s: &str) -> String {
 /// anything that doesn't look like a PDF path — the caller controls the
 /// dialog filter, but we belt-and-suspender it here too.
 #[tauri::command]
-pub(crate) fn read_import_pdf(path: String) -> Result<Vec<u8>, String> {
-    let p = PathBuf::from(&path);
-    let ext_ok = p
-        .extension()
-        .and_then(|s| s.to_str())
-        .map(|s| s.eq_ignore_ascii_case("pdf"))
-        .unwrap_or(false);
-    if !ext_ok {
-        return Err("only .pdf files are supported for import".into());
-    }
-    if !p.is_file() {
-        return Err(format!("not a file: {path}"));
-    }
-    std::fs::read(&p).map_err(|e| e.to_string())
+pub(crate) async fn read_import_pdf(path: String) -> Result<Vec<u8>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let p = PathBuf::from(&path);
+        let ext_ok = p
+            .extension()
+            .and_then(|s| s.to_str())
+            .map(|s| s.eq_ignore_ascii_case("pdf"))
+            .unwrap_or(false);
+        if !ext_ok {
+            return Err("only .pdf files are supported for import".into());
+        }
+        if !p.is_file() {
+            return Err(format!("not a file: {path}"));
+        }
+        std::fs::read(&p).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| format!("read_import_pdf join: {e}"))?
 }
 
 #[cfg(test)]
