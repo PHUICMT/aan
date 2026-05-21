@@ -4,6 +4,7 @@
   import Icon from '../../shared/components/Icon.svelte';
   import { TYPE_CHIP } from '../../shared/lib/constants';
   import { t } from '../../shared/lib/i18n.svelte';
+  import { portal } from '../../shared/lib/portal';
   import type { SeriesCard } from '../../shared/lib/types';
 
   type Props = {
@@ -37,6 +38,7 @@
   onkeydown={(e) => { if (e.key === 'Escape') onCancel(); }}
   tabindex="-1"
   transition:fade={{ duration: 180, easing: cubicOut }}
+  use:portal
   data-test="random-modal"
 >
   <div
