@@ -382,7 +382,7 @@
   }
   .sel-mark {
     position: absolute;
-    top: 8px; left: 8px;
+    top: 8px; right: 8px;
     width: 22px; height: 22px;
     border-radius: 50%;
     background: rgba(0,0,0,0.42);

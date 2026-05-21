@@ -88,13 +88,6 @@
     {:else}
       <div class="cover-fb">{series.name.charAt(0)}</div>
     {/if}
-    {#if selectMode}
-      <span class="sel-mark" class:on={selected} aria-hidden="true">
-        {#if selected}
-          <Icon name="check" size={10} />
-        {/if}
-      </span>
-    {/if}
   </div>
   <div class="meta">
     <div class="line1">
@@ -123,9 +116,17 @@
       <span class="pct">{progress}%</span>
     </div>
   </div>
-  <span class="chev" aria-hidden="true">
-    <Icon name="chevron_right" size={14} />
-  </span>
+  {#if selectMode}
+    <span class="sel-mark" class:on={selected} aria-hidden="true">
+      {#if selected}
+        <Icon name="check" size={12} />
+      {/if}
+    </span>
+  {:else}
+    <span class="chev" aria-hidden="true">
+      <Icon name="chevron_right" size={14} />
+    </span>
+  {/if}
 </button>
 
 <style>
@@ -153,18 +154,13 @@
     box-shadow: 0 0 0 1px var(--accent);
   }
   .sel-mark {
-    position: absolute;
-    top: 4px; left: 4px;
-    width: 18px; height: 18px;
+    width: 22px; height: 22px;
     border-radius: 50%;
-    background: rgba(0,0,0,0.55);
+    background: rgba(0,0,0,0.42);
     border: 2px solid #fff;
     display: inline-flex; align-items: center; justify-content: center;
     color: #fff;
     transition: background 0.16s var(--ease-out), transform 0.16s var(--ease-out);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    z-index: 2;
   }
   .sel-mark.on {
     background: var(--accent);
