@@ -172,8 +172,18 @@
 
 <div class="page" data-test="library">
   <header class="hero">
-    <div>
-      <h1>{t('library.title')}</h1>
+    <div class="hero-title">
+      <div class="title-row">
+        <h1>{t('library.title')}</h1>
+        <div class="counter" data-test="library-counter">
+          {#if loading}
+            <span class="count-skel"><Shimmer radius={4} height="100%" /></span>
+          {:else}
+            <span class="count">{series.length}</span>
+          {/if}
+          <span class="count-label">{t('library.series')}</span>
+        </div>
+      </div>
       <p class="sub">{t('library.sub')}</p>
     </div>
     <div class="hero-actions">
@@ -189,14 +199,6 @@
         <Icon name={selectMode ? 'x' : 'check'} size={12} />
         {selectMode ? t('library.select_exit') : t('library.select')}
       </button>
-      <div class="counter">
-        {#if loading}
-          <span class="count-skel"><Shimmer radius={4} height="100%" /></span>
-        {:else}
-          <span class="count">{series.length}</span>
-        {/if}
-        <span class="count-label">{t('library.series')}</span>
-      </div>
     </div>
   </header>
 
@@ -230,6 +232,7 @@
         aria-expanded={sortOpen}
         use:tooltip={t('library.sort')}
         onclick={() => (sortOpen = !sortOpen)}
+        data-test="library-sort-trigger"
       >
         <span class="sort-label">{t(SORT_LABELS[filters.sortKey])}</span>
         <span class="sort-caret" class:flip={sortOpen}>
@@ -244,6 +247,7 @@
           style:right="{sortPos.right}px"
           use:portal
           use:closeSortOnOutside={() => (sortOpen = false)}
+          data-test="library-sort-menu"
         >
           {#each SORT_KEYS as k (k)}
             <li>
@@ -253,6 +257,7 @@
                 role="option"
                 aria-selected={filters.sortKey === k}
                 onclick={() => pickSort(k)}
+                data-test={`sort-item-${k}`}
               >
                 <span>{t(SORT_LABELS[k])}</span>
                 {#if filters.sortKey === k}
@@ -380,22 +385,25 @@
     scrollbar-gutter: stable;
   }
   .hero {
-    display: flex; align-items: flex-end; justify-content: space-between;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px;
     margin-bottom: 22px;
   }
+  .hero-title { min-width: 0; }
+  .title-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   .hero h1 {
     font-size: 28px; font-weight: 700; letter-spacing: -0.01em;
     background: linear-gradient(135deg, var(--heading-grad-from) 0%, var(--heading-grad-to) 100%);
     -webkit-background-clip: text; background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-bottom: 4px;
+    margin: 0;
   }
-  .sub { font-size: 12px; color: var(--text2); }
-  .hero-actions { display: flex; align-items: center; gap: 10px; }
+  .sub { font-size: 12px; color: var(--text2); margin: 6px 0 0; }
+  .hero-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
   .counter {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 14px;
+    display: inline-flex; align-items: baseline; gap: 6px;
+    padding: 5px 12px;
     background: rgba(139, 92, 246, 0.12);
     border: 1px solid rgba(139, 92, 246, 0.35);
     border-radius: 9999px;
