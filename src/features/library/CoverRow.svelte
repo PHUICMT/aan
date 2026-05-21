@@ -8,8 +8,28 @@
   import { openSeries } from '../../shared/lib/store.svelte';
   import type { SeriesCard } from '../../shared/lib/types';
 
-  type Props = { series: SeriesCard; delay?: number };
-  let { series, delay = 0 }: Props = $props();
+  type Props = {
+    series: SeriesCard;
+    delay?: number;
+    selectMode?: boolean;
+    selected?: boolean;
+    onToggleSelect?: (pid: number) => void;
+  };
+  let {
+    series,
+    delay = 0,
+    selectMode = false,
+    selected = false,
+    onToggleSelect,
+  }: Props = $props();
+
+  function onRowClick() {
+    if (selectMode) {
+      onToggleSelect?.(series.pid);
+      return;
+    }
+    openSeries(series.pid);
+  }
 
   let coverUrl = $state<string | null>(null);
   let rowEl = $state<HTMLButtonElement | null>(null);
@@ -51,12 +71,29 @@
   });
 </script>
 
-<button class="row" style:--delay="{delay}ms" bind:this={rowEl} onclick={() => openSeries(series.pid)}>
+<button
+  class="row"
+  class:select-mode={selectMode}
+  class:selected
+  style:--delay="{delay}ms"
+  bind:this={rowEl}
+  data-test="cover-row"
+  data-pid={series.pid}
+  data-selected={selected ? '1' : '0'}
+  onclick={onRowClick}
+>
   <div class="cover">
     {#if coverUrl}
       <img src={coverUrl} alt={series.name} loading="lazy" />
     {:else}
       <div class="cover-fb">{series.name.charAt(0)}</div>
+    {/if}
+    {#if selectMode}
+      <span class="sel-mark" class:on={selected} aria-hidden="true">
+        {#if selected}
+          <Icon name="check" size={10} />
+        {/if}
+      </span>
     {/if}
   </div>
   <div class="meta">
@@ -108,6 +145,31 @@
     transition: background 0.15s var(--ease-out), border-color 0.15s var(--ease-out), transform 0.15s var(--ease-out);
   }
   .row:hover { background: var(--surface2); border-color: var(--accent); transform: translateY(-1px); }
+  .row.select-mode { cursor: pointer; }
+  .row.select-mode:not(.selected) { opacity: 0.62; }
+  .row.select-mode.selected {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .sel-mark {
+    position: absolute;
+    top: 4px; left: 4px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.55);
+    border: 2px solid #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff;
+    transition: background 0.16s var(--ease-out), transform 0.16s var(--ease-out);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 2;
+  }
+  .sel-mark.on {
+    background: var(--accent);
+    transform: scale(1.08);
+  }
   .chev {
     display: inline-flex; align-items: center; justify-content: center;
     width: 26px; height: 26px;
@@ -122,6 +184,7 @@
     background: color-mix(in srgb, var(--accent) 14%, transparent);
   }
   .cover {
+    position: relative;
     width: 48px; height: 68px; border-radius: 6px; overflow: hidden;
     border: 1px solid var(--border); background: #14182a;
     flex-shrink: 0;

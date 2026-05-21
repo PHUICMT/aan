@@ -305,13 +305,25 @@
         key={(s) => s.pid}
       >
         {#snippet item(s)}
-          <CoverRow series={s} delay={0} />
+          <CoverRow
+            series={s}
+            delay={0}
+            {selectMode}
+            selected={selectedPids.has(s.pid)}
+            onToggleSelect={toggleSelected}
+          />
         {/snippet}
       </VirtualGrid>
     {:else}
       <div class="list-view">
         {#each filters.filtered as s, i (s.pid)}
-          <CoverRow series={s} delay={Math.min(i * ANIM.cardStaggerMs, ANIM.cardStaggerCap)} />
+          <CoverRow
+            series={s}
+            delay={Math.min(i * ANIM.cardStaggerMs, ANIM.cardStaggerCap)}
+            {selectMode}
+            selected={selectedPids.has(s.pid)}
+            onToggleSelect={toggleSelected}
+          />
         {/each}
       </div>
     {/if}
