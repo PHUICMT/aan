@@ -11,6 +11,7 @@ import {
   importEpub,
   importImageFolder,
   readImportPdf,
+  bulkUpdateSeries,
   type ImportedChapter,
 } from '../../shared/lib/api';
 
@@ -117,10 +118,17 @@ async function importOneEpub(path: string, kind: string): Promise<ImportedChapte
   return { pid: out.pid, chapter_id: `epub:${out.chapters_added}`, created_series: out.created_series };
 }
 
+async function applyTags(pid: number, tags: string[]): Promise<void> {
+  const cleaned = tags.map((t) => t.trim()).filter((t) => t.length > 0);
+  if (cleaned.length === 0) return;
+  try { await bulkUpdateSeries([pid], { addTags: cleaned }); } catch { /* tagging failure must not abort import */ }
+}
+
 export async function importFiles(
   paths: string[],
   onProgress?: (p: ImportProgress) => void,
   kinds: ImportKinds = DEFAULT_KINDS,
+  tags: string[] = [],
 ): Promise<ImportProgress> {
   const progress: ImportProgress = {
     total: paths.length,
@@ -153,6 +161,7 @@ export async function importFiles(
         });
       } else {
         progress.imported.push(imported);
+        await applyTags(imported.pid, tags);
       }
     } catch (e) {
       progress.errors.push({ file: filename, error: String(e) });
@@ -172,6 +181,7 @@ export async function importFolders(
   paths: string[],
   onProgress?: (p: ImportProgress) => void,
   kinds: ImportKinds = DEFAULT_KINDS,
+  tags: string[] = [],
 ): Promise<ImportProgress> {
   const progress: ImportProgress = {
     total: paths.length,
@@ -201,6 +211,7 @@ export async function importFolders(
         progress.duplicates.push({ file: folderName, pid: imported.pid, chapterId: imported.chapter_id });
       } else {
         progress.imported.push(imported);
+        await applyTags(imported.pid, tags);
       }
     } catch (e) {
       progress.errors.push({ file: folderName, error: String(e) });

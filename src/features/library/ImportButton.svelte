@@ -9,6 +9,8 @@
   import { importFiles, importFolders, type ImportProgress, type ImportKinds } from './import-flow';
   import { portal } from '../../shared/lib/portal';
   import { KIND_OPTIONS, isVisualKind } from '../../shared/lib/constants';
+  import { listTags } from '../../shared/lib/api';
+  import type { TagCount } from '../../shared/lib/types';
 
   const VISUAL_KINDS = KIND_OPTIONS.filter((k) => isVisualKind(k.id));
   const TEXT_KINDS   = KIND_OPTIONS.filter((k) => !isVisualKind(k.id));
@@ -38,6 +40,74 @@
   let summary = $state<ImportProgress | null>(null);
   let menuOpen = $state(false);
   let triggerEl: HTMLButtonElement | undefined = $state();
+
+  //───── Tag picker ─────
+  function loadImportTags(): string[] {
+    try {
+      const raw = localStorage.getItem('aan.import.tags');
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr.filter((x) => typeof x === 'string') : [];
+    } catch { return []; }
+  }
+  let selectedTags = $state<string[]>(loadImportTags());
+  let allTags = $state<TagCount[]>([]);
+  let tagDraft = $state('');
+
+  function persistTags() {
+    try { localStorage.setItem('aan.import.tags', JSON.stringify(selectedTags)); } catch {}
+  }
+  function addTag(name: string) {
+    const v = name.trim();
+    if (!v) return;
+    if (selectedTags.includes(v)) return;
+    selectedTags = [...selectedTags, v];
+    persistTags();
+  }
+  function removeTag(name: string) {
+    selectedTags = selectedTags.filter((t) => t !== name);
+    persistTags();
+  }
+  function commitDraft() {
+    if (!tagDraft.trim()) return;
+    addTag(tagDraft);
+    tagDraft = '';
+  }
+  function onTagKey(e: KeyboardEvent) {
+    if (e.key === 'Enter') { e.preventDefault(); commitDraft(); }
+    else if (e.key === 'Backspace' && !tagDraft && selectedTags.length > 0) {
+      // Familiar token-input behavior: backspace on empty input pops the last chip.
+      removeTag(selectedTags[selectedTags.length - 1]);
+    }
+  }
+  // Fuzzy-ish narrowing: existing tags not already chosen, prefer prefix matches.
+  const suggestions = $derived.by(() => {
+    const q = tagDraft.trim().toLowerCase();
+    const taken = new Set(selectedTags);
+    const pool = allTags.filter((t) => !taken.has(t.name));
+    if (!q) return pool.slice(0, 8);
+    const prefix: TagCount[] = [];
+    const contains: TagCount[] = [];
+    for (const t of pool) {
+      const n = t.name.toLowerCase();
+      if (n.startsWith(q)) prefix.push(t);
+      else if (n.includes(q)) contains.push(t);
+    }
+    return [...prefix, ...contains].slice(0, 8);
+  });
+  const showAddNew = $derived.by(() => {
+    const v = tagDraft.trim();
+    if (!v) return false;
+    if (selectedTags.includes(v)) return false;
+    return !allTags.some((t) => t.name.toLowerCase() === v.toLowerCase());
+  });
+
+  async function refreshTags() {
+    try { allTags = await listTags(); } catch { allTags = []; }
+  }
+  $effect(() => {
+    if (menuOpen) void refreshTags();
+  });
   // Tracked for the cursor-following sheen on hover; clamped 0-1 within
   // the button rect. Listener only attaches while the user is over it.
   let sheenX = $state(0.5);
@@ -79,7 +149,7 @@
     if (!picked) return;
     const paths = Array.isArray(picked) ? picked : [picked];
     if (paths.length === 0) return;
-    await runImport(() => importFiles(paths, (p) => { progress = { ...p }; }, kinds), paths.length);
+    await runImport(() => importFiles(paths, (p) => { progress = { ...p }; }, kinds, selectedTags), paths.length);
   }
 
   async function pickFolder() {
@@ -89,7 +159,7 @@
     if (!picked) return;
     const paths = Array.isArray(picked) ? picked : [picked];
     if (paths.length === 0) return;
-    await runImport(() => importFolders(paths, (p) => { progress = { ...p }; }, kinds), paths.length);
+    await runImport(() => importFolders(paths, (p) => { progress = { ...p }; }, kinds, selectedTags), paths.length);
   }
 
   function closeMenuOnOutside(node: HTMLElement) {
@@ -169,15 +239,65 @@
           {/each}
         </div>
       </div>
-      <div class="sep" style:--i={2}></div>
+      <div class="tag-group" style:--i={2} data-test="import-tag-picker">
+        <div class="kind-label">{t('library.import.tags')}</div>
+        <div class="tag-chips">
+          {#each selectedTags as name (name)}
+            <span class="tag-chip selected" data-test="import-tag-selected">
+              <span>{name}</span>
+              <button
+                type="button"
+                class="tag-x"
+                onclick={() => removeTag(name)}
+                aria-label={t('common.cancel')}
+              ><Icon name="x" size={10} /></button>
+            </span>
+          {/each}
+          <input
+            class="tag-input"
+            type="text"
+            bind:value={tagDraft}
+            onkeydown={onTagKey}
+            placeholder={t('library.import.tag_placeholder')}
+            data-test="import-tag-input"
+          />
+        </div>
+        {#if (tagDraft.trim() || suggestions.length > 0) && (suggestions.length > 0 || showAddNew)}
+          <div class="tag-suggest" data-test="import-tag-suggest">
+            {#if showAddNew}
+              <button
+                type="button"
+                class="tag-suggest-item add-new"
+                onclick={commitDraft}
+                data-test="import-tag-add-new"
+              >
+                <Icon name="plus" size={11} />
+                <span>{t('library.import.tag_add_new').replace('{name}', tagDraft.trim())}</span>
+              </button>
+            {/if}
+            {#each suggestions as s (s.name)}
+              <button
+                type="button"
+                class="tag-suggest-item"
+                onclick={() => { addTag(s.name); tagDraft = ''; }}
+                data-test="import-tag-suggest-item"
+              >
+                <span class="suggest-name">{s.name}</span>
+                <span class="suggest-count">{s.count}</span>
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+      <div class="sep" style:--i={3}></div>
       <ul class="menu-list">
-        <li style:--i={3}>
+        <li style:--i={4}>
           <button type="button" class="menu-item" onclick={pickFiles} role="menuitem" data-test="import-menu-files">
             <span class="mi-icon"><Icon name="file_text" size={13} /></span>
             <span>{t('library.import.menu_files')}</span>
           </button>
         </li>
-        <li style:--i={4}>
+        <li style:--i={5}>
           <button type="button" class="menu-item" onclick={pickFolder} role="menuitem" data-test="import-menu-folder">
             <span class="mi-icon"><Icon name="folder_open" size={13} /></span>
             <span>{t('library.import.menu_folder')}</span>
@@ -392,7 +512,7 @@
     transform-origin: top right;
   }
   .menu-list { list-style: none; margin: 0; padding: 0; }
-  .menu li, .menu .kind-group, .menu .sep {
+  .menu li, .menu .kind-group, .menu .tag-group, .menu .sep {
     margin: 0;
     opacity: 0;
     transform: translateY(-6px);
@@ -403,7 +523,7 @@
     to { opacity: 1; transform: translateY(0); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .menu li, .menu .kind-group, .menu .sep { opacity: 1; transform: none; animation: none; }
+    .menu li, .menu .kind-group, .menu .tag-group, .menu .sep { opacity: 1; transform: none; animation: none; }
   }
   .kind-group { padding: 8px 10px 4px; }
   .kind-label {
@@ -439,6 +559,75 @@
     height: 1px;
     margin: 6px 8px;
     background: var(--border);
+  }
+  .tag-group { padding: 4px 10px 8px; }
+  .tag-chips {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    padding: 6px 6px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--menu-bg) 50%, transparent);
+    border: 1px solid var(--border);
+    min-height: 30px;
+  }
+  .tag-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 4px 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    background: var(--tag-chip-bg);
+    color: var(--tag-chip-fg);
+    border: 1px solid var(--tag-chip-border);
+  }
+  .tag-x {
+    display: inline-grid; place-items: center;
+    width: 16px; height: 16px;
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition: background 120ms var(--ease-out);
+  }
+  .tag-x:hover { background: color-mix(in srgb, var(--text) 18%, transparent); }
+  .tag-input {
+    flex: 1; min-width: 80px;
+    padding: 2px 6px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 12px;
+  }
+  .tag-input::placeholder { color: var(--text3); }
+  .tag-suggest {
+    margin-top: 6px;
+    display: flex; flex-direction: column;
+    gap: 1px;
+    max-height: 160px; overflow-y: auto;
+    background: color-mix(in srgb, var(--menu-bg) 40%, transparent);
+    border-radius: 8px;
+    padding: 4px;
+  }
+  .tag-suggest-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 5px 9px;
+    background: transparent;
+    border: none;
+    color: var(--text2);
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 120ms var(--ease-out), color 120ms;
+  }
+  .tag-suggest-item:hover {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    color: #fff;
+  }
+  .tag-suggest-item.add-new { color: color-mix(in srgb, var(--accent) 80%, white 20%); font-weight: 600; gap: 6px; justify-content: flex-start; }
+  .suggest-count {
+    font-size: 10.5px;
+    color: var(--text3);
+    font-variant-numeric: tabular-nums;
   }
   .menu-item {
     display: flex;

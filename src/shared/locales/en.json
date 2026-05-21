@@ -8,6 +8,9 @@
   "library.import.menu_folder": "Choose folder of images…",
   "library.import.kind_visual": "Visual kind (PDF / CBZ / Folder)",
   "library.import.kind_text": "Text kind (EPUB / TXT)",
+  "library.import.tags": "Tags",
+  "library.import.tag_placeholder": "Add tag…",
+  "library.import.tag_add_new": "Add \"{name}\" as new tag",
 
   "series.edit": "Edit series",
   "series.edit.title": "Edit series",
