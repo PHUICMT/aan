@@ -169,13 +169,13 @@ Fixture catalogue (recap from [tests/e2e/README.md](../README.md)): 6 series —
 
 #### F23. Sort button opens the popover
 
-- **Status:** [ ] TODO
+- **Status:** [x] covered by [`library-sort-view.spec.ts`](../flows/library-sort-view.spec.ts) › `"sort menu opens on trigger click and closes with Escape"`
 - **Goal:** click sort button → `.sort-menu` mounts in body via portal; caret flips.
 - **Selectors / commands:** propose `data-test="library-sort-trigger"` and `data-test="library-sort-menu"` — currently no hooks.
 
 #### F24. Sort by `name` reorders the grid alphabetically
 
-- **Status:** [ ] TODO
+- **Status:** [x] covered by [`library-sort-view.spec.ts`](../flows/library-sort-view.spec.ts) › `"sort by name puts Alpha first"`
 - **Steps:**
   1. Click sort trigger → pick `library.sort.name`.
   2. Read cards' first child via `[data-test="cover-card"] .title` in order.
@@ -199,7 +199,7 @@ Fixture catalogue (recap from [tests/e2e/README.md](../README.md)): 6 series —
 
 #### F28. Sort selection persists across reload (`aan.lib.sort`)
 
-- **Status:** [ ] TODO
+- **Status:** [x] covered by [`library-sort-view.spec.ts`](../flows/library-sort-view.spec.ts) › `"sort selection persists across reload"` (plus `"each sort key writes aan.lib.sort to localStorage"` for the write side)
 - **Steps:**
   1. Pick `name`.
   2. Reload.
@@ -207,7 +207,7 @@ Fixture catalogue (recap from [tests/e2e/README.md](../README.md)): 6 series —
 
 #### F29. Sort popover closes on Escape
 
-- **Status:** [ ] TODO
+- **Status:** [x] covered by [`library-sort-view.spec.ts`](../flows/library-sort-view.spec.ts) › `"sort menu opens on trigger click and closes with Escape"`
 - **Steps:** open popover; press `Escape`; assert `.sort-menu` unmounts.
 
 #### F30. Sort popover closes on outside mousedown
@@ -217,7 +217,7 @@ Fixture catalogue (recap from [tests/e2e/README.md](../README.md)): 6 series —
 
 #### F31. Active sort item shows check icon and accent background
 
-- **Status:** [ ] TODO
+- **Status:** [x] covered by [`library-sort-view.spec.ts`](../flows/library-sort-view.spec.ts) › `"active sort item shows the check marker"`
 
 ### Filter disclosure & view-mode segment ([LibraryFilters.svelte](../../../src/features/library/LibraryFilters.svelte))
 
@@ -239,22 +239,22 @@ Fixture catalogue (recap from [tests/e2e/README.md](../README.md)): 6 series —
 
 #### F35. View segment: switch to grid
 
-- **Status:** [ ] TODO
+- **Status:** [x] covered by [`library-sort-view.spec.ts`](../flows/library-sort-view.spec.ts) › `"default view mode is grid"`
 - **Steps:** click `[data-test="view-grid"]`; assert `.grid` lacks `.mode-compact`, no `.list-view`.
 
 #### F36. View segment: switch to compact
 
-- **Status:** [ ] TODO
+- **Status:** [x] covered by [`library-sort-view.spec.ts`](../flows/library-sort-view.spec.ts) › `"switching to compact applies .mode-compact on the grid"`
 - **Steps:** click `[data-test="view-compact"]`; assert `.grid.mode-compact` selector matches.
 
 #### F37. View segment: switch to list
 
-- **Status:** [ ] TODO
+- **Status:** [x] covered by [`library-sort-view.spec.ts`](../flows/library-sort-view.spec.ts) › `"switching to list swaps grid for .list-view with row entries"`
 - **Steps:** click `[data-test="view-list"]`; assert `.list-view` is the container, `CoverRow` items render with `.row` class.
 
 #### F38. View mode persists across reload (`aan.lib.view`)
 
-- **Status:** [ ] TODO
+- **Status:** [x] covered by [`library-sort-view.spec.ts`](../flows/library-sort-view.spec.ts) › `"view mode persists across reload"`
 - **Steps:** pick list; reload; assert `.list-view` still active AND `localStorage.getItem('aan.lib.view') === 'list'`.
 
 #### F39. View mode swap is wrapped in `document.startViewTransition` when supported
@@ -285,25 +285,25 @@ Fixture catalogue (recap from [tests/e2e/README.md](../README.md)): 6 series —
 
 #### F44. RS `none` shows only series with `reading_status === null`
 
-- **Status:** [ ] TODO
+- **Status:** [x] covered by [`library-rs-dl-filter.spec.ts`](../flows/library-rs-dl-filter.spec.ts) › `"reading-status filter: none narrows to series 2002"`
 
 #### F45. RS `plan` shows series with reading_status === 'plan' (fixture 1002)
 
-- **Status:** [ ] TODO
+- **Status:** [x] covered by [`library-rs-dl-filter.spec.ts`](../flows/library-rs-dl-filter.spec.ts) › `"reading-status filter: plan narrows to series 1002"`
 
 #### F46. RS `reading` / `completed` / `on_hold` / `dropped` each narrow correctly
 
-- **Status:** [ ] TODO (one test per value, or table-driven)
+- **Status:** [x] partially covered by [`library-rs-dl-filter.spec.ts`](../flows/library-rs-dl-filter.spec.ts) › `"reading-status filter: reading narrows to 1001 + 2001"` (reading only); other values still TODO
 
 #### F47. RS filter persists (`aan.lib.rs`)
 
-- **Status:** [ ] TODO
+- **Status:** [x] covered by [`library-rs-dl-filter.spec.ts`](../flows/library-rs-dl-filter.spec.ts) › `"reading-status filter persists across reload"`
 
 ### Download sub-filter
 
 #### F48. DL `complete` narrows to series with `local >= total`
 
-- **Status:** [ ] TODO
+- **Status:** [x] covered by [`library-rs-dl-filter.spec.ts`](../flows/library-rs-dl-filter.spec.ts) › `"download filter: complete narrows to series with local >= total"`
 
 #### F49. DL `missing` shows the partial series 3001
 
@@ -311,7 +311,7 @@ Fixture catalogue (recap from [tests/e2e/README.md](../README.md)): 6 series —
 
 #### F50. DL filter persists (`aan.lib.dl`)
 
-- **Status:** [ ] TODO
+- **Status:** [x] covered by [`library-rs-dl-filter.spec.ts`](../flows/library-rs-dl-filter.spec.ts) › `"download filter persists across reload"`
 
 #### F51. DL `failed` is not exposed in the UI but is accepted by the persistence reader
 

@@ -21,7 +21,7 @@ Existing specs touching these surfaces: none dedicated. [`series-detail.spec.ts`
 
 ### F01. Empty state when no favorites exist
 
-- **Status:** [ ] TODO
+- **Status:** [x] covered by favorites.spec.ts › "empty state when no favorites exist"
 - **Goal:** confirm the page degrades gracefully when no series is favorited.
 - **Preconditions:** pristine fixture (no `is_favorite = 1` rows).
 - **Steps:**
@@ -54,7 +54,7 @@ Existing specs touching these surfaces: none dedicated. [`series-detail.spec.ts`
 
 ### F03. Type chip filters favorites grid and persists to `aan.fav.type`
 
-- **Status:** [ ] TODO
+- **Status:** [x] covered by favorites.spec.ts › "type filter narrows favorites to manga" and favorites.spec.ts › "favorites type filter selection persists across reload"
 - **Goal:** clicking a type chip narrows the grid; choice survives reload.
 - **Preconditions:** favorites of at least two distinct types.
 - **Steps:**
@@ -129,7 +129,7 @@ Existing specs touching these surfaces: none dedicated. [`series-detail.spec.ts`
 
 ### F08. Auto-prune: unfavoriting elsewhere drops stale filter
 
-- **Status:** [ ] TODO
+- **Status:** [x] partially covered by favorites.spec.ts › "unfavoriting via Series Detail removes from Favorites grid" (asserts grid drops the row via seriesMutationTick; stale-filter auto-reset to 'all' not yet exercised)
 - **Goal:** when the last series carrying the selected type/tag is unfavorited (via Series Detail), `seriesMutationTick` triggers a refresh and the stale filter is dropped to `'all'` / empty.
 - **Preconditions:** one manga favorite with tag `action`.
 - **Steps:**
@@ -397,7 +397,7 @@ Existing specs touching these surfaces: none dedicated. [`series-detail.spec.ts`
 
 ## Coverage summary
 
-- Favorites: 0 covered, 11 TODO (F01–F11).
+- Favorites: 3 covered (F01, F03, F08 partial), 8 TODO (F02, F04–F07, F09–F11).
 - History: 0 covered, 9 TODO (H01–H09).
 - Reading List: 0 covered, 10 TODO (L01–L10).
 

@@ -75,9 +75,7 @@ These bypass the native dialog by invoking the Rust commands directly. Pattern l
 
 #### F12. EPUB import creates a novel series with synthetic chapter id `epub:<count>`
 
-- **Status:** [ ] TODO
-- **Steps:** `invokeCmd(app, 'import_epub', { args: { srcPath: <fixture epub>, kind: 'novel' } })`; assert the response and chapter listing.
-- **Fixture deps:** add `tests/fixtures/build/import-samples/sample.epub`.
+- **Status:** [x] covered by [`import-epub.spec.ts`](../flows/import-epub.spec.ts) › `"import_epub adds a novel series visible in Library"` + `"import_epub unpacks both chapters into the series"`
 
 #### F13. Image folder imports as one chapter via `importImageFolder`
 
@@ -107,11 +105,9 @@ These bypass the native dialog by invoking the Rust commands directly. Pattern l
 
 - **Status:** [x] covered by [`import-dedupe.spec.ts`](../flows/import-dedupe.spec.ts) › `"importing the same PDF twice flags the second as duplicate"`
 
-#### F18. EPUB synthetic chapter_id never re-matches (documented quirk)
+#### F18. EPUB re-import flags second as duplicate
 
-- **Status:** [ ] TODO
-- **Goal:** re-import the same EPUB; observe whatever Rust returns (duplicate flag may or may not flip — assert actual behaviour).
-- **Fixture deps:** sample.epub.
+- **Status:** [x] covered by [`import-epub.spec.ts`](../flows/import-epub.spec.ts) › `"importing the same EPUB twice flags the second as duplicate"`
 
 #### F19. Re-import via image folder triggers `duplicate: true` when content hash matches
 
