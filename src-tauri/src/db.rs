@@ -65,6 +65,13 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
     if !chapter_cols.iter().any(|c| c == "read_at") {
         let _ = conn.execute("ALTER TABLE chapters ADD COLUMN read_at TIMESTAMP", []);
     }
+    if !chapter_cols.iter().any(|c| c == "source_hash") {
+        let _ = conn.execute("ALTER TABLE chapters ADD COLUMN source_hash TEXT", []);
+        let _ = conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_chapters_source_hash ON chapters(source_hash)",
+            [],
+        );
+    }
 
     let series_cols: Vec<String> = conn
         .prepare("PRAGMA table_info(series)")

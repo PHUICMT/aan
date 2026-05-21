@@ -26,6 +26,7 @@ export type ImportProgress = {
   current: string;
   errors: { file: string; error: string }[];
   imported: ImportedChapter[];
+  duplicates: { file: string; pid: number; chapterId: string }[];
 };
 
 type Ext = 'pdf' | 'cbz' | 'txt' | 'epub';
@@ -123,6 +124,7 @@ export async function importFiles(
     current: '',
     errors: [],
     imported: [],
+    duplicates: [],
   };
   onProgress?.(progress);
 
@@ -139,7 +141,15 @@ export async function importFiles(
         ext === 'cbz' ? await importOneCbz(path, filename) :
         ext === 'epub' ? await importOneEpub(path) :
         await importOneTxt(path, filename);
-      progress.imported.push(imported);
+      if ((imported as { duplicate?: boolean }).duplicate) {
+        progress.duplicates.push({
+          file: filename,
+          pid: (imported as { pid: number }).pid,
+          chapterId: (imported as { chapter_id?: string }).chapter_id ?? '',
+        });
+      } else {
+        progress.imported.push(imported);
+      }
     } catch (e) {
       progress.errors.push({ file: filename, error: String(e) });
     }
@@ -164,6 +174,7 @@ export async function importFolders(
     current: '',
     errors: [],
     imported: [],
+    duplicates: [],
   };
   onProgress?.(progress);
 
@@ -181,7 +192,11 @@ export async function importFolders(
         chapterNo: parsed.chapterNo,
         chapterTitle: parsed.chapterTitle,
       });
-      progress.imported.push(imported);
+      if ((imported as { duplicate?: boolean }).duplicate) {
+        progress.duplicates.push({ file: folderName, pid: imported.pid, chapterId: imported.chapter_id });
+      } else {
+        progress.imported.push(imported);
+      }
     } catch (e) {
       progress.errors.push({ file: folderName, error: String(e) });
     }

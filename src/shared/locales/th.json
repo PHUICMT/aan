@@ -37,6 +37,7 @@
   "library.import.done_title": "นำเข้าเสร็จสิ้น",
   "library.import.imported_suffix": "ไฟล์",
   "library.import.failed_suffix": "ไฟล์ผิดพลาด",
+  "library.import.duplicate_suffix": "ไฟล์ถูกข้าม (มีในคลังอยู่แล้ว)",
   "nav.section": "เมนู",
   "nav.library": "คลังของฉัน",
   "nav.settings": "ตั้งค่า",

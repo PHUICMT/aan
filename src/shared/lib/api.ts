@@ -296,6 +296,7 @@ export type ImportedChapter = {
   pid: number;
   chapter_id: string;
   created_series: boolean;
+  duplicate?: boolean;
 };
 
 export async function readImportPdf(path: string): Promise<Uint8Array> {
@@ -359,6 +360,7 @@ export type ImportedEpub = {
   pid: number;
   created_series: boolean;
   chapters_added: number;
+  duplicate?: boolean;
 };
 
 export async function importEpub(input: EpubImportArgs): Promise<ImportedEpub> {

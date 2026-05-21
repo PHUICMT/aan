@@ -40,6 +40,7 @@
   "library.import.done_title": "Import complete",
   "library.import.imported_suffix": "files imported",
   "library.import.failed_suffix": "files failed",
+  "library.import.duplicate_suffix": "files were skipped (already in your library)",
 
   "nav.section": "NAVIGATION",
   "nav.library": "Library",

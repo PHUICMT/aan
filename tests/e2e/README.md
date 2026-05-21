@@ -25,7 +25,7 @@ npm run e2e:report                     # open the HTML report
 
 ## Test catalogue
 
-> 45 tests across 21 spec files. Runtime ≈ 38 seconds.
+> 46 tests across 22 spec files. Runtime ≈ 38 seconds.
 
 ### `smoke.spec.ts`
 Sanity that the suite is wired right.
@@ -77,6 +77,12 @@ Per-reader display settings (layout + theme), driven through the settings menu.
 
 ### `keyboard-shortcuts.spec.ts`
 - **? opens shortcuts dialog, Escape closes it** — `?` is dispatched via `KeyboardEvent` literal (Playwright's `Shift+/` chord doesn't always set `e.key='?'` under WebView2).
+
+### `import-dedupe.spec.ts` *(mutates — cleans up in afterEach)*
+
+Bit-identical re-imports get short-circuited: the second call returns the existing chapter with `duplicate: true` and no new row is inserted.
+
+- **importing the same PDF twice flags the second as duplicate** — calls `import_pdf` against `sample.pdf`, then calls it again with a different series name and chapter number; asserts the second response has `duplicate: true`, points at the first chapter, and `list_chapters` still returns a single row.
 
 ### `import.spec.ts` *(mutates — cleans up in afterEach)*
 

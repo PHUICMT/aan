@@ -1,8 +1,66 @@
 use crate::{data_root, db};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::io::Read;
 use std::path::{Path, PathBuf};
+
+/// SHA-256 of a file, streamed so we don't load 100MB+ EPUBs into RAM.
+pub(crate) fn hash_file(path: &Path) -> Result<String, String> {
+    let mut f = std::fs::File::open(path).map_err(|e| e.to_string())?;
+    let mut hasher = Sha256::new();
+    let mut buf = [0u8; 64 * 1024];
+    loop {
+        let n = f.read(&mut buf).map_err(|e| e.to_string())?;
+        if n == 0 { break; }
+        hasher.update(&buf[..n]);
+    }
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
+/// SHA-256 of a directory's contents. Folder imports get a stable
+/// signature by hashing each file's contents in sorted-by-name order;
+/// a rename or content edit forks the hash and counts as new.
+pub(crate) fn hash_dir(path: &Path) -> Result<String, String> {
+    let mut names: Vec<PathBuf> = std::fs::read_dir(path)
+        .map_err(|e| e.to_string())?
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| p.is_file())
+        .collect();
+    names.sort();
+    let mut hasher = Sha256::new();
+    for p in names {
+        let name = p.file_name().and_then(|s| s.to_str()).unwrap_or("");
+        hasher.update(name.as_bytes());
+        hasher.update(b"\0");
+        let bytes = std::fs::read(&p).map_err(|e| e.to_string())?;
+        hasher.update(&bytes);
+        hasher.update(b"\0");
+    }
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
+/// Existing chapter that matches the given file hash, if any. Used by
+/// every importer to short-circuit on bit-identical re-imports.
+pub(crate) fn find_chapter_by_hash(
+    conn: &Connection,
+    hash: &str,
+) -> Result<Option<(i64, String)>, String> {
+    let mut stmt = conn
+        .prepare("SELECT pid, chapter_id FROM chapters WHERE source_hash = ?1 LIMIT 1")
+        .map_err(|e| e.to_string())?;
+    let mut rows = stmt
+        .query(params![hash])
+        .map_err(|e| e.to_string())?;
+    if let Some(row) = rows.next().map_err(|e| e.to_string())? {
+        let pid: i64 = row.get(0).map_err(|e| e.to_string())?;
+        let chapter_id: String = row.get(1).map_err(|e| e.to_string())?;
+        Ok(Some((pid, chapter_id)))
+    } else {
+        Ok(None)
+    }
+}
 
 #[derive(Deserialize)]
 pub(crate) struct PdfImportArgs {
@@ -20,6 +78,8 @@ pub(crate) struct ImportedChapter {
     pub pid: i64,
     pub chapter_id: String,
     pub created_series: bool,
+    #[serde(default)]
+    pub duplicate: bool,
 }
 
 const KIND_MANGA: &str = "manga";
@@ -179,6 +239,14 @@ pub(crate) fn import_pdf_inner(
         return Err("page_count must be >= 0".into());
     }
 
+    // Dedupe: bail out (with a flag) if a chapter from the bit-identical
+    // file is already in the library. Cheaper than re-copying + the user
+    // can spot the no-op in the import summary.
+    let src_hash = hash_file(&src)?;
+    if let Some((pid, chapter_id)) = find_chapter_by_hash(conn, &src_hash)? {
+        return Ok(ImportedChapter { pid, chapter_id, created_series: false, duplicate: true });
+    }
+
     let now = now_iso();
     let (pid, created_series) = find_or_create_series(conn, name, kind, &now)?;
 
@@ -205,8 +273,8 @@ pub(crate) fn import_pdf_inner(
 
     conn.execute(
         "INSERT INTO chapters (chapter_id, pid, chapter_no, title, is_downloaded,
-                                pdf_path, page_count, update_date)
-         VALUES (?1, ?2, ?3, ?4, 1, ?5, ?6, ?7)",
+                                pdf_path, page_count, update_date, source_hash)
+         VALUES (?1, ?2, ?3, ?4, 1, ?5, ?6, ?7, ?8)",
         params![
             chapter_id,
             pid,
@@ -214,7 +282,8 @@ pub(crate) fn import_pdf_inner(
             args.chapter_title.trim(),
             stored_pdf_path,
             args.page_count,
-            now
+            now,
+            src_hash
         ],
     )
     .map_err(|e| e.to_string())?;
@@ -236,6 +305,7 @@ pub(crate) fn import_pdf_inner(
         pid,
         chapter_id,
         created_series,
+        duplicate: false,
     })
 }
 
@@ -315,6 +385,12 @@ pub(crate) fn import_cbz_inner(
         return Err("series_name is empty".into());
     }
 
+    // Dedupe by the .cbz file's hash — identical bytes = re-import.
+    let src_hash = hash_file(&src)?;
+    if let Some((pid, chapter_id)) = find_chapter_by_hash(conn, &src_hash)? {
+        return Ok(ImportedChapter { pid, chapter_id, created_series: false, duplicate: true });
+    }
+
     let file = std::fs::File::open(&src).map_err(|e| e.to_string())?;
     let mut zip = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
 
@@ -367,8 +443,8 @@ pub(crate) fn import_cbz_inner(
 
     conn.execute(
         "INSERT INTO chapters (chapter_id, pid, chapter_no, title, is_downloaded,
-                                pdf_path, page_count, update_date)
-         VALUES (?1, ?2, ?3, ?4, 1, ?5, ?6, ?7)",
+                                pdf_path, page_count, update_date, source_hash)
+         VALUES (?1, ?2, ?3, ?4, 1, ?5, ?6, ?7, ?8)",
         params![
             chapter_id,
             pid,
@@ -376,7 +452,8 @@ pub(crate) fn import_cbz_inner(
             args.chapter_title.trim(),
             stored_dir,
             page_count,
-            now
+            now,
+            src_hash
         ],
     )
     .map_err(|e| e.to_string())?;
@@ -398,6 +475,7 @@ pub(crate) fn import_cbz_inner(
         pid,
         chapter_id,
         created_series,
+        duplicate: false,
     })
 }
 
@@ -430,6 +508,12 @@ pub(crate) fn import_image_folder_inner(
     let name = args.series_name.trim();
     if name.is_empty() {
         return Err("series_name is empty".into());
+    }
+
+    // Dedupe via a stable folder hash (file names + contents in sorted order).
+    let src_hash = hash_dir(&src)?;
+    if let Some((pid, chapter_id)) = find_chapter_by_hash(conn, &src_hash)? {
+        return Ok(ImportedChapter { pid, chapter_id, created_series: false, duplicate: true });
     }
 
     let mut entries: Vec<(String, PathBuf, &'static str)> = std::fs::read_dir(&src)
@@ -479,8 +563,8 @@ pub(crate) fn import_image_folder_inner(
 
     conn.execute(
         "INSERT INTO chapters (chapter_id, pid, chapter_no, title, is_downloaded,
-                                pdf_path, page_count, update_date)
-         VALUES (?1, ?2, ?3, ?4, 1, ?5, ?6, ?7)",
+                                pdf_path, page_count, update_date, source_hash)
+         VALUES (?1, ?2, ?3, ?4, 1, ?5, ?6, ?7, ?8)",
         params![
             chapter_id,
             pid,
@@ -488,7 +572,8 @@ pub(crate) fn import_image_folder_inner(
             args.chapter_title.trim(),
             stored_dir,
             page_count,
-            now
+            now,
+            src_hash
         ],
     )
     .map_err(|e| e.to_string())?;
@@ -510,6 +595,7 @@ pub(crate) fn import_image_folder_inner(
         pid,
         chapter_id,
         created_series,
+        duplicate: false,
     })
 }
 
@@ -535,6 +621,8 @@ pub(crate) struct ImportedEpub {
     pub pid: i64,
     pub created_series: bool,
     pub chapters_added: i64,
+    #[serde(default)]
+    pub duplicate: bool,
 }
 
 #[derive(Default)]
@@ -903,6 +991,14 @@ pub(crate) fn import_epub_inner(
         return Err(format!("source not found: {}", args.src_path));
     }
 
+    // Dedupe by the whole-archive hash — any chapter row from this EPUB
+    // carries the same source_hash, so a single hit means we already
+    // imported the file.
+    let src_hash = hash_file(&src)?;
+    if let Some((pid, _)) = find_chapter_by_hash(conn, &src_hash)? {
+        return Ok(ImportedEpub { pid, created_series: false, chapters_added: 0, duplicate: true });
+    }
+
     let file = std::fs::File::open(&src).map_err(|e| e.to_string())?;
     let mut zip = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
 
@@ -998,9 +1094,9 @@ pub(crate) fn import_epub_inner(
 
         conn.execute(
             "INSERT INTO chapters (chapter_id, pid, chapter_no, title, is_downloaded,
-                                    pdf_path, page_count, update_date)
-             VALUES (?1, ?2, ?3, ?4, 1, ?5, 0, ?6)",
-            params![chapter_id, pid, chapter_no, title, stored, now],
+                                    pdf_path, page_count, update_date, source_hash)
+             VALUES (?1, ?2, ?3, ?4, 1, ?5, 0, ?6, ?7)",
+            params![chapter_id, pid, chapter_no, title, stored, now, src_hash],
         )
         .map_err(|e| e.to_string())?;
         added += 1;
@@ -1034,7 +1130,7 @@ pub(crate) fn import_epub_inner(
     )
     .map_err(|e| e.to_string())?;
 
-    Ok(ImportedEpub { pid, created_series, chapters_added: added })
+    Ok(ImportedEpub { pid, created_series, chapters_added: added, duplicate: false })
 }
 
 #[tauri::command]
@@ -1111,6 +1207,15 @@ pub(crate) fn import_txt_inner(
     }
 
     let raw = std::fs::read(&src).map_err(|e| e.to_string())?;
+    // Dedupe by hashing the raw .txt bytes.
+    let src_hash = {
+        let mut hasher = Sha256::new();
+        hasher.update(&raw);
+        format!("{:x}", hasher.finalize())
+    };
+    if let Some((pid, chapter_id)) = find_chapter_by_hash(conn, &src_hash)? {
+        return Ok(ImportedChapter { pid, chapter_id, created_series: false, duplicate: true });
+    }
     // Strip BOM, decode as UTF-8 lossily — Thai novels from various
     // sources sometimes carry stray bytes that strict decode would reject.
     let text = strip_utf8_bom(&raw);
@@ -1130,15 +1235,16 @@ pub(crate) fn import_txt_inner(
 
     conn.execute(
         "INSERT INTO chapters (chapter_id, pid, chapter_no, title, is_downloaded,
-                                pdf_path, page_count, update_date)
-         VALUES (?1, ?2, ?3, ?4, 1, ?5, 0, ?6)",
+                                pdf_path, page_count, update_date, source_hash)
+         VALUES (?1, ?2, ?3, ?4, 1, ?5, 0, ?6, ?7)",
         params![
             chapter_id,
             pid,
             args.chapter_no,
             args.chapter_title.trim(),
             stored_path,
-            now
+            now,
+            src_hash
         ],
     )
     .map_err(|e| e.to_string())?;
@@ -1158,6 +1264,7 @@ pub(crate) fn import_txt_inner(
         pid,
         chapter_id,
         created_series,
+        duplicate: false,
     })
 }
 
@@ -1225,7 +1332,11 @@ mod tests {
 
     fn write_fake_pdf(root: &Path, name: &str) -> PathBuf {
         let src = root.join(name);
-        fs::write(&src, b"%PDF-1.4\n%aan-fixture\n").unwrap();
+        // Encode the filename into the bytes so two stubs from the same
+        // test produce distinct hashes — otherwise the dedupe layer
+        // short-circuits the second import.
+        let body = format!("%PDF-1.4\n%aan-fixture-{name}\n");
+        fs::write(&src, body.as_bytes()).unwrap();
         src
     }
 
@@ -1290,6 +1401,22 @@ mod tests {
             )
             .unwrap();
         assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn identical_file_imported_twice_is_flagged_as_duplicate() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        let src = write_fake_pdf(&root, "same.pdf");
+        let first = import_pdf_inner(&conn, &root, args(&src, "S", 1.0)).unwrap();
+        assert!(!first.duplicate);
+        let second = import_pdf_inner(&conn, &root, args(&src, "Different Series", 7.0)).unwrap();
+        assert!(second.duplicate, "second import of identical bytes must be flagged");
+        assert_eq!(first.chapter_id, second.chapter_id, "duplicate returns the existing chapter id");
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM chapters", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 1, "no new row inserted");
     }
 
     #[test]

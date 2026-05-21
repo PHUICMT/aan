@@ -28,6 +28,7 @@ zip = { version = "2", default-features = false, features = ["deflate", "deflate
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 quick-xml = "0.36"
 notify = "7"
+sha2 = "0.10"
 
 [dev-dependencies]
 tempfile = "3"

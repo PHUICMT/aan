@@ -28,11 +28,11 @@
 
   async function runImport(run: () => Promise<ImportProgress>, total: number) {
     busy = true;
-    progress = { total, done: 0, current: '', errors: [], imported: [] };
+    progress = { total, done: 0, current: '', errors: [], imported: [], duplicates: [] };
     try {
       const final = await run();
       summary = final;
-      showSummary = final.imported.length > 0 || final.errors.length > 0;
+      showSummary = final.imported.length > 0 || final.errors.length > 0 || final.duplicates.length > 0;
       if (final.imported.length > 0) bumpSeriesMutation();
     } finally {
       busy = false;
@@ -169,6 +169,16 @@
       <p class="ok">
         {summary.imported.length} {t('library.import.imported_suffix')}
       </p>
+      {#if summary.duplicates.length > 0}
+        <p class="dup">
+          {summary.duplicates.length} {t('library.import.duplicate_suffix')}
+        </p>
+        <ul class="dup-list">
+          {#each summary.duplicates as d (d.file)}
+            <li><strong>{d.file}</strong></li>
+          {/each}
+        </ul>
+      {/if}
       {#if summary.errors.length > 0}
         <p class="err">
           {summary.errors.length} {t('library.import.failed_suffix')}
@@ -413,13 +423,14 @@
   }
   .ok { color: var(--text, #fff); font-size: 13px; }
   .err { color: #f87171; font-size: 13px; margin-top: 8px; }
-  .err-list {
+  .err-list, .dup-list {
     max-height: 140px;
     overflow-y: auto;
     font-size: 11.5px;
     color: var(--muted, rgba(255,255,255,0.7));
     padding-left: 18px;
   }
+  .dup { color: #fbbf24; font-size: 13px; margin-top: 8px; }
   .actions { display: flex; justify-content: flex-end; margin-top: 16px; }
   .ok-btn {
     padding: 6px 14px;
