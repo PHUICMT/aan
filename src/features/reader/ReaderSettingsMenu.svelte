@@ -17,7 +17,6 @@
     anim: boolean;
     rtl: boolean;
     dpage: Dpage;
-    dpageCoverSolo: boolean;
     immersiveOn: boolean;
     onSetMode: (m: Mode) => void;
     onSetLayout: (l: Layout) => void;
@@ -25,13 +24,12 @@
     onToggleAnim: () => void;
     onToggleRtl: () => void;
     onCycleDpage: () => void;
-    onToggleDpageCoverSolo: () => void;
     onToggleImmersive: () => void;
   };
   let {
-    mode, bg, anim, rtl, dpage, dpageCoverSolo, immersiveOn,
+    mode, bg, anim, rtl, dpage, immersiveOn,
     onSetMode, onSetLayout, onToggleBg, onToggleAnim, onToggleRtl,
-    onCycleDpage, onToggleDpageCoverSolo, onToggleImmersive,
+    onCycleDpage, onToggleImmersive,
   }: Props = $props();
 
   function popMenu(_node: Element, { duration = 180 }: { duration?: number } = {}) {
@@ -147,18 +145,6 @@
             </div>
           </button>
         </div>
-        {#if dpage !== 'off'}
-          <div transition:slide={{ duration: 220, easing: cubicOut }}>
-            <button class="set-row" onclick={onToggleDpageCoverSolo} data-test="reader-dpage-cover-solo">
-              <div class="set-icon"><Icon name="image" size={14} /></div>
-              <div class="set-text">
-                <div class="set-title">Cover page solo</div>
-                <div class="set-desc">Render page 1 alone, then pair (2,3), (4,5)…</div>
-              </div>
-              <div class="set-value" class:on={dpageCoverSolo}>{dpageCoverSolo ? t('reader.anim.on') : t('reader.anim.off')}</div>
-            </button>
-          </div>
-        {/if}
       {/if}
       <button class="set-row" onclick={onToggleImmersive} data-test="reader-immersive-toggle">
         <div class="set-icon"><Icon name="maximize" size={14} /></div>

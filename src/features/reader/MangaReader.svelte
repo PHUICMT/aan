@@ -84,11 +84,9 @@
     dpage = dpage === 'off' ? 'auto' : dpage === 'auto' ? 'always' : 'off';
     try { localStorage.setItem('aan.reader.dpage', dpage); } catch {}
   }
-  let dpageCoverSolo = $state<boolean>(loadPref('aan.reader.dpage_cover_solo', 'on') === 'on');
-  function toggleDpageCoverSolo() {
-    dpageCoverSolo = !dpageCoverSolo;
-    try { localStorage.setItem('aan.reader.dpage_cover_solo', dpageCoverSolo ? 'on' : 'off'); } catch {}
-  }
+  // Cover page is always rendered solo — pairing it with page 2 looks
+  // wrong for typical book covers (front cover + inside page).
+  const dpageCoverSolo = true;
   // Lazy aspect-ratio cache for dpage='auto'. Missing = wide (no pair).
   let pageAspect = $state<Record<number, number>>({});
   async function probeAspect(idx: number): Promise<number> {
@@ -643,7 +641,6 @@
         {anim}
         {rtl}
         {dpage}
-        {dpageCoverSolo}
         immersiveOn={immersive.immersiveOn}
         onSetMode={(m) => (mode = m)}
         onSetLayout={setLayout}
@@ -651,7 +648,6 @@
         onToggleAnim={toggleAnim}
         onToggleRtl={toggleRtl}
         onCycleDpage={cycleDpage}
-        onToggleDpageCoverSolo={toggleDpageCoverSolo}
         onToggleImmersive={() => immersive.toggleImmersive()}
       />
     </ReaderToolbar>
