@@ -224,8 +224,6 @@
   .cc-modal-bg {
     position: fixed; inset: 0;
     background: var(--scrim-bg);
-    backdrop-filter: var(--scrim-blur);
-    -webkit-backdrop-filter: var(--scrim-blur);
     display: grid; place-items: center;
     z-index: 2000;
   }

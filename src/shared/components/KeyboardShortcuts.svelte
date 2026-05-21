@@ -92,8 +92,6 @@
     position: fixed; inset: 0; z-index: 100;
     display: grid; place-items: center;
     background: var(--scrim-bg);
-    backdrop-filter: var(--scrim-blur);
-    -webkit-backdrop-filter: var(--scrim-blur);
     animation: fade 0.18s var(--ease-out);
   }
   @keyframes fade {
