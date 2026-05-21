@@ -363,6 +363,7 @@
       role="toolbar"
       aria-label="Bulk actions"
       data-test="bulk-bar"
+      use:portal
       in:fly={{ y: 14, duration: 220, easing: cubicOut }}
       out:fly={{ y: 14, duration: 180, easing: cubicOut }}
     >
