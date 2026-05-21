@@ -205,24 +205,27 @@
                 >{tg.name}</button>
                 <span class="count">{tg.count}</span>
                 {#if !selectMode}
-                  {#if confirmDelete === tg.name}
-                    <div class="confirm" transition:fade={{ duration: 120 }}>
-                      <span>{t('settings.tags.delete_confirm')}</span>
-                      <button class="btn-icon danger" onclick={() => doDelete(tg.name)} disabled={busy} data-test="tag-delete-confirm">
-                        <Icon name="check" size={12} />
-                      </button>
-                      <button class="btn-icon" onclick={() => (confirmDelete = null)} data-test="tag-delete-cancel">
-                        <Icon name="x" size={11} />
-                      </button>
+                  <div class="row-actions">
+                    <div class="action-stack" class:show-confirm={confirmDelete === tg.name}>
+                      <div class="action default">
+                        <button class="btn-icon edit" onclick={() => startEdit(tg.name)} aria-label={t('settings.tags.rename')} use:tooltip={t('settings.tags.rename')} data-test="tag-rename">
+                          <Icon name="pencil" size={11} />
+                        </button>
+                        <button class="btn-icon trash" onclick={() => (confirmDelete = tg.name)} aria-label={t('settings.tags.delete')} use:tooltip={t('settings.tags.delete')} data-test="tag-delete">
+                          <Icon name="trash" size={11} />
+                        </button>
+                      </div>
+                      <div class="action confirm">
+                        <span>{t('settings.tags.delete_confirm')}</span>
+                        <button class="btn-icon danger" onclick={() => doDelete(tg.name)} disabled={busy} data-test="tag-delete-confirm">
+                          <Icon name="check" size={12} />
+                        </button>
+                        <button class="btn-icon" onclick={() => (confirmDelete = null)} data-test="tag-delete-cancel">
+                          <Icon name="x" size={11} />
+                        </button>
+                      </div>
                     </div>
-                  {:else}
-                    <button class="btn-icon edit" onclick={() => startEdit(tg.name)} aria-label={t('settings.tags.rename')} use:tooltip={t('settings.tags.rename')} data-test="tag-rename">
-                      <Icon name="pencil" size={11} />
-                    </button>
-                    <button class="btn-icon trash" onclick={() => (confirmDelete = tg.name)} aria-label={t('settings.tags.delete')} use:tooltip={t('settings.tags.delete')} data-test="tag-delete">
-                      <Icon name="trash" size={11} />
-                    </button>
-                  {/if}
+                  </div>
                 {/if}
               {/if}
             </li>
@@ -378,10 +381,27 @@
   .btn-icon.trash:hover { background: rgba(248,113,113,0.14); border-color: rgba(248,113,113,0.5); }
   .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .confirm {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding-left: 6px;
+  /* Cross-fade between [edit/trash] and [confirm + check/x] in place so
+     the row width never jumps during the toggle. */
+  .row-actions {
+    position: relative;
+    min-width: 156px;
+    height: 26px;
+    display: flex; align-items: center; justify-content: flex-end;
+  }
+  .action-stack { position: relative; width: 100%; height: 100%; }
+  .action {
+    position: absolute; inset: 0;
+    display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px;
+    transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
+  }
+  .action.default { opacity: 1; transform: translateX(0); }
+  .action.confirm {
+    opacity: 0; transform: translateX(6px);
+    pointer-events: none;
     font-size: 11px;
     color: var(--text2);
   }
+  .action-stack.show-confirm .default { opacity: 0; transform: translateX(-6px); pointer-events: none; }
+  .action-stack.show-confirm .confirm { opacity: 1; transform: translateX(0); pointer-events: auto; }
 </style>
