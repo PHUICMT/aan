@@ -92,19 +92,22 @@
 <style>
   .pick-overlay {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(6px);
+    background: var(--scrim-bg);
+    backdrop-filter: var(--scrim-blur);
+    -webkit-backdrop-filter: var(--scrim-blur);
     display: grid; place-items: center;
     z-index: 1000;
   }
   .pick-card {
     position: relative;
     width: min(420px, calc(100vw - 32px));
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: var(--panel-bg);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
+    border: 1px solid var(--glass-border);
     border-radius: 16px;
     padding: 20px;
-    box-shadow: 0 24px 60px -16px rgba(0,0,0,0.6);
+    box-shadow: var(--panel-shadow);
   }
   .pick-close {
     position: absolute; top: 10px; right: 10px;

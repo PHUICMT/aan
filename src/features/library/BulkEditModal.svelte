@@ -77,7 +77,7 @@
     data-test="bulk-edit-modal"
   >
     <header class="bm-head">
-      <h3>{t('library.bulk.title').replace('{n}', String(pids.length))}</h3>
+      <h3 data-test="bulk-edit-title">{t('library.bulk.title').replace('{n}', String(pids.length))}</h3>
       <button class="bm-close" type="button" onclick={onClose} aria-label="Close">×</button>
     </header>
     <p class="bm-hint">{t('library.bulk.hint')}</p>
@@ -89,11 +89,11 @@
       </label>
       <label>
         <span>{t('series.artist')}</span>
-        <input type="text" bind:value={artistName} placeholder={t('library.bulk.leave')} />
+        <input type="text" bind:value={artistName} placeholder={t('library.bulk.leave')} data-test="bulk-artist" />
       </label>
       <label>
         <span>{t('series.status')}</span>
-        <select bind:value={status}>
+        <select bind:value={status} data-test="bulk-status">
           <option value="">{t('library.bulk.leave')}</option>
           <option value="0">{t('status.unknown')}</option>
           <option value="1">{t('status.ongoing')}</option>
@@ -118,12 +118,12 @@
       </label>
       <label class="span-2">
         <span>{t('library.bulk.remove_tags')}</span>
-        <input type="text" bind:value={removeTagsText} placeholder={t('library.bulk.tag_csv')} />
+        <input type="text" bind:value={removeTagsText} placeholder={t('library.bulk.tag_csv')} data-test="bulk-remove-tags" />
       </label>
     </div>
 
     {#if err}
-      <div class="bm-err">{err}</div>
+      <div class="bm-err" data-test="bulk-err">{err}</div>
     {/if}
 
     <footer class="bm-foot">
@@ -137,10 +137,10 @@
         <button class="danger" type="button" onclick={doDelete} disabled={busy} data-test="bulk-delete-confirm">
           {busy ? '…' : t('library.bulk.delete_confirm_cta')}
         </button>
-        <button class="ghost" type="button" onclick={() => (confirmDelete = false)} disabled={busy}>{t('common.cancel')}</button>
+        <button class="ghost" type="button" onclick={() => (confirmDelete = false)} disabled={busy} data-test="bulk-cancel-inline">{t('common.cancel')}</button>
       {/if}
       <div class="spacer"></div>
-      <button class="ghost" type="button" onclick={onClose} disabled={busy}>{t('common.cancel')}</button>
+      <button class="ghost" type="button" onclick={onClose} disabled={busy} data-test="bulk-cancel-footer">{t('common.cancel')}</button>
       <button class="primary" type="button" onclick={apply} disabled={busy} data-test="bulk-apply">
         {busy ? '…' : t('library.bulk.apply')}
       </button>
@@ -151,18 +151,21 @@
 <style>
   .bm-bg {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(8px);
+    background: var(--scrim-bg);
+    backdrop-filter: var(--scrim-blur);
+    -webkit-backdrop-filter: var(--scrim-blur);
     display: grid; place-items: center;
     z-index: 2000;
   }
   .bm-card {
     width: min(560px, 92vw);
     padding: 24px 26px 22px;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: var(--panel-bg);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
+    border: 1px solid var(--glass-border);
     border-radius: 16px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    box-shadow: var(--panel-shadow);
   }
   .bm-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
   .bm-head h3 { margin: 0; font-size: 16px; color: var(--text); }

@@ -51,17 +51,18 @@
     onclick={onBackdrop}
     onkeydown={(e) => e.key === 'Escape' && onClose()}
     use:portal
+    data-test="shortcuts-backdrop"
   >
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="kbd-title" data-test="shortcuts-dialog">
       <header class="head">
         <h2 id="kbd-title">{t('shortcuts.title')}</h2>
-        <button class="close" onclick={onClose} aria-label="Close">
+        <button class="close" onclick={onClose} aria-label="Close" data-test="shortcuts-close">
           <Icon name="x" size={14} />
         </button>
       </header>
       <div class="grid">
         {#each sections as sec (sec.title)}
-          <section class="section">
+          <section class="section" data-test={`shortcuts-section-${sec.title.split('.').pop()}`}>
             <h3>{t(sec.title)}</h3>
             <ul>
               {#each sec.rows as r (r.label)}
@@ -90,8 +91,9 @@
   .backdrop {
     position: fixed; inset: 0; z-index: 100;
     display: grid; place-items: center;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(6px);
+    background: var(--scrim-bg);
+    backdrop-filter: var(--scrim-blur);
+    -webkit-backdrop-filter: var(--scrim-blur);
     animation: fade 0.18s var(--ease-out);
   }
   @keyframes fade {
@@ -101,12 +103,12 @@
   .modal {
     width: min(680px, 92vw);
     max-height: 86vh; overflow-y: auto;
-    background: color-mix(in srgb, var(--menu-bg) 55%, transparent);
+    background: var(--panel-bg);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
-    box-shadow: 0 30px 80px -20px rgba(0,0,0,0.7);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    box-shadow: var(--panel-shadow);
     animation: pop 0.2s var(--ease-out);
   }
   @keyframes pop {

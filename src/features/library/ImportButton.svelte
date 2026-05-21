@@ -116,15 +116,16 @@
       role="menu"
       transition:scale={{ duration: 140, start: 0.94, easing: cubicOut }}
       use:closeMenuOnOutside
+      data-test="import-menu"
     >
       <li style:--i={0}>
-        <button type="button" class="menu-item" onclick={pickFiles} role="menuitem">
+        <button type="button" class="menu-item" onclick={pickFiles} role="menuitem" data-test="import-menu-files">
           <span class="mi-icon"><Icon name="file_text" size={13} /></span>
           <span>{t('library.import.menu_files')}</span>
         </button>
       </li>
       <li style:--i={1}>
-        <button type="button" class="menu-item" onclick={pickFolder} role="menuitem">
+        <button type="button" class="menu-item" onclick={pickFolder} role="menuitem" data-test="import-menu-folder">
           <span class="mi-icon"><Icon name="folder_open" size={13} /></span>
           <span>{t('library.import.menu_folder')}</span>
         </button>
@@ -135,7 +136,7 @@
 
 {#if progress && busy}
   <div class="overlay" transition:fade={{ duration: 140 }} use:portal>
-    <div class="card" transition:scale={{ duration: 200, start: 0.95, easing: cubicOut }}>
+    <div class="card" transition:scale={{ duration: 200, start: 0.95, easing: cubicOut }} data-test="import-progress">
       <h3>{t('library.import.busy_title')}</h3>
       <div class="bar">
         <div class="bar-fill" style:width="{(progress.done / Math.max(progress.total, 1)) * 100}%"></div>
@@ -164,6 +165,7 @@
       transition:scale={{ duration: 200, start: 0.95, easing: cubicOut }}
       onclick={(e) => e.stopPropagation()}
       onkeydown={(e) => { if (e.key === 'Escape') showSummary = false; }}
+      data-test="import-summary"
     >
       <h3>{t('library.import.done_title')}</h3>
       <p class="ok">
@@ -173,7 +175,7 @@
         <p class="dup">
           {summary.duplicates.length} {t('library.import.duplicate_suffix')}
         </p>
-        <ul class="dup-list">
+        <ul class="dup-list" data-test="import-summary-dup">
           {#each summary.duplicates as d (d.file)}
             <li><strong>{d.file}</strong></li>
           {/each}
@@ -183,14 +185,14 @@
         <p class="err">
           {summary.errors.length} {t('library.import.failed_suffix')}
         </p>
-        <ul class="err-list">
+        <ul class="err-list" data-test="import-summary-err">
           {#each summary.errors as e (e.file)}
             <li><strong>{e.file}</strong> — {e.error}</li>
           {/each}
         </ul>
       {/if}
       <div class="actions">
-        <button type="button" class="ok-btn" onclick={() => (showSummary = false)}>
+        <button type="button" class="ok-btn" onclick={() => (showSummary = false)} data-test="import-summary-close">
           {t('common.close')}
         </button>
       </div>
@@ -385,8 +387,9 @@
   .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(6px);
+    background: var(--scrim-bg);
+    backdrop-filter: var(--scrim-blur);
+    -webkit-backdrop-filter: var(--scrim-blur);
     display: grid;
     place-items: center;
     z-index: 1000;
@@ -394,10 +397,12 @@
   .card {
     width: min(420px, 92vw);
     padding: 24px;
-    background: var(--surface, #15102a);
-    border: 1px solid var(--border, rgba(255,255,255,0.12));
+    background: var(--panel-bg);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
+    border: 1px solid var(--glass-border);
     border-radius: 16px;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    box-shadow: var(--panel-shadow);
   }
   h3 { margin: 0 0 12px; font-size: 16px; color: var(--text, #fff); }
   .bar {

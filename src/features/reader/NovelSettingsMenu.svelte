@@ -77,6 +77,11 @@
   </button>
   {#if open}
     <div
+      class="set-scrim"
+      use:portal
+      aria-hidden="true"
+    ></div>
+    <div
       class="set-menu"
       role="menu"
       style:top="{pos.top}px"
@@ -143,8 +148,8 @@
           <div class="set-desc">{app.fontNovelSize}px</div>
         </div>
         <div class="step-ctl">
-          <button onclick={() => setFontNovelSize(app.fontNovelSize - 1)} aria-label="smaller">A−</button>
-          <button onclick={() => setFontNovelSize(app.fontNovelSize + 1)} aria-label="larger">A+</button>
+          <button onclick={() => setFontNovelSize(app.fontNovelSize - 1)} aria-label="smaller" data-test="novel-font-smaller">A−</button>
+          <button onclick={() => setFontNovelSize(app.fontNovelSize + 1)} aria-label="larger" data-test="novel-font-larger">A+</button>
         </div>
       </div>
 
@@ -156,8 +161,8 @@
           <div class="set-desc">{app.novelLineHeight.toFixed(1)}</div>
         </div>
         <div class="step-ctl">
-          <button onclick={() => setNovelLineHeight(app.novelLineHeight - 0.1)} disabled={app.novelLineHeight <= LINE_HEIGHT_MIN + 0.001} aria-label="tighter">−</button>
-          <button onclick={() => setNovelLineHeight(app.novelLineHeight + 0.1)} disabled={app.novelLineHeight >= LINE_HEIGHT_MAX - 0.001} aria-label="looser">+</button>
+          <button onclick={() => setNovelLineHeight(app.novelLineHeight - 0.1)} disabled={app.novelLineHeight <= LINE_HEIGHT_MIN + 0.001} aria-label="tighter" data-test="novel-lineheight-dec">−</button>
+          <button onclick={() => setNovelLineHeight(app.novelLineHeight + 0.1)} disabled={app.novelLineHeight >= LINE_HEIGHT_MAX - 0.001} aria-label="looser" data-test="novel-lineheight-inc">+</button>
         </div>
       </div>
 
@@ -169,8 +174,8 @@
           <div class="set-desc">{app.novelMaxWidth}px</div>
         </div>
         <div class="step-ctl">
-          <button onclick={() => setNovelMaxWidth(app.novelMaxWidth - 40)} disabled={app.novelMaxWidth <= MAX_WIDTH_MIN} aria-label="narrower">−</button>
-          <button onclick={() => setNovelMaxWidth(app.novelMaxWidth + 40)} disabled={app.novelMaxWidth >= MAX_WIDTH_MAX} aria-label="wider">+</button>
+          <button onclick={() => setNovelMaxWidth(app.novelMaxWidth - 40)} disabled={app.novelMaxWidth <= MAX_WIDTH_MIN} aria-label="narrower" data-test="novel-maxwidth-dec">−</button>
+          <button onclick={() => setNovelMaxWidth(app.novelMaxWidth + 40)} disabled={app.novelMaxWidth >= MAX_WIDTH_MAX} aria-label="wider" data-test="novel-maxwidth-inc">+</button>
         </div>
       </div>
 
@@ -214,16 +219,28 @@
   :global(.novel-root.bg-light) .set-toggle { background: rgba(0,0,0,0.04); color: #4b5263; }
   :global(.novel-root.bg-light) .set-toggle:hover { background: rgba(124,58,237,0.14); color: #1f2233; }
 
+  .set-scrim {
+    position: fixed; inset: 0;
+    background: var(--scrim-bg);
+    backdrop-filter: var(--scrim-blur);
+    -webkit-backdrop-filter: var(--scrim-blur);
+    z-index: 1999;
+    /* Visual-only — clicks pass through; closeOnOutside already handles
+       outside dismiss via document-level mousedown. */
+    pointer-events: none;
+    animation: setScrimIn 180ms var(--ease-out) both;
+  }
+  @keyframes setScrimIn { from { opacity: 0; } to { opacity: 1; } }
   .set-menu {
     position: fixed;
     min-width: 340px;
     padding: 4px;
-    background: color-mix(in srgb, var(--menu-bg) 92%, transparent);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    background: var(--panel-bg);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
-    box-shadow: 0 18px 40px -12px rgba(0,0,0,0.55);
+    box-shadow: var(--panel-shadow);
     z-index: 2000;
     display: flex; flex-direction: column; gap: 1px;
   }

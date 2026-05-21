@@ -75,10 +75,16 @@
     onclick={() => (settingsOpen = !settingsOpen)}
     use:tooltip={t('reader.settings')}
     aria-label={t('reader.settings')}
+    data-test="reader-settings-toggle"
   >
     <Icon name="settings" size={13} />
   </button>
   {#if settingsOpen}
+    <div
+      class="set-scrim"
+      use:portal
+      aria-hidden="true"
+    ></div>
     <div
       class="set-menu"
       role="menu"
@@ -96,12 +102,12 @@
         </div>
         <div class="set-seg" style:--active-idx={mode === 'paged' ? 0 : mode === 'continuous' ? 1 : 2}>
           <span class="seg-indicator" aria-hidden="true"></span>
-          <button class="seg-btn" class:active={mode === 'paged'} onclick={() => { onSetMode('paged'); onSetLayout('paged'); }}>{t('reader.mode.paged')}</button>
-          <button class="seg-btn" class:active={mode === 'continuous'} onclick={() => { onSetMode('continuous'); onSetLayout('scroll'); }}>{t('reader.mode.continuous')}</button>
-          <button class="seg-btn" class:active={mode === 'spread'} onclick={() => { onSetMode('spread'); onSetLayout('paged'); }}>{t('reader.mode.spread')}</button>
+          <button class="seg-btn" class:active={mode === 'paged'} onclick={() => { onSetMode('paged'); onSetLayout('paged'); }} data-test="reader-mode-paged">{t('reader.mode.paged')}</button>
+          <button class="seg-btn" class:active={mode === 'continuous'} onclick={() => { onSetMode('continuous'); onSetLayout('scroll'); }} data-test="reader-mode-continuous">{t('reader.mode.continuous')}</button>
+          <button class="seg-btn" class:active={mode === 'spread'} onclick={() => { onSetMode('spread'); onSetLayout('paged'); }} data-test="reader-mode-spread">{t('reader.mode.spread')}</button>
         </div>
       </div>
-      <button class="set-row" onclick={onToggleBg}>
+      <button class="set-row" onclick={onToggleBg} data-test="reader-bg-toggle">
         <div class="set-icon"><Icon name={bg === 'dark' ? 'moon' : 'sun'} size={14} /></div>
         <div class="set-text">
           <div class="set-title">{t('reader.bg.title')}</div>
@@ -109,7 +115,7 @@
         </div>
         <div class="set-value">{bg === 'dark' ? t('reader.bg.dark') : t('reader.bg.light')}</div>
       </button>
-      <button class="set-row" onclick={onToggleAnim}>
+      <button class="set-row" onclick={onToggleAnim} data-test="reader-anim-toggle">
         <div class="set-icon"><Icon name="sync" size={14} /></div>
         <div class="set-text">
           <div class="set-title">{t('reader.anim.title')}</div>
@@ -122,6 +128,7 @@
         onclick={onToggleRtl}
         disabled={mode === 'continuous'}
         use:tooltip={mode === 'continuous' ? 'Reading direction does not apply to scroll layout' : ''}
+        data-test="reader-rtl-toggle"
       >
         <div class="set-icon"><Icon name={rtl ? 'chevron_left' : 'chevron_right'} size={14} /></div>
         <div class="set-text">
@@ -132,7 +139,7 @@
       </button>
       {#if mode === 'spread'}
         <div transition:slide={{ duration: 220, easing: cubicOut }}>
-          <button class="set-row" onclick={onToggleSpreadSolo}>
+          <button class="set-row" onclick={onToggleSpreadSolo} data-test="reader-spread-solo">
             <div class="set-icon"><Icon name="book_open" size={14} /></div>
             <div class="set-text">
               <div class="set-title">{t('reader.solo.title')}</div>
@@ -147,6 +154,7 @@
         onclick={onCycleDpage}
         disabled={mode === 'continuous'}
         use:tooltip={mode === 'continuous' ? 'Double-page is unavailable in scroll layout' : ''}
+        data-test="reader-dpage-cycle"
       >
         <div class="set-icon"><Icon name="book_open" size={14} /></div>
         <div class="set-text">
@@ -159,7 +167,7 @@
       </button>
       {#if dpage !== 'off'}
         <div transition:slide={{ duration: 220, easing: cubicOut }}>
-          <button class="set-row" onclick={onToggleDpageCoverSolo}>
+          <button class="set-row" onclick={onToggleDpageCoverSolo} data-test="reader-dpage-cover-solo">
             <div class="set-icon"><Icon name="image" size={14} /></div>
             <div class="set-text">
               <div class="set-title">Cover page solo</div>
@@ -169,7 +177,7 @@
           </button>
         </div>
       {/if}
-      <button class="set-row" onclick={onToggleImmersive}>
+      <button class="set-row" onclick={onToggleImmersive} data-test="reader-immersive-toggle">
         <div class="set-icon"><Icon name="maximize" size={14} /></div>
         <div class="set-text">
           <div class="set-title">{t('reader.immersive.title')}</div>
@@ -201,16 +209,26 @@
   :global(.reader-root.bg-light) .mode { background: rgba(0,0,0,0.04); color: #4b5263; }
   :global(.reader-root.bg-light) .mode:hover { background: rgba(124,58,237,0.14); color: #1f2233; }
   :global(.reader-root.bg-light) .set-toggle.on { background: rgba(124,58,237,0.18); color: #5b21b6; }
+  .set-scrim {
+    position: fixed; inset: 0;
+    background: var(--scrim-bg);
+    backdrop-filter: var(--scrim-blur);
+    -webkit-backdrop-filter: var(--scrim-blur);
+    z-index: 1999;
+    pointer-events: none;
+    animation: rs-fade 180ms var(--ease-out) both;
+  }
+  @keyframes rs-fade { from { opacity: 0; } to { opacity: 1; } }
   .set-menu {
     position: fixed;
     min-width: 320px;
     padding: 4px;
-    background: color-mix(in srgb, var(--menu-bg) 92%, transparent);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    background: var(--panel-bg);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
-    box-shadow: 0 18px 40px -12px rgba(0,0,0,0.55);
+    box-shadow: var(--panel-shadow);
     z-index: 2000;
     display: flex; flex-direction: column; gap: 1px;
   }

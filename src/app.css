@@ -66,6 +66,13 @@
   --mica-bg:      rgba(15, 23, 42, 0.78);
   --mica-border:  rgba(255, 255, 255, 0.07);
 
+  /* Unified scrim + frosted-panel tokens used by every modal/menu overlay. */
+  --scrim-bg:           rgba(0, 0, 0, 0.55);
+  --scrim-blur:         blur(14px) saturate(120%);
+  --panel-bg:           color-mix(in srgb, var(--menu-bg) 70%, transparent);
+  --panel-blur:         blur(30px) saturate(180%);
+  --panel-shadow:       0 24px 60px -16px rgba(0,0,0,0.55);
+
   /* Chrome surfaces (sidebar, titlebar) — translucent over Mica */
   --chrome-bg:    rgba(15, 23, 42, 0.78);
   --chrome-bg-2:  rgba(8, 14, 26, 0.72);
@@ -183,6 +190,9 @@
   --toast-bg: rgba(255, 255, 255, 0.95);
   --toast-fg: #1f2230;
   --reader-bg: #f3f1ea;
+  /* Lighter scrim — black at 55 % crushes cream backgrounds. */
+  --scrim-bg:           rgba(20, 20, 30, 0.28);
+  --panel-shadow:       0 24px 60px -16px rgba(40, 30, 60, 0.22);
   color-scheme: light;
 }
 
@@ -216,6 +226,8 @@
   --shimmer-bg:   linear-gradient(135deg, #e6d8b6 0%, #d4c39c 100%);
   --shimmer-band: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.55) 45%, rgba(139,90,43,0.18) 50%, rgba(255,255,255,0.55) 55%, transparent 100%);
   --reader-bg:    #ede2c4;
+  --scrim-bg:           rgba(58, 47, 26, 0.32);
+  --panel-shadow:       0 24px 60px -16px rgba(58, 47, 26, 0.30);
   color-scheme: light;
 }
 
@@ -247,6 +259,7 @@
   --heading-grad-from: #f0f0f5;
   --heading-grad-to:   #c4b5fd;
   --reader-bg:    #000000;
+  --scrim-bg:           rgba(0, 0, 0, 0.72);
   color-scheme: dark;
 }
 

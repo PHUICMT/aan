@@ -128,6 +128,7 @@
       role="dialog"
       aria-modal="true"
       tabindex="-1"
+      data-test="collection-save-modal"
     >
       <h3>{t('library.collections.save_title')}</h3>
       <p class="hint">{t('library.collections.save_hint')}</p>
@@ -222,18 +223,21 @@
 
   .cc-modal-bg {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(8px);
+    background: var(--scrim-bg);
+    backdrop-filter: var(--scrim-blur);
+    -webkit-backdrop-filter: var(--scrim-blur);
     display: grid; place-items: center;
     z-index: 2000;
   }
   .cc-modal {
     width: min(360px, 90vw);
     padding: 22px;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: var(--panel-bg);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
+    border: 1px solid var(--glass-border);
     border-radius: 16px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    box-shadow: var(--panel-shadow);
   }
   .cc-modal h3 { margin: 0 0 6px; font-size: 16px; color: var(--text); }
   .cc-modal .hint { margin: 0 0 14px; font-size: 12px; color: var(--text2); line-height: 1.5; }

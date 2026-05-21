@@ -39,6 +39,7 @@
     class:on={currentBookmarked}
     onclick={onToggleHere}
     use:tooltip={currentBookmarked ? 'Remove bookmark' : 'Bookmark current page'}
+    data-test="reader-bm-toggle"
   >
     <Icon name={currentBookmarked ? 'bookmark' : 'bookmark_plus'} size={12} />
   </button>
@@ -48,12 +49,18 @@
       class="mode bm-list-toggle"
       onclick={() => (bookmarksOpen = !bookmarksOpen)}
       use:tooltip={"Show bookmarks"}
+      data-test="reader-bm-list-toggle"
     >
       {bookmarks.length}
       <Icon name="chevron_down" size={10} />
     </button>
   {/if}
   {#if bookmarksOpen && bookmarks.length > 0}
+    <div
+      class="bm-scrim"
+      use:portal
+      aria-hidden="true"
+    ></div>
     <ul
       class="bm-menu"
       role="listbox"
@@ -68,6 +75,7 @@
             class="bm-item"
             class:active={bm.page === currentPage}
             onclick={() => { onJump(bm.page); bookmarksOpen = false; }}
+            data-test={`reader-bm-item-${bm.id}`}
           >
             <span class="bm-page">p.{bm.page}</span>
             {#if bm.note}
@@ -79,6 +87,7 @@
             onclick={(e) => { e.stopPropagation(); onDelete(bm.id); }}
             use:tooltip={"Delete bookmark"}
             aria-label="Delete bookmark"
+            data-test={`reader-bm-delete-${bm.id}`}
           >
             <Icon name="trash" size={11} />
           </button>
@@ -106,17 +115,27 @@
     display: inline-flex; align-items: center; gap: 4px;
     font-family: var(--font-mono); font-size: 10px;
   }
+  .bm-scrim {
+    position: fixed; inset: 0;
+    background: var(--scrim-bg);
+    backdrop-filter: var(--scrim-blur);
+    -webkit-backdrop-filter: var(--scrim-blur);
+    z-index: 1999;
+    pointer-events: none;
+    animation: bm-fade 180ms var(--ease-out) both;
+  }
+  @keyframes bm-fade { from { opacity: 0; } to { opacity: 1; } }
   .bm-menu {
     position: fixed;
     min-width: 220px; max-height: 320px; overflow-y: auto;
     margin: 0; padding: 4px;
     list-style: none;
-    background: color-mix(in srgb, var(--menu-bg) 55%, transparent);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    background: var(--panel-bg);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
-    box-shadow: 0 18px 40px -12px rgba(0,0,0,0.55);
+    box-shadow: var(--panel-shadow);
     z-index: 2000;
     animation: bm-pop 0.18s var(--ease-out);
   }

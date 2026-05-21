@@ -121,10 +121,10 @@
         <p>{t('series.edit.delete_confirm')}</p>
         <p class="muted">{t('series.edit.delete_warning')}</p>
         <div class="actions">
-          <button type="button" class="btn ghost" onclick={() => (confirmDelete = false)}>
+          <button type="button" class="btn ghost" onclick={() => (confirmDelete = false)} data-test="series-edit-delete-cancel">
             {t('common.cancel')}
           </button>
-          <button type="button" class="btn danger" disabled={saving} onclick={doDelete}>
+          <button type="button" class="btn danger" disabled={saving} onclick={doDelete} data-test="series-edit-delete-confirm">
             {t('series.edit.delete_now')}
           </button>
         </div>
@@ -136,21 +136,21 @@
       </label>
       <label class="field">
         <span>{t('series.edit.alias')}</span>
-        <input bind:value={alias} />
+        <input bind:value={alias} data-test="series-edit-alias" />
       </label>
       <div class="row">
         <label class="field">
           <span>{t('series.edit.author')}</span>
-          <input bind:value={authorName} />
+          <input bind:value={authorName} data-test="series-edit-author" />
         </label>
         <label class="field">
           <span>{t('series.edit.artist')}</span>
-          <input bind:value={artistName} />
+          <input bind:value={artistName} data-test="series-edit-artist" />
         </label>
       </div>
       <label class="field">
         <span>{t('series.edit.status')}</span>
-        <select bind:value={status}>
+        <select bind:value={status} data-test="series-edit-status">
           <option value={0}>{t('series.edit.status_unknown')}</option>
           <option value={1}>{t('series.edit.status_ongoing')}</option>
           <option value={2}>{t('series.edit.status_completed')}</option>
@@ -158,15 +158,15 @@
       </label>
       <label class="field">
         <span>{t('series.edit.info')}</span>
-        <textarea bind:value={info} rows="5"></textarea>
+        <textarea bind:value={info} rows="5" data-test="series-edit-info"></textarea>
       </label>
-      <button type="button" class="btn ghost" onclick={pickCover} disabled={pickingCover}>
+      <button type="button" class="btn ghost" onclick={pickCover} disabled={pickingCover} data-test="series-edit-replace-cover">
         <Icon name="pencil" size={12} />
         {pickingCover ? t('series.edit.replacing_cover') : t('series.edit.replace_cover')}
       </button>
 
       <div class="actions">
-        <button type="button" class="btn danger ghost" onclick={() => (confirmDelete = true)}>
+        <button type="button" class="btn danger ghost" onclick={() => (confirmDelete = true)} data-test="series-edit-delete-arm">
           <Icon name="trash" size={12} />
           {t('series.edit.delete')}
         </button>
@@ -190,8 +190,9 @@
   .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(6px);
+    background: var(--scrim-bg);
+    backdrop-filter: var(--scrim-blur);
+    -webkit-backdrop-filter: var(--scrim-blur);
     display: grid;
     place-items: center;
     z-index: 1000;
@@ -201,10 +202,12 @@
     max-height: 88vh;
     overflow-y: auto;
     padding: 24px;
-    background: var(--surface, #15102a);
-    border: 1px solid var(--border, rgba(255,255,255,0.12));
+    background: var(--panel-bg);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
+    border: 1px solid var(--glass-border);
     border-radius: 16px;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    box-shadow: var(--panel-shadow);
   }
   h2 { margin: 0 0 16px; font-size: 18px; color: var(--text, #fff); }
   .err {
