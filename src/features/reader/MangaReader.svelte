@@ -34,7 +34,7 @@
 
   const RENDER_SCALE = 1.5;
 
-  type Mode = 'continuous' | 'paged' | 'spread';
+  type Mode = 'continuous' | 'paged';
   type Layout = 'paged' | 'scroll';
   type Fit = 'width' | 'height' | 'natural';
   type Dpage = 'off' | 'auto' | 'always';
@@ -47,7 +47,17 @@
   }
 
   //───── Layout / mode prefs ─────
-  let mode = $state<Mode>(loadPref('aan.reader.mode', 'continuous') as Mode);
+  // Legacy 'spread' migrated to paged + dpage:always — old setting now
+  // lives in two newer fields with a single source of truth.
+  let mode = $state<Mode>(((): Mode => {
+    const v = loadPref('aan.reader.mode', 'continuous');
+    if (v === 'spread') {
+      savePref('aan.reader.mode', 'paged');
+      savePref('aan.reader.dpage', 'always');
+      return 'paged';
+    }
+    return v === 'paged' ? 'paged' : 'continuous';
+  })());
   let layout = $state<Layout>(((): Layout => {
     const v = loadPref('aan.reader.layout', '');
     if (v === 'scroll' || v === 'paged') return v;
@@ -66,11 +76,6 @@
   let anim = $state<boolean>(loadPref('aan.reader.anim', 'on') === 'on');
   let rtl = $state<boolean>(loadPref('aan.reader.rtl', 'off') === 'on');
   let fit = $state<Fit>(loadPref('aan.reader.fit', 'width') as Fit);
-  let spreadSolo = $state<boolean>(loadPref('aan.reader.spread_solo', 'on') === 'on');
-  function toggleSpreadSolo() {
-    spreadSolo = !spreadSolo;
-    try { localStorage.setItem('aan.reader.spread_solo', spreadSolo ? 'on' : 'off'); } catch {}
-  }
   let dpage = $state<Dpage>(((): Dpage => {
     const v = loadPref('aan.reader.dpage', 'off');
     return v === 'auto' || v === 'always' ? v : 'off';
@@ -355,11 +360,6 @@
   }
 
   function pagedAdvanceStep(forward: boolean): number {
-    if (mode === 'spread') {
-      if (spreadSolo && currentPage === 1 && forward) return 1;
-      if (spreadSolo && currentPage === 2 && !forward) return 1;
-      return 2;
-    }
     if (mode === 'paged' && dpage !== 'off') {
       const i = currentPage - 1;
       if (forward && shouldPairAt(i)) return 2;
@@ -451,7 +451,7 @@
       modeSwap = true;
       setTimeout(() => (modeSwap = false), 220);
     }
-    mode = mode === 'continuous' ? 'paged' : mode === 'paged' ? 'spread' : 'continuous';
+    mode = mode === 'continuous' ? 'paged' : 'continuous';
     if (mode !== 'continuous') currentPage = 1;
   }
 
@@ -545,22 +545,16 @@
   let visibleIndices = $derived.by(() => {
     if (mode === 'continuous') return Array.from({ length: pageCount }, (_, i) => i);
     const start = currentPage - 1;
-    if (mode === 'spread') {
-      if (spreadSolo && currentPage === 1) return [0];
-      return start + 1 < pageCount ? [start, start + 1] : [start];
-    }
     if (shouldPairAt(start)) return [start, start + 1];
     return [start];
   });
-  const effectiveSpread = $derived(mode === 'spread' || (mode === 'paged' && visibleIndices.length === 2));
+  const effectiveSpread = $derived(mode === 'paged' && visibleIndices.length === 2);
 
   const modeLabel = $derived(
-    mode === 'continuous' ? t('reader.mode.continuous')
-      : mode === 'paged' ? t('reader.mode.paged')
-      : t('reader.mode.spread'),
+    mode === 'continuous' ? t('reader.mode.continuous') : t('reader.mode.paged'),
   );
   const modeIcon = $derived(
-    mode === 'continuous' ? 'scroll' : mode === 'paged' ? 'file_text' : 'book_open',
+    mode === 'continuous' ? 'scroll' : 'file_text',
   );
 
   function onToolbarPrev() {
@@ -622,7 +616,6 @@
         {bg}
         {anim}
         {rtl}
-        {spreadSolo}
         {dpage}
         {dpageCoverSolo}
         immersiveOn={immersive.immersiveOn}
@@ -631,7 +624,6 @@
         onToggleBg={toggleBg}
         onToggleAnim={toggleAnim}
         onToggleRtl={toggleRtl}
-        onToggleSpreadSolo={toggleSpreadSolo}
         onCycleDpage={cycleDpage}
         onToggleDpageCoverSolo={toggleDpageCoverSolo}
         onToggleImmersive={() => immersive.toggleImmersive()}

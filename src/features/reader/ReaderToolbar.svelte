@@ -4,7 +4,7 @@
   import { t } from '../../shared/lib/i18n.svelte';
   import type { Snippet } from 'svelte';
 
-  type Mode = 'continuous' | 'paged' | 'spread';
+  type Mode = 'continuous' | 'paged';
 
   type Props = {
     mode: Mode;

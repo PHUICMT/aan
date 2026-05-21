@@ -7,7 +7,7 @@
   import { slide } from 'svelte/transition';
   import BrightnessControls from './BrightnessControls.svelte';
 
-  type Mode = 'continuous' | 'paged' | 'spread';
+  type Mode = 'continuous' | 'paged';
   type Layout = 'paged' | 'scroll';
   type Dpage = 'off' | 'auto' | 'always';
 
@@ -16,7 +16,6 @@
     bg: 'dark' | 'light';
     anim: boolean;
     rtl: boolean;
-    spreadSolo: boolean;
     dpage: Dpage;
     dpageCoverSolo: boolean;
     immersiveOn: boolean;
@@ -25,15 +24,14 @@
     onToggleBg: () => void;
     onToggleAnim: () => void;
     onToggleRtl: () => void;
-    onToggleSpreadSolo: () => void;
     onCycleDpage: () => void;
     onToggleDpageCoverSolo: () => void;
     onToggleImmersive: () => void;
   };
   let {
-    mode, bg, anim, rtl, spreadSolo, dpage, dpageCoverSolo, immersiveOn,
+    mode, bg, anim, rtl, dpage, dpageCoverSolo, immersiveOn,
     onSetMode, onSetLayout, onToggleBg, onToggleAnim, onToggleRtl,
-    onToggleSpreadSolo, onCycleDpage, onToggleDpageCoverSolo, onToggleImmersive,
+    onCycleDpage, onToggleDpageCoverSolo, onToggleImmersive,
   }: Props = $props();
 
   function popMenu(_node: Element, { duration = 180 }: { duration?: number } = {}) {
@@ -95,16 +93,15 @@
       use:closeSettingsOnOutside={() => (settingsOpen = false)}
     >
       <div class="set-row layout-row">
-        <div class="set-icon"><Icon name={mode === 'continuous' ? 'scroll' : mode === 'spread' ? 'book_open' : 'file_text'} size={14} /></div>
+        <div class="set-icon"><Icon name={mode === 'continuous' ? 'scroll' : 'file_text'} size={14} /></div>
         <div class="set-text">
           <div class="set-title">{t('reader.mode.title')}</div>
           <div class="set-desc">{t('reader.mode.desc')}</div>
         </div>
-        <div class="set-seg" style:--active-idx={mode === 'paged' ? 0 : mode === 'continuous' ? 1 : 2}>
+        <div class="set-seg" style:--active-idx={mode === 'paged' ? 0 : 1}>
           <span class="seg-indicator" aria-hidden="true"></span>
           <button class="seg-btn" class:active={mode === 'paged'} onclick={() => { onSetMode('paged'); onSetLayout('paged'); }} data-test="reader-mode-paged">{t('reader.mode.paged')}</button>
           <button class="seg-btn" class:active={mode === 'continuous'} onclick={() => { onSetMode('continuous'); onSetLayout('scroll'); }} data-test="reader-mode-continuous">{t('reader.mode.continuous')}</button>
-          <button class="seg-btn" class:active={mode === 'spread'} onclick={() => { onSetMode('spread'); onSetLayout('paged'); }} data-test="reader-mode-spread">{t('reader.mode.spread')}</button>
         </div>
       </div>
       <button class="set-row" onclick={onToggleBg} data-test="reader-bg-toggle">
@@ -137,45 +134,31 @@
         </div>
         <div class="set-value" class:on={rtl}>{rtl ? t('reader.rtl.rtl') : t('reader.rtl.ltr')}</div>
       </button>
-      {#if mode === 'spread'}
+      {#if mode !== 'continuous'}
         <div transition:slide={{ duration: 220, easing: cubicOut }}>
-          <button class="set-row" onclick={onToggleSpreadSolo} data-test="reader-spread-solo">
+          <button class="set-row" onclick={onCycleDpage} data-test="reader-dpage-cycle">
             <div class="set-icon"><Icon name="book_open" size={14} /></div>
             <div class="set-text">
-              <div class="set-title">{t('reader.solo.title')}</div>
-              <div class="set-desc">{t('reader.solo.desc')}</div>
+              <div class="set-title">Double page</div>
+              <div class="set-desc">Pair pages side-by-side (auto = only when both are portrait)</div>
             </div>
-            <div class="set-value" class:on={spreadSolo}>{spreadSolo ? t('reader.anim.on') : t('reader.anim.off')}</div>
+            <div class="set-value" class:on={dpage !== 'off'}>
+              {dpage === 'off' ? 'Off' : dpage === 'auto' ? 'Auto' : 'Always'}
+            </div>
           </button>
         </div>
-      {/if}
-      <button
-        class="set-row"
-        onclick={onCycleDpage}
-        disabled={mode === 'continuous'}
-        use:tooltip={mode === 'continuous' ? 'Double-page is unavailable in scroll layout' : ''}
-        data-test="reader-dpage-cycle"
-      >
-        <div class="set-icon"><Icon name="book_open" size={14} /></div>
-        <div class="set-text">
-          <div class="set-title">Double page</div>
-          <div class="set-desc">Pair pages side-by-side (auto = only when both are portrait)</div>
-        </div>
-        <div class="set-value" class:on={dpage !== 'off'}>
-          {dpage === 'off' ? 'Off' : dpage === 'auto' ? 'Auto' : 'Always'}
-        </div>
-      </button>
-      {#if dpage !== 'off'}
-        <div transition:slide={{ duration: 220, easing: cubicOut }}>
-          <button class="set-row" onclick={onToggleDpageCoverSolo} data-test="reader-dpage-cover-solo">
-            <div class="set-icon"><Icon name="image" size={14} /></div>
-            <div class="set-text">
-              <div class="set-title">Cover page solo</div>
-              <div class="set-desc">Render page 1 alone, then pair (2,3), (4,5)…</div>
-            </div>
-            <div class="set-value" class:on={dpageCoverSolo}>{dpageCoverSolo ? t('reader.anim.on') : t('reader.anim.off')}</div>
-          </button>
-        </div>
+        {#if dpage !== 'off'}
+          <div transition:slide={{ duration: 220, easing: cubicOut }}>
+            <button class="set-row" onclick={onToggleDpageCoverSolo} data-test="reader-dpage-cover-solo">
+              <div class="set-icon"><Icon name="image" size={14} /></div>
+              <div class="set-text">
+                <div class="set-title">Cover page solo</div>
+                <div class="set-desc">Render page 1 alone, then pair (2,3), (4,5)…</div>
+              </div>
+              <div class="set-value" class:on={dpageCoverSolo}>{dpageCoverSolo ? t('reader.anim.on') : t('reader.anim.off')}</div>
+            </button>
+          </div>
+        {/if}
       {/if}
       <button class="set-row" onclick={onToggleImmersive} data-test="reader-immersive-toggle">
         <div class="set-icon"><Icon name="maximize" size={14} /></div>
