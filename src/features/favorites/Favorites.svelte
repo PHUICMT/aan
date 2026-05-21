@@ -205,17 +205,19 @@
 
   {#if error}
     <div class="empty error">{error}</div>
-  {:else if loading && skeletonCount > 0}
-    <div class="grid" out:fade={{ duration: 160, easing: cubicOut }}>
-      {#each Array(skeletonCount) as _, i}
-        <div
-          class="skeleton"
-          style:--delay="{Math.min(i * ANIM.cardStaggerMs, ANIM.cardStaggerCap)}ms"
-        >
-          <Shimmer radius={12} height="100%" />
-        </div>
-      {/each}
-    </div>
+  {:else if loading}
+    {#if skeletonCount > 0}
+      <div class="grid">
+        {#each Array(skeletonCount) as _, i}
+          <div
+            class="skeleton"
+            style:--delay="{Math.min(i * ANIM.cardStaggerMs, ANIM.cardStaggerCap)}ms"
+          >
+            <Shimmer radius={12} height="100%" />
+          </div>
+        {/each}
+      </div>
+    {/if}
   {:else if series.length === 0}
     <div class="empty" data-test="favorites-empty">
       <Icon name="heart" size={28} />
@@ -228,7 +230,7 @@
       <p>{t('favorites.filter_empty')}</p>
     </div>
   {:else}
-    <div class="grid" in:fade={{ duration: 240, delay: 120, easing: cubicOut }}>
+    <div class="grid" in:fade={{ duration: 200, easing: cubicOut }}>
       {#each filtered as s, i (s.pid)}
         <CoverCard series={s} delay={Math.min(i * ANIM.cardStaggerMs, ANIM.cardStaggerCap)} />
       {/each}
