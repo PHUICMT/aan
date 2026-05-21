@@ -168,6 +168,8 @@ pub fn run() {
             commands::data_folder::finalize_move_data,
             commands::series::update_series,
             commands::series::delete_series_force,
+            commands::series::bulk_update_series,
+            commands::series::bulk_delete_series,
             commands::series::set_series_cover,
             commands::series::read_cover_source,
             commands::series::get_series_reader_prefs,

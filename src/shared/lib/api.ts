@@ -371,6 +371,35 @@ export async function importEpub(input: EpubImportArgs): Promise<ImportedEpub> {
   });
 }
 
+export type BulkSeriesPatch = {
+  authorName?: string;
+  artistName?: string;
+  status?: number;
+  readingStatus?: string;
+  clearReadingStatus?: boolean;
+  addTags?: string[];
+  removeTags?: string[];
+};
+
+export async function bulkUpdateSeries(pids: number[], patch: BulkSeriesPatch): Promise<number> {
+  return await invoke<number>('bulk_update_series', {
+    pids,
+    patch: {
+      author_name: patch.authorName ?? null,
+      artist_name: patch.artistName ?? null,
+      status: patch.status ?? null,
+      reading_status: patch.readingStatus ?? null,
+      clear_reading_status: patch.clearReadingStatus ?? null,
+      add_tags: patch.addTags ?? null,
+      remove_tags: patch.removeTags ?? null,
+    },
+  });
+}
+
+export async function bulkDeleteSeries(pids: number[]): Promise<number> {
+  return await invoke<number>('bulk_delete_series', { pids });
+}
+
 export type Collection = {
   id: number;
   name: string;

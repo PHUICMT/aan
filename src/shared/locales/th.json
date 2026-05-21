@@ -378,5 +378,20 @@
   "library.collections.save_title": "บันทึก Smart Collection",
   "library.collections.save_hint": "เก็บฟิลเตอร์ปัจจุบัน (ประเภท สถานะ ดาวน์โหลด สถานะอ่าน หมวด เรียง ค้นหา) ไว้เป็นชั้นที่ตั้งชื่อได้",
   "library.collections.save_confirm": "บันทึก",
-  "library.collections.name_placeholder": "เช่น Cyberpunk รอต่อ"
+  "library.collections.name_placeholder": "เช่น Cyberpunk รอต่อ",
+
+  "library.select_tooltip": "เลือกหลายเรื่องเพื่อแก้พร้อมกัน",
+  "library.select_exit": "เสร็จ",
+  "library.select_all_visible": "เลือกทั้งหมดที่เห็น",
+  "library.bulk.edit": "แก้ไขที่เลือก",
+  "library.bulk.title": "แก้ไข {n} เรื่อง",
+  "library.bulk.hint": "ช่องที่เว้นว่างจะไม่ทับค่าเดิม รายการแท็กคั่นด้วยคอมม่า",
+  "library.bulk.leave": "ไม่เปลี่ยน",
+  "library.bulk.add_tags": "เพิ่มแท็ก",
+  "library.bulk.remove_tags": "ลบแท็ก",
+  "library.bulk.tag_csv": "isekai, drama",
+  "library.bulk.apply": "บันทึก",
+  "library.bulk.delete": "ลบที่เลือก",
+  "library.bulk.delete_confirm": "ลบ {n} เรื่องและไฟล์ทั้งหมดอย่างถาวร?",
+  "library.bulk.delete_confirm_cta": "ใช่ ลบเลย"
 }

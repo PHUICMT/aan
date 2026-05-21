@@ -25,7 +25,7 @@ npm run e2e:report                     # open the HTML report
 
 ## Test catalogue
 
-> 44 tests across 20 spec files. Runtime ≈ 35 seconds.
+> 45 tests across 21 spec files. Runtime ≈ 38 seconds.
 
 ### `smoke.spec.ts`
 Sanity that the suite is wired right.
@@ -101,6 +101,12 @@ Novel highlights persist as rows in the `annotations` table, get re-applied as `
 - **annotations created via command surface as wrappers + panel rows** — `add_annotation` twice in different colours, opens the panel, asserts both rows render with the right colour class.
 - **annotation list survives chapter swap and reload** — adds one with a note, reloads the app cold, re-enters the chapter, asserts the row + note are still there.
 - **export_series_annotations_md emits chapter-grouped markdown** — adds two annotations, calls the export command, asserts the markdown contains `## Chapter` headings + both snippets.
+
+### `bulk-edit.spec.ts` *(mutates — cleans up in afterEach)*
+
+Multi-select two cards in Library, open the bulk editor, write a new author + add a tag, then assert the change made it through `get_series`. `afterEach` rolls back only what the spec touched (author + tag) — reading-status is left alone, because clearing it would strip series 1002's engagement and break downstream fixture-count specs.
+
+- **select two cards + bulk edit author + add tag** — enters select mode, clicks pids 1001 + 1002, asserts the `bulk-count` reads `2`, opens the modal, applies, then confirms via the Rust `get_series` command.
 
 ### `collections.spec.ts` *(mutates — cleans up in afterEach)*
 

@@ -17,8 +17,29 @@
   import { setSeriesFavorite, setReadingStatus, deleteOrphanSeries } from '../../shared/lib/api';
   import type { SeriesCard, ReadingStatus } from '../../shared/lib/types';
 
-  type Props = { series: SeriesCard; delay?: number };
-  let { series, delay = 0 }: Props = $props();
+  type Props = {
+    series: SeriesCard;
+    delay?: number;
+    /** When set, click toggles selection instead of navigating. */
+    selectMode?: boolean;
+    selected?: boolean;
+    onToggleSelect?: (pid: number) => void;
+  };
+  let {
+    series,
+    delay = 0,
+    selectMode = false,
+    selected = false,
+    onToggleSelect,
+  }: Props = $props();
+
+  function onCardClick() {
+    if (selectMode) {
+      onToggleSelect?.(series.pid);
+      return;
+    }
+    openSeries(series.pid);
+  }
 
   let coverUrl = $state<string | null>(null);
   let loading = $state(true);
@@ -169,12 +190,15 @@
 
 <button
   class="card"
+  class:select-mode={selectMode}
+  class:selected
   style:--delay="{delay}ms"
   type="button"
   bind:this={cardEl}
   data-test="cover-card"
   data-pid={series.pid}
-  onclick={() => openSeries(series.pid)}
+  data-selected={selected ? '1' : '0'}
+  onclick={onCardClick}
   oncontextmenu={openMenu}
   ontouchstart={onTouchStart}
   ontouchend={clearLongPress}
@@ -190,6 +214,13 @@
       <div class="cover-placeholder">
         <span>{series.name.charAt(0)}</span>
       </div>
+    {/if}
+    {#if selectMode}
+      <span class="sel-mark" class:on={selected} aria-hidden="true">
+        {#if selected}
+          <Icon name="check" size={12} />
+        {/if}
+      </span>
     {/if}
 
     <div class="chips">
@@ -338,6 +369,34 @@
     transition: transform 0.6s var(--ease-out);
   }
   .card:hover .cover img { transform: scale(1.06); }
+
+  /* Selection mode: dimmed unselected cards + accent ring on selected. */
+  .card.select-mode { cursor: pointer; }
+  .card.select-mode:not(.selected) { opacity: 0.62; }
+  .card.select-mode.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent), 0 8px 22px -10px color-mix(in srgb, var(--accent) 80%, transparent);
+    transform: translateY(-2px);
+  }
+  .sel-mark {
+    position: absolute;
+    top: 8px; left: 8px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.42);
+    border: 2px solid #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff;
+    transition: background 0.16s var(--ease-out), transform 0.16s var(--ease-out);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 3;
+  }
+  .sel-mark.on {
+    background: var(--accent);
+    border-color: #fff;
+    transform: scale(1.08);
+  }
   .cover-placeholder {
     position: absolute; inset: 0;
     display: grid; place-items: center;

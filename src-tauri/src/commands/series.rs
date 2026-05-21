@@ -560,6 +560,139 @@ pub(crate) fn set_series_cover(pid: i64, bytes: Vec<u8>) -> Result<(), String> {
     Ok(())
 }
 
+// ── Bulk metadata operations ───────────────────────────────────────
+// Pure additive editor: every field in the patch is optional, and a
+// `None` means "leave alone for every selected series". Tag operations
+// are explicit lists — additions and removals run in separate passes.
+
+#[derive(serde::Deserialize, Default)]
+pub(crate) struct BulkSeriesPatch {
+    pub author_name: Option<String>,
+    pub artist_name: Option<String>,
+    pub status: Option<i64>,
+    pub reading_status: Option<String>,
+    pub clear_reading_status: Option<bool>,
+    pub add_tags: Option<Vec<String>>,
+    pub remove_tags: Option<Vec<String>>,
+}
+
+pub(crate) fn bulk_update_series_inner(
+    conn: &Connection,
+    pids: &[i64],
+    patch: &BulkSeriesPatch,
+) -> Result<i64, String> {
+    if pids.is_empty() { return Ok(0); }
+
+    // Field updates first — build a single UPDATE per patched field so
+    // we can run it against every pid in one go via an IN-list.
+    let mut field_updates: Vec<(String, Box<dyn rusqlite::ToSql>)> = Vec::new();
+    if let Some(v) = patch.author_name.as_ref() {
+        field_updates.push(("author_name = ?".into(), Box::new(v.clone())));
+    }
+    if let Some(v) = patch.artist_name.as_ref() {
+        field_updates.push(("artist_name = ?".into(), Box::new(v.clone())));
+    }
+    if let Some(v) = patch.status {
+        field_updates.push(("status = ?".into(), Box::new(v)));
+    }
+    if patch.clear_reading_status.unwrap_or(false) {
+        field_updates.push(("reading_status = NULL".into(), Box::new(0_i64)));
+    } else if let Some(v) = patch.reading_status.as_ref() {
+        let allowed = ["plan", "reading", "completed", "on_hold", "dropped"];
+        if !allowed.contains(&v.as_str()) {
+            return Err(format!("invalid reading_status: {v}"));
+        }
+        field_updates.push(("reading_status = ?".into(), Box::new(v.clone())));
+    }
+
+    let placeholders: Vec<String> = (0..pids.len()).map(|_| "?".to_string()).collect();
+    let in_list = placeholders.join(",");
+
+    if !field_updates.is_empty() {
+        // Pull the "= NULL" sentinel out — it has no parameter to bind.
+        let sets: Vec<&str> = field_updates.iter().map(|(s, _)| s.as_str()).collect();
+        let sql = format!(
+            "UPDATE series SET {} WHERE pid IN ({in_list})",
+            sets.join(", "),
+        );
+        let mut bound: Vec<&dyn rusqlite::ToSql> = Vec::new();
+        for (set_clause, val) in field_updates.iter() {
+            // Only param-bound clauses contribute a ? — the "= NULL"
+            // sentinel doesn't.
+            if set_clause.contains('?') {
+                bound.push(val.as_ref());
+            }
+        }
+        let pid_box: Vec<Box<dyn rusqlite::ToSql>> = pids.iter().map(|p| Box::new(*p) as Box<dyn rusqlite::ToSql>).collect();
+        for b in pid_box.iter() { bound.push(b.as_ref()); }
+        conn.execute(&sql, bound.as_slice()).map_err(|e| e.to_string())?;
+    }
+
+    // Tag additions: ensure the tag row exists, then link to each pid.
+    if let Some(adds) = patch.add_tags.as_ref() {
+        for tag in adds {
+            let tag = tag.trim();
+            if tag.is_empty() { continue; }
+            conn.execute("INSERT OR IGNORE INTO tags (name) VALUES (?1)", rusqlite::params![tag])
+                .map_err(|e| e.to_string())?;
+            let tag_id: i64 = conn
+                .query_row("SELECT id FROM tags WHERE name = ?1", rusqlite::params![tag], |r| r.get(0))
+                .map_err(|e| e.to_string())?;
+            for pid in pids {
+                conn.execute(
+                    "INSERT OR IGNORE INTO series_tags (pid, tag_id) VALUES (?1, ?2)",
+                    rusqlite::params![pid, tag_id],
+                )
+                .map_err(|e| e.to_string())?;
+            }
+        }
+    }
+
+    // Tag removals: scoped to selected pids, leaves the global tags row alone.
+    if let Some(removes) = patch.remove_tags.as_ref() {
+        for tag in removes {
+            let tag = tag.trim();
+            if tag.is_empty() { continue; }
+            let tag_id: Option<i64> = conn
+                .query_row("SELECT id FROM tags WHERE name = ?1", rusqlite::params![tag], |r| r.get(0))
+                .ok();
+            let Some(tid) = tag_id else { continue };
+            let sql = format!("DELETE FROM series_tags WHERE tag_id = ? AND pid IN ({in_list})");
+            let mut bound: Vec<&dyn rusqlite::ToSql> = Vec::new();
+            bound.push(&tid);
+            let pid_box: Vec<Box<dyn rusqlite::ToSql>> = pids.iter().map(|p| Box::new(*p) as Box<dyn rusqlite::ToSql>).collect();
+            for b in pid_box.iter() { bound.push(b.as_ref()); }
+            conn.execute(&sql, bound.as_slice()).map_err(|e| e.to_string())?;
+        }
+    }
+
+    Ok(pids.len() as i64)
+}
+
+pub(crate) fn bulk_delete_series_inner(
+    conn: &Connection,
+    root: &std::path::Path,
+    pids: &[i64],
+) -> Result<i64, String> {
+    for pid in pids {
+        delete_series_force_inner(conn, root, *pid)?;
+    }
+    Ok(pids.len() as i64)
+}
+
+#[tauri::command]
+pub(crate) fn bulk_update_series(pids: Vec<i64>, patch: BulkSeriesPatch) -> Result<i64, String> {
+    let conn = db::open(&data_root())?;
+    bulk_update_series_inner(&conn, &pids, &patch)
+}
+
+#[tauri::command]
+pub(crate) fn bulk_delete_series(pids: Vec<i64>) -> Result<i64, String> {
+    let root = data_root();
+    let conn = db::open(&root)?;
+    bulk_delete_series_inner(&conn, &root, &pids)
+}
+
 // ── Per-series reader preferences override ─────────────────────────
 // Reader settings are normally a global default (localStorage). A
 // series can opt-in to its own snapshot stored as opaque JSON; the
@@ -843,6 +976,79 @@ mod tests {
         assert!(got.contains("\"theme\":\"sepia\""));
         clear_series_reader_prefs_inner(&conn, 11).unwrap();
         assert_eq!(get_series_reader_prefs_inner(&conn, 11).unwrap(), None);
+    }
+
+    #[test]
+    fn bulk_update_applies_field_to_many_pids() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        insert_test_series(&conn, 1, "A", "manga", 1, 0, None, None, None);
+        insert_test_series(&conn, 2, "B", "manga", 1, 0, None, None, None);
+        let patch = BulkSeriesPatch {
+            author_name: Some("New Author".into()),
+            reading_status: Some("reading".into()),
+            ..Default::default()
+        };
+        let n = bulk_update_series_inner(&conn, &[1, 2], &patch).unwrap();
+        assert_eq!(n, 2);
+        let row: (String, Option<String>) = conn
+            .query_row("SELECT author_name, reading_status FROM series WHERE pid=1", [], |r| Ok((r.get(0)?, r.get(1)?)))
+            .unwrap();
+        assert_eq!(row.0, "New Author");
+        assert_eq!(row.1.as_deref(), Some("reading"));
+    }
+
+    #[test]
+    fn bulk_update_clear_reading_status_wins() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        insert_test_series(&conn, 1, "A", "manga", 1, 0, None, None, None);
+        set_reading_status_inner(&conn, 1, Some("reading".into())).unwrap();
+        let patch = BulkSeriesPatch {
+            clear_reading_status: Some(true),
+            ..Default::default()
+        };
+        bulk_update_series_inner(&conn, &[1], &patch).unwrap();
+        let rs: Option<String> = conn.query_row("SELECT reading_status FROM series WHERE pid=1", [], |r| r.get(0)).unwrap();
+        assert_eq!(rs, None);
+    }
+
+    #[test]
+    fn bulk_update_adds_and_removes_tags() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        insert_test_series(&conn, 1, "A", "manga", 1, 0, None, None, None);
+        insert_test_series(&conn, 2, "B", "manga", 1, 0, None, None, None);
+        let patch = BulkSeriesPatch {
+            add_tags: Some(vec!["isekai".into(), "drama".into()]),
+            ..Default::default()
+        };
+        bulk_update_series_inner(&conn, &[1, 2], &patch).unwrap();
+        let tags1 = db::list_tags_for_series(&conn, 1).unwrap();
+        assert!(tags1.contains(&"isekai".to_string()));
+        assert!(tags1.contains(&"drama".to_string()));
+
+        let patch = BulkSeriesPatch {
+            remove_tags: Some(vec!["drama".into()]),
+            ..Default::default()
+        };
+        bulk_update_series_inner(&conn, &[1], &patch).unwrap();
+        let tags1 = db::list_tags_for_series(&conn, 1).unwrap();
+        assert!(!tags1.contains(&"drama".to_string()));
+        let tags2 = db::list_tags_for_series(&conn, 2).unwrap();
+        assert!(tags2.contains(&"drama".to_string()));
+    }
+
+    #[test]
+    fn bulk_update_rejects_invalid_reading_status() {
+        let (_tmp, root) = temp_data_root();
+        let conn = fresh_db(&root);
+        insert_test_series(&conn, 1, "A", "manga", 1, 0, None, None, None);
+        let patch = BulkSeriesPatch {
+            reading_status: Some("garbage".into()),
+            ..Default::default()
+        };
+        assert!(bulk_update_series_inner(&conn, &[1], &patch).is_err());
     }
 
     #[test]

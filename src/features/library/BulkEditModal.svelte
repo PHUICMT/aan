@@ -1,0 +1,221 @@
+<script lang="ts">
+  import { fade, scale } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
+  import { portal } from '../../shared/lib/portal';
+  import { t } from '../../shared/lib/i18n.svelte';
+  import { bulkUpdateSeries, bulkDeleteSeries } from '../../shared/lib/api';
+  import { bumpSeriesMutation } from '../../shared/lib/store.svelte';
+  import Icon from '../../shared/components/Icon.svelte';
+
+  type Props = {
+    pids: number[];
+    onClose: () => void;
+    onApplied: () => void;
+  };
+  let { pids, onClose, onApplied }: Props = $props();
+
+  let authorName = $state('');
+  let artistName = $state('');
+  let status = $state<'' | '0' | '1' | '2'>('');
+  let readingStatus = $state<'' | 'plan' | 'reading' | 'completed' | 'on_hold' | 'dropped' | 'clear'>('');
+  let addTagsText = $state('');
+  let removeTagsText = $state('');
+  let busy = $state(false);
+  let err = $state<string | null>(null);
+  let confirmDelete = $state(false);
+
+  function splitTags(s: string): string[] {
+    return s.split(',').map((t) => t.trim()).filter(Boolean);
+  }
+
+  async function apply() {
+    err = null;
+    busy = true;
+    try {
+      await bulkUpdateSeries(pids, {
+        authorName: authorName.trim() || undefined,
+        artistName: artistName.trim() || undefined,
+        status: status === '' ? undefined : Number(status),
+        readingStatus: (readingStatus === '' || readingStatus === 'clear') ? undefined : readingStatus,
+        clearReadingStatus: readingStatus === 'clear',
+        addTags: splitTags(addTagsText),
+        removeTags: splitTags(removeTagsText),
+      });
+      bumpSeriesMutation();
+      onApplied();
+    } catch (e) {
+      err = String(e);
+    } finally {
+      busy = false;
+    }
+  }
+
+  async function doDelete() {
+    err = null;
+    busy = true;
+    try {
+      await bulkDeleteSeries(pids);
+      bumpSeriesMutation();
+      onApplied();
+    } catch (e) {
+      err = String(e);
+    } finally {
+      busy = false;
+    }
+  }
+</script>
+
+<div class="bm-bg" transition:fade={{ duration: 140 }} onclick={onClose} use:portal role="presentation">
+  <div
+    class="bm-card"
+    transition:scale={{ duration: 200, start: 0.95, easing: cubicOut }}
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => { if (e.key === 'Escape') onClose(); }}
+    role="dialog"
+    aria-modal="true"
+    tabindex="-1"
+    data-test="bulk-edit-modal"
+  >
+    <header class="bm-head">
+      <h3>{t('library.bulk.title').replace('{n}', String(pids.length))}</h3>
+      <button class="bm-close" type="button" onclick={onClose} aria-label="Close">×</button>
+    </header>
+    <p class="bm-hint">{t('library.bulk.hint')}</p>
+
+    <div class="bm-grid">
+      <label>
+        <span>{t('series.author')}</span>
+        <input type="text" bind:value={authorName} placeholder={t('library.bulk.leave')} data-test="bulk-author" />
+      </label>
+      <label>
+        <span>{t('series.artist')}</span>
+        <input type="text" bind:value={artistName} placeholder={t('library.bulk.leave')} />
+      </label>
+      <label>
+        <span>{t('series.status')}</span>
+        <select bind:value={status}>
+          <option value="">{t('library.bulk.leave')}</option>
+          <option value="0">{t('status.unknown')}</option>
+          <option value="1">{t('status.ongoing')}</option>
+          <option value="2">{t('status.completed')}</option>
+        </select>
+      </label>
+      <label>
+        <span>{t('rs.set')}</span>
+        <select bind:value={readingStatus} data-test="bulk-rs">
+          <option value="">{t('library.bulk.leave')}</option>
+          <option value="plan">{t('rs.plan')}</option>
+          <option value="reading">{t('rs.reading')}</option>
+          <option value="completed">{t('rs.completed')}</option>
+          <option value="on_hold">{t('rs.on_hold')}</option>
+          <option value="dropped">{t('rs.dropped')}</option>
+          <option value="clear">{t('rs.clear')}</option>
+        </select>
+      </label>
+      <label class="span-2">
+        <span>{t('library.bulk.add_tags')}</span>
+        <input type="text" bind:value={addTagsText} placeholder={t('library.bulk.tag_csv')} data-test="bulk-add-tags" />
+      </label>
+      <label class="span-2">
+        <span>{t('library.bulk.remove_tags')}</span>
+        <input type="text" bind:value={removeTagsText} placeholder={t('library.bulk.tag_csv')} />
+      </label>
+    </div>
+
+    {#if err}
+      <div class="bm-err">{err}</div>
+    {/if}
+
+    <footer class="bm-foot">
+      {#if !confirmDelete}
+        <button class="danger" type="button" onclick={() => (confirmDelete = true)} disabled={busy} data-test="bulk-delete-arm">
+          <Icon name="trash" size={12} />
+          {t('library.bulk.delete')}
+        </button>
+      {:else}
+        <span class="confirm-text">{t('library.bulk.delete_confirm').replace('{n}', String(pids.length))}</span>
+        <button class="danger" type="button" onclick={doDelete} disabled={busy} data-test="bulk-delete-confirm">
+          {busy ? '…' : t('library.bulk.delete_confirm_cta')}
+        </button>
+        <button class="ghost" type="button" onclick={() => (confirmDelete = false)} disabled={busy}>{t('common.cancel')}</button>
+      {/if}
+      <div class="spacer"></div>
+      <button class="ghost" type="button" onclick={onClose} disabled={busy}>{t('common.cancel')}</button>
+      <button class="primary" type="button" onclick={apply} disabled={busy} data-test="bulk-apply">
+        {busy ? '…' : t('library.bulk.apply')}
+      </button>
+    </footer>
+  </div>
+</div>
+
+<style>
+  .bm-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    display: grid; place-items: center;
+    z-index: 2000;
+  }
+  .bm-card {
+    width: min(560px, 92vw);
+    padding: 24px 26px 22px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+  .bm-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .bm-head h3 { margin: 0; font-size: 16px; color: var(--text); }
+  .bm-close {
+    width: 26px; height: 26px; border-radius: 9999px;
+    background: rgba(255,255,255,0.06); color: var(--text2);
+    font-size: 16px; line-height: 1; font-weight: 700;
+    transition: background 0.12s var(--ease-out), color 0.12s var(--ease-out);
+  }
+  .bm-close:hover { background: rgba(255,255,255,0.16); color: var(--text); }
+  .bm-hint { margin: 0 0 14px; font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .bm-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px;
+  }
+  .bm-grid label {
+    display: flex; flex-direction: column; gap: 4px;
+    font-size: 11px; color: var(--text2);
+  }
+  .bm-grid label.span-2 { grid-column: span 2; }
+  .bm-grid input, .bm-grid select {
+    padding: 8px 10px;
+    background: rgba(127,127,127,0.08);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text); font-size: 12.5px;
+    outline: none;
+    transition: border-color 0.15s var(--ease-out);
+  }
+  .bm-grid input:focus, .bm-grid select:focus { border-color: var(--accent); }
+  .bm-err {
+    margin: 10px 0 0; padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.32);
+    color: #fca5a5; font-size: 11px;
+  }
+  .bm-foot {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+  .spacer { flex: 1; }
+  .ghost, .primary, .danger {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 9999px;
+    font-size: 12px; font-weight: 700;
+    transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+  }
+  .ghost { background: rgba(127,127,127,0.08); color: var(--text); }
+  .ghost:hover:not(:disabled) { background: var(--hover-bg); }
+  .primary { background: var(--accent); color: #fff; }
+  .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 86%, white 14%); }
+  .danger { background: rgba(239,68,68,0.16); color: #fca5a5; border: 1px solid rgba(239,68,68,0.36); }
+  .danger:hover:not(:disabled) { background: #ef4444; color: #fff; }
+  .ghost:disabled, .primary:disabled, .danger:disabled { opacity: 0.5; cursor: not-allowed; }
+  .confirm-text { font-size: 11px; color: #fbbf24; }
+</style>

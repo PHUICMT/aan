@@ -401,5 +401,20 @@
   "library.collections.save_title": "Save smart collection",
   "library.collections.save_hint": "Stores your current filters (type, status, download, reading status, genres, sort, search) as a named shelf.",
   "library.collections.save_confirm": "Save",
-  "library.collections.name_placeholder": "e.g. Cyberpunk on hold"
+  "library.collections.name_placeholder": "e.g. Cyberpunk on hold",
+
+  "library.select_tooltip": "Toggle multi-select for bulk edits",
+  "library.select_exit": "Done",
+  "library.select_all_visible": "Select all visible",
+  "library.bulk.edit": "Edit selected",
+  "library.bulk.title": "Edit {n} series",
+  "library.bulk.hint": "Empty fields leave existing values alone. Tag lists are comma-separated.",
+  "library.bulk.leave": "Leave unchanged",
+  "library.bulk.add_tags": "Add tags",
+  "library.bulk.remove_tags": "Remove tags",
+  "library.bulk.tag_csv": "isekai, drama",
+  "library.bulk.apply": "Apply",
+  "library.bulk.delete": "Delete selected",
+  "library.bulk.delete_confirm": "Permanently delete {n} series and all their files?",
+  "library.bulk.delete_confirm_cta": "Yes, delete"
 }

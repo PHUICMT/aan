@@ -6,6 +6,7 @@
   import VirtualGrid from './VirtualGrid.svelte';
   import LibraryFilters from './LibraryFilters.svelte';
   import CollectionChips from './CollectionChips.svelte';
+  import BulkEditModal from './BulkEditModal.svelte';
   import LibrarySearchResults from './LibrarySearchResults.svelte';
   import LibraryEmptyState from './LibraryEmptyState.svelte';
   import { useLibraryFilters, SORT_KEYS, SORT_LABELS, type SortKey } from './composables/useLibraryFilters.svelte';
@@ -44,6 +45,34 @@
 
   // All filter / view-mode / sort state lives in the composable.
   const filters = useLibraryFilters(() => series);
+
+  // Bulk selection mode — toggle on, multi-select cards, then edit /
+  // delete via a modal. Exits automatically after a successful apply.
+  let selectMode = $state(false);
+  let selectedPids = $state(new Set<number>());
+  let bulkEditOpen = $state(false);
+
+  function toggleSelectMode() {
+    selectMode = !selectMode;
+    if (!selectMode) selectedPids = new Set();
+  }
+  function toggleSelected(pid: number) {
+    const next = new Set(selectedPids);
+    if (next.has(pid)) next.delete(pid); else next.add(pid);
+    selectedPids = next;
+  }
+  function selectAllVisible() {
+    selectedPids = new Set(filters.filtered.map((s) => s.pid));
+  }
+  function clearSelected() {
+    selectedPids = new Set();
+  }
+  async function reloadAfterBulk() {
+    bulkEditOpen = false;
+    selectMode = false;
+    selectedPids = new Set();
+    try { series = await listLocalSeries(); } catch {}
+  }
 
   //───── Effects ─────
   // Debounced chapter-title search (220ms).
@@ -149,6 +178,17 @@
     </div>
     <div class="hero-actions">
       <ImportButton />
+      <button
+        type="button"
+        class="select-btn"
+        class:on={selectMode}
+        onclick={toggleSelectMode}
+        use:tooltip={t('library.select_tooltip')}
+        data-test="library-select-toggle"
+      >
+        <Icon name={selectMode ? 'x' : 'check'} size={12} />
+        {selectMode ? t('library.select_exit') : t('library.select')}
+      </button>
       <div class="counter">
         {#if loading}
           <span class="count-skel"><Shimmer radius={4} height="100%" /></span>
@@ -281,17 +321,57 @@
       key={(s) => s.pid}
     >
       {#snippet item(s)}
-        <CoverCard series={s} delay={0} />
+        <CoverCard series={s} delay={0} selectMode={selectMode} selected={selectedPids.has(s.pid)} onToggleSelect={toggleSelected} />
       {/snippet}
     </VirtualGrid>
   {:else}
     <div class="grid mode-{filters.viewMode}">
       {#each filters.filtered as s, i (s.pid)}
-        <CoverCard series={s} delay={Math.min(i * ANIM.cardStaggerMs, ANIM.cardStaggerCap)} />
+        <CoverCard
+          series={s}
+          delay={Math.min(i * ANIM.cardStaggerMs, ANIM.cardStaggerCap)}
+          selectMode={selectMode}
+          selected={selectedPids.has(s.pid)}
+          onToggleSelect={toggleSelected}
+        />
       {/each}
     </div>
   {/if}
+
+  {#if selectMode}
+    <div class="bulk-bar" role="toolbar" aria-label="Bulk actions" data-test="bulk-bar">
+      <span class="bulk-count">
+        <strong data-test="bulk-count">{selectedPids.size}</strong>
+        {t('series.sel.count')}
+      </span>
+      <button type="button" class="bulk-link" onclick={selectAllVisible} disabled={selectedPids.size === filters.filtered.length}>
+        {t('library.select_all_visible')}
+      </button>
+      <button type="button" class="bulk-link" onclick={clearSelected} disabled={selectedPids.size === 0}>
+        {t('series.sel.clear')}
+      </button>
+      <div class="bulk-spacer"></div>
+      <button
+        type="button"
+        class="bulk-cta"
+        disabled={selectedPids.size === 0}
+        onclick={() => (bulkEditOpen = true)}
+        data-test="bulk-edit-open"
+      >
+        <Icon name="pencil" size={12} />
+        {t('library.bulk.edit')}
+      </button>
+    </div>
+  {/if}
 </div>
+
+{#if bulkEditOpen}
+  <BulkEditModal
+    pids={[...selectedPids]}
+    onClose={() => (bulkEditOpen = false)}
+    onApplied={reloadAfterBulk}
+  />
+{/if}
 
 <style>
   .page {
@@ -475,4 +555,67 @@
     animation-duration: 0.28s;
     animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
+  /* ── Select mode toolbar pill + floating bulk-action bar ────── */
+  .select-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: rgba(127,127,127,0.08);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-size: 12px; font-weight: 600;
+    transition:
+      background 0.15s var(--ease-out),
+      color 0.15s var(--ease-out),
+      border-color 0.15s var(--ease-out),
+      transform 0.15s var(--ease-out);
+  }
+  .select-btn:hover { color: var(--text); border-color: var(--accent); transform: translateY(-1px); }
+  .select-btn.on {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .bulk-bar {
+    position: fixed; left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    z-index: 1500;
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px 10px 18px;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--menu-bg) 92%, transparent);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 22px 50px -12px rgba(0,0,0,0.55);
+    animation: bulk-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes bulk-in {
+    from { opacity: 0; transform: translate(-50%, 14px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+  }
+  .bulk-count { font-size: 12px; color: var(--text2); }
+  .bulk-count strong { font-size: 13px; color: var(--text); font-weight: 700; margin-right: 4px; }
+  .bulk-link {
+    padding: 5px 10px; border-radius: 9999px;
+    background: rgba(127,127,127,0.08); color: var(--text2);
+    font-size: 11px; font-weight: 600;
+    transition: background 0.12s var(--ease-out), color 0.12s var(--ease-out);
+  }
+  .bulk-link:hover:not(:disabled) { background: var(--hover-bg); color: var(--text); }
+  .bulk-link:disabled { opacity: 0.4; cursor: not-allowed; }
+  .bulk-spacer { width: 8px; }
+  .bulk-cta {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 9999px;
+    background: var(--accent); color: #fff;
+    font-size: 12px; font-weight: 700;
+    transition: background 0.15s var(--ease-out), transform 0.15s var(--ease-out);
+  }
+  .bulk-cta:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--accent) 86%, white 14%);
+    transform: translateY(-1px);
+  }
+  .bulk-cta:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>
