@@ -2,6 +2,7 @@
   import { slide } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import Icon from '../../../shared/components/Icon.svelte';
+  import SettingsRow from '../../../shared/components/ui/SettingsRow.svelte';
   import { t } from '../../../shared/lib/i18n.svelte';
   import { app, setTheme } from '../../../shared/lib/store.svelte';
 
@@ -40,11 +41,7 @@
     {#if open}
       <div class="group-body" transition:slide={{ duration: 220, easing: cubicOut }}>
         {#if visTheme}
-          <div class="row">
-            <div class="label">
-              <div class="title">{t('settings.theme.title')}</div>
-              <div class="desc">{t('settings.theme.desc')}</div>
-            </div>
+          <SettingsRow title={t('settings.theme.title')} desc={t('settings.theme.desc')}>
             <div class="theme-pick">
               <div class="theme-group">
                 <span class="theme-group-label">
@@ -91,7 +88,7 @@
                 </div>
               </div>
             </div>
-          </div>
+          </SettingsRow>
         {/if}
       </div>
     {/if}

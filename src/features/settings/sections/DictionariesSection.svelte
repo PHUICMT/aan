@@ -3,6 +3,7 @@
   import { cubicOut } from 'svelte/easing';
   import Icon from '../../../shared/components/Icon.svelte';
   import Button from '../../../shared/components/ui/Button.svelte';
+  import SettingsRow from '../../../shared/components/ui/SettingsRow.svelte';
   import { t } from '../../../shared/lib/i18n.svelte';
   import { open as openDialog } from '@tauri-apps/plugin-dialog';
   import {
@@ -78,15 +79,11 @@
     </button>
     {#if open}
       <div class="group-body" transition:slide={{ duration: 220, easing: cubicOut }}>
-        <div class="row">
-          <div class="label">
-            <div class="title">{t('settings.dicts.title')}</div>
-            <div class="desc">{t('settings.dicts.desc')}</div>
-          </div>
+        <SettingsRow title={t('settings.dicts.title')} desc={t('settings.dicts.desc')}>
           <Button variant="primary" icon="plus" loading={busy} onclick={pickAndInstall} testId="dict-install">
             {busy ? t('settings.dicts.installing') : t('settings.dicts.install')}
           </Button>
-        </div>
+        </SettingsRow>
 
         {#if errorMsg}
           <div class="error" transition:slide={{ duration: 180, easing: cubicOut }}>{errorMsg}</div>
@@ -118,18 +115,6 @@
 {/if}
 
 <style>
-  .row {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    gap: 16px;
-    padding: 12px 0;
-  }
-  .label { min-width: 0; }
-  .title { font-size: 13px; font-weight: 600; color: var(--text); }
-  .desc { font-size: 11px; color: var(--text2); line-height: 1.4; margin-top: 2px; }
-
-
   .dict-list {
     list-style: none; margin: 4px 0 8px; padding: 0;
     display: flex; flex-direction: column; gap: 6px;

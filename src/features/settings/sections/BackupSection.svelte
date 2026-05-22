@@ -3,6 +3,7 @@
   import { cubicOut } from 'svelte/easing';
   import Icon from '../../../shared/components/Icon.svelte';
   import Button from '../../../shared/components/ui/Button.svelte';
+  import SettingsRow from '../../../shared/components/ui/SettingsRow.svelte';
   import { t } from '../../../shared/lib/i18n.svelte';
   import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialog';
   import {
@@ -105,15 +106,11 @@
     </button>
     {#if open}
       <div class="group-body" transition:slide={{ duration: 220, easing: cubicOut }}>
-        <div class="row">
-          <div class="label">
-            <div class="title">{t('settings.backup.create.title')}</div>
-            <div class="desc">{t('settings.backup.create.desc')}</div>
-          </div>
+        <SettingsRow title={t('settings.backup.create.title')} desc={t('settings.backup.create.desc')}>
           <Button variant="primary" icon="download" loading={busy === 'backing-up'} disabled={busy !== 'idle' && busy !== 'backing-up'} onclick={doBackup} testId="backup-create">
             {busy === 'backing-up' ? t('settings.backup.creating') : t('settings.backup.create.cta')}
           </Button>
-        </div>
+        </SettingsRow>
 
         {#if lastStats}
           <div class="status ok" transition:slide={{ duration: 200, easing: cubicOut }}>
@@ -121,15 +118,11 @@
           </div>
         {/if}
 
-        <div class="row">
-          <div class="label">
-            <div class="title">{t('settings.backup.restore.title')}</div>
-            <div class="desc warn">{t('settings.backup.restore.desc')}</div>
-          </div>
+        <SettingsRow title={t('settings.backup.restore.title')} desc={t('settings.backup.restore.desc')} descTone="warn">
           <Button variant="ghost" icon="folder_open" disabled={busy !== 'idle'} onclick={pickRestoreFile} testId="backup-pick-restore">
             {t('settings.backup.restore.pick')}
           </Button>
-        </div>
+        </SettingsRow>
 
         {#if preview}
           <div class="preview" transition:slide={{ duration: 220, easing: cubicOut }}>
@@ -164,21 +157,6 @@
 {/if}
 
 <style>
-  .row {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    gap: 16px;
-    padding: 12px 0;
-    border-bottom: 1px dashed var(--border-soft);
-  }
-  .row:last-of-type { border-bottom: none; }
-  .label { min-width: 0; }
-  .title { font-size: 13px; font-weight: 600; color: var(--text); }
-  .desc { font-size: 11px; color: var(--text2); line-height: 1.4; margin-top: 2px; }
-  .desc.warn { color: #fbbf24; }
-
-
   .status {
     margin-top: 10px; padding: 8px 12px; border-radius: 8px;
     font-size: 11px;

@@ -2,6 +2,7 @@
   import { slide } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import Icon from '../../../shared/components/Icon.svelte';
+  import SettingsRow from '../../../shared/components/ui/SettingsRow.svelte';
   import { AVAILABLE_LANGS, t } from '../../../shared/lib/i18n.svelte';
   import { app, setLang } from '../../../shared/lib/store.svelte';
   import type { Lang } from '../../../shared/lib/types';
@@ -32,11 +33,7 @@
     {#if open}
       <div class="group-body" transition:slide={{ duration: 220, easing: cubicOut }}>
         {#if visLang}
-          <div class="row">
-            <div class="label">
-              <div class="title">{t('settings.lang.title')}</div>
-              <div class="desc">{t('settings.lang.desc')}</div>
-            </div>
+          <SettingsRow title={t('settings.lang.title')} desc={t('settings.lang.desc')}>
             <div class="lang-pick">
               {#each AVAILABLE_LANGS as l (l.id)}
                 <button
@@ -51,7 +48,7 @@
                 </button>
               {/each}
             </div>
-          </div>
+          </SettingsRow>
         {/if}
       </div>
     {/if}

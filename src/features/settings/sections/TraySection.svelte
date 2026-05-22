@@ -2,6 +2,7 @@
   import { slide } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import Icon from '../../../shared/components/Icon.svelte';
+  import SettingsRow from '../../../shared/components/ui/SettingsRow.svelte';
   import { t } from '../../../shared/lib/i18n.svelte';
   import { app, setCloseToTrayLocal } from '../../../shared/lib/store.svelte';
 
@@ -30,11 +31,7 @@
     </button>
     {#if open}
       <div class="group-body" transition:slide={{ duration: 220, easing: cubicOut }}>
-        <div class="row">
-          <div class="label">
-            <div class="title">{t('settings.tray.close_to_tray.title')}</div>
-            <div class="desc">{t('settings.tray.close_to_tray.desc')}</div>
-          </div>
+        <SettingsRow title={t('settings.tray.close_to_tray.title')} desc={t('settings.tray.close_to_tray.desc')}>
           <button
             class="toggle"
             class:on={app.closeToTray}
@@ -43,7 +40,7 @@
             aria-label={t('settings.tray.close_to_tray.title')}
             data-test="tray-toggle"
           ></button>
-        </div>
+        </SettingsRow>
       </div>
     {/if}
   </section>

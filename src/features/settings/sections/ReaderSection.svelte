@@ -3,6 +3,7 @@
   import { cubicOut } from 'svelte/easing';
   import Icon from '../../../shared/components/Icon.svelte';
   import SegmentedControl from '../../../shared/components/ui/SegmentedControl.svelte';
+  import SettingsRow from '../../../shared/components/ui/SettingsRow.svelte';
   import { t } from '../../../shared/lib/i18n.svelte';
   import { app, setPdfLoadMode } from '../../../shared/lib/store.svelte';
 
@@ -37,18 +38,14 @@
     {#if open}
       <div class="group-body" transition:slide={{ duration: 220, easing: cubicOut }}>
         {#if visPdfLoad}
-          <div class="row">
-            <div class="label">
-              <div class="title">{t('reader.pdf_load.title')}</div>
-              <div class="desc">{t('reader.pdf_load.desc')}</div>
-            </div>
+          <SettingsRow title={t('reader.pdf_load.title')} desc={t('reader.pdf_load.desc')}>
             <SegmentedControl
               options={pdfLoadOptions}
               value={app.pdfLoadMode}
               onChange={setPdfLoadMode}
               ariaLabel={t('reader.pdf_load.title')}
             />
-          </div>
+          </SettingsRow>
         {/if}
       </div>
     {/if}

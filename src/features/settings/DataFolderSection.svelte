@@ -5,6 +5,7 @@
   import Icon from '../../shared/components/Icon.svelte';
   import Modal from '../../shared/components/ui/Modal.svelte';
   import Button from '../../shared/components/ui/Button.svelte';
+  import SettingsRow from '../../shared/components/ui/SettingsRow.svelte';
   import { t } from '../../shared/lib/i18n.svelte';
   import {
     getDataFolderInfo,
@@ -191,23 +192,14 @@
     {/if}
   </div>
 
-  <div class="row">
-    <div class="label">
-      <div class="title">{t('data_folder.move.title')}</div>
-      <div class="desc">{t('data_folder.move.desc')}</div>
-    </div>
+  <SettingsRow title={t('data_folder.move.title')} desc={t('data_folder.move.desc')}>
     <button class="action" onclick={onOpenMoveModal}>
       <Icon name="folder" size={12} />
       {t('data_folder.move.cta')}
     </button>
-  </div>
+  </SettingsRow>
 
-  <div class="row">
-    <div class="label">
-      <div class="title">{t('data_folder.manual.title')}</div>
-      <div class="desc">{t('data_folder.manual.desc')}</div>
-    </div>
-  </div>
+  <SettingsRow title={t('data_folder.manual.title')} desc={t('data_folder.manual.desc')} divider={false} />
   <div class="row inline">
     <input
       type="text"

@@ -2,6 +2,7 @@
   import { slide } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import Icon from '../../../shared/components/Icon.svelte';
+  import SettingsRow from '../../../shared/components/ui/SettingsRow.svelte';
   import { t } from '../../../shared/lib/i18n.svelte';
 
   type Props = {
@@ -51,11 +52,7 @@
     {#if open}
       <div class="group-body" transition:slide={{ duration: 220, easing: cubicOut }}>
         {#if visReset}
-          <div class="row">
-            <div class="label">
-              <div class="title">{t('settings.reset.title')}</div>
-              <div class="desc">{t('settings.reset.desc')}</div>
-            </div>
+          <SettingsRow title={t('settings.reset.title')} desc={t('settings.reset.desc')}>
             {#if confirmReset}
               <span class="confirm-wrap">
                 <button class="action danger" onclick={doReset} data-test="reset-confirm">
@@ -72,7 +69,7 @@
                 {t('settings.reset.cta')}
               </button>
             {/if}
-          </div>
+          </SettingsRow>
         {/if}
       </div>
     {/if}
