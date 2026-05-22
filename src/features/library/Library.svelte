@@ -208,19 +208,21 @@
     <div class="filters">
       {#each LIBRARY_FILTERS as f (f.id)}
         {@const count = filters.countFor(f.id)}
-        <button
-          class="filter"
-          class:active={filters.typeFilter === f.id}
-          onclick={() => (filters.typeFilter = f.id)}
-          data-test={`filter-type-${f.id}`}
-        >
-          {t(f.labelKey)}
-          {#if loading}
-            <span class="filter-count-skel"><Shimmer radius={9999} height="100%" /></span>
-          {:else}
-            <span class="filter-count" class:zero={count === 0}>{count}</span>
-          {/if}
-        </button>
+        {#if loading || f.id === 'all' || count > 0 || filters.typeFilter === f.id}
+          <button
+            class="filter"
+            class:active={filters.typeFilter === f.id}
+            onclick={() => (filters.typeFilter = f.id)}
+            data-test={`filter-type-${f.id}`}
+          >
+            {t(f.labelKey)}
+            {#if loading}
+              <span class="filter-count-skel"><Shimmer radius={9999} height="100%" /></span>
+            {:else}
+              <span class="filter-count">{count}</span>
+            {/if}
+          </button>
+        {/if}
       {/each}
     </div>
     <input bind:value={filters.query} placeholder={t('library.search')} class="search" data-test="library-search" />

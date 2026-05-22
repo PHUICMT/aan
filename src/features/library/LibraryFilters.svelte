@@ -83,19 +83,21 @@
         <div class="status-pills">
           {#each RS_FILTERS as f (f.id)}
             {@const count = filters.rsCount(f.id)}
-            <button
-              class="filter status-filter"
-              class:active={filters.rsFilter === f.id}
-              onclick={() => (filters.rsFilter = f.id)}
-              data-test={`filter-rs-${f.id}`}
-            >
-              {t(f.labelKey)}
-              {#if loading}
-                <span class="filter-count-skel"><Shimmer radius={9999} height="100%" /></span>
-              {:else}
-                <span class="filter-count" class:zero={count === 0}>{count}</span>
-              {/if}
-            </button>
+            {#if loading || f.id === 'all' || count > 0 || filters.rsFilter === f.id}
+              <button
+                class="filter status-filter"
+                class:active={filters.rsFilter === f.id}
+                onclick={() => (filters.rsFilter = f.id)}
+                data-test={`filter-rs-${f.id}`}
+              >
+                {t(f.labelKey)}
+                {#if loading}
+                  <span class="filter-count-skel"><Shimmer radius={9999} height="100%" /></span>
+                {:else}
+                  <span class="filter-count">{count}</span>
+                {/if}
+              </button>
+            {/if}
           {/each}
         </div>
       </section>
@@ -223,7 +225,6 @@
     animation: count-in 0.28s var(--ease-out);
   }
   .filter:not(.active) .filter-count { background: var(--surface2); }
-  .filter-count.zero { visibility: hidden; }
   .filter-count-skel {
     display: inline-flex; align-items: center;
     vertical-align: middle;
