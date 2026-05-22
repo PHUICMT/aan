@@ -3,6 +3,7 @@
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   import { open as openDialog } from '@tauri-apps/plugin-dialog';
   import Icon from '../../shared/components/Icon.svelte';
+  import Modal from '../../shared/components/ui/Modal.svelte';
   import { t } from '../../shared/lib/i18n.svelte';
   import {
     getDataFolderInfo,
@@ -15,7 +16,6 @@
     type DataFolderInfo,
     type MoveJob,
   } from '../../shared/lib/api';
-  import { portal } from '../../shared/lib/portal';
 
   let info = $state<DataFolderInfo | null>(null);
   let destInput = $state('');
@@ -232,16 +232,13 @@
   {#if errMsg}<p class="msg warn">{errMsg}</p>{/if}
 </section>
 
-{#if showModal}
-  <div class="overlay" role="dialog" aria-modal="true" use:portal>
-    <div class="modal">
-      <div class="modal-head">
-        <div class="modal-title">{t('data_folder.modal.title')}</div>
-        <button class="x" aria-label="close" onclick={() => (showModal = false)}>
-          <Icon name="x" size={14} />
-        </button>
-      </div>
-
+<Modal
+  open={showModal}
+  onClose={() => (showModal = false)}
+  title={t('data_folder.modal.title')}
+  size="md"
+  testId="data-folder-modal"
+>
       {#if !job}
         <p class="hint">{t('data_folder.modal.hint')}</p>
         <div class="picker-row">
@@ -342,9 +339,7 @@
           {/if}
         </div>
       {/if}
-    </div>
-  </div>
-{/if}
+</Modal>
 
 <style>
   .group {
@@ -433,37 +428,6 @@
     background: rgba(255,255,255,0.04);
   }
 
-  .overlay {
-    position: fixed; inset: 0; z-index: 3000;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    display: grid; place-items: center;
-    animation: fade-in 0.15s var(--ease-out);
-  }
-  @keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
-  .modal {
-    width: min(560px, 92vw);
-    background: var(--panel-bg);
-    backdrop-filter: var(--panel-blur);
-    -webkit-backdrop-filter: var(--panel-blur);
-    border: 1px solid var(--glass-border);
-    border-radius: 14px;
-    padding: 18px 22px;
-    box-shadow: 0 18px 40px -12px rgba(0,0,0,0.55);
-  }
-  .modal-head {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 12px;
-  }
-  .modal-title { font-size: 15px; font-weight: 700; color: var(--text); }
-  .x {
-    width: 28px; height: 28px; border-radius: 50%;
-    display: grid; place-items: center;
-    background: var(--hover-bg); color: var(--text2);
-    transition: background 0.15s var(--ease-out);
-  }
-  .x:hover { background: var(--surface2); color: var(--text); }
   .hint { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
   .picker-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 
