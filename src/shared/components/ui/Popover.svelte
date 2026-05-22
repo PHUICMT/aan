@@ -6,8 +6,11 @@
   type Props = {
     open: boolean;
     /** The trigger element (usually a button). Used to anchor the panel
-     *  and to ignore outside-click events that hit it. */
-    anchor: HTMLElement | null | undefined;
+     *  and to ignore outside-click events that hit it. Pass null if you
+     *  use `at` for manual positioning. */
+    anchor?: HTMLElement | null | undefined;
+    /** Manual top/left position in viewport pixels — overrides anchor. */
+    at?: { top: number; left: number } | null;
     /** Called when the user clicks outside or presses Esc. */
     onClose: () => void;
     /** Distance from trigger bottom to panel top. */
@@ -16,24 +19,34 @@
     align?: 'left' | 'right';
     /** Min-width of the panel pill (defaults to 240). */
     minWidth?: number;
+    /** Match panel width to the trigger element exactly. Overrides minWidth. */
+    matchTriggerWidth?: boolean;
     testId?: string;
     children?: Snippet;
   };
   let {
     open,
-    anchor,
+    anchor = null,
+    at = null,
     onClose,
     gap = 8,
     align = 'right',
     minWidth = 240,
+    matchTriggerWidth = false,
     testId,
     children,
   }: Props = $props();
 
   let pos = $state({ top: 0, left: 0, right: 0 });
+  let triggerWidth = $state(0);
   $effect(() => {
-    if (!open || !anchor) return;
-    pos = anchorBelow(anchor, { gap });
+    if (!open) return;
+    if (at) {
+      pos = { top: at.top, left: at.left, right: 0 };
+    } else if (anchor) {
+      pos = anchorBelow(anchor, { gap });
+      triggerWidth = Math.round(anchor.getBoundingClientRect().width);
+    }
   });
 
   function closeOnOutside(node: HTMLElement) {
@@ -82,7 +95,8 @@
     style:top="{pos.top}px"
     style:left={align === 'left' ? `${pos.left}px` : 'auto'}
     style:right={align === 'right' ? `${pos.right}px` : 'auto'}
-    style:min-width="{minWidth}px"
+    style:width={matchTriggerWidth ? `${triggerWidth}px` : null}
+    style:min-width={matchTriggerWidth ? null : `${minWidth}px`}
     data-test={testId}
   >
     {#if children}{@render children()}{/if}

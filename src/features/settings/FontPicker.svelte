@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from '../../shared/components/Icon.svelte';
+  import Popover from '../../shared/components/ui/Popover.svelte';
   import { t } from '../../shared/lib/i18n.svelte';
-  import { portal, anchorBelow } from '../../shared/lib/portal';
 
   type Option = { value: string; label: string };
   type Props = {
@@ -13,36 +13,13 @@
 
   let open = $state(false);
   let triggerEl = $state<HTMLButtonElement | null>(null);
-  let pos = $state({ top: 0, left: 0, right: 0, width: 0 });
   const current = $derived(options.find((o) => o.value === value) ?? options[0]);
-
-  $effect(() => {
-    if (!open || !triggerEl) return;
-    const a = anchorBelow(triggerEl, { gap: 6 });
-    const r = triggerEl.getBoundingClientRect();
-    pos = { top: a.top, left: a.left, right: a.right, width: Math.round(r.width) };
-  });
 
   function pick(v: string) {
     onChange(v);
     open = false;
   }
-  function onDocKey(e: KeyboardEvent) {
-    if (e.key === 'Escape') open = false;
-  }
-  function closeOnOutside(node: HTMLElement, onOutside: () => void) {
-    function handler(e: MouseEvent) {
-      const target = e.target as Node;
-      if (node.contains(target)) return;
-      if (triggerEl && triggerEl.contains(target)) return;
-      onOutside();
-    }
-    setTimeout(() => document.addEventListener('mousedown', handler), 0);
-    return { destroy() { document.removeEventListener('mousedown', handler); } };
-  }
 </script>
-
-<svelte:window onkeydown={onDocKey} />
 
 <div class="wrap">
   <button
@@ -62,16 +39,15 @@
     </span>
   </button>
 
-  {#if open}
-    <ul
-      class="menu"
-      role="listbox"
-      style:top="{pos.top}px"
-      style:left="{pos.left}px"
-      style:width="{pos.width}px"
-      use:portal
-      use:closeOnOutside={() => (open = false)}
-    >
+  <Popover
+    {open}
+    anchor={triggerEl}
+    onClose={() => (open = false)}
+    align="left"
+    matchTriggerWidth
+    gap={6}
+  >
+    <ul class="menu" role="listbox">
       {#each options as o (o.value)}
         <li>
           <button
@@ -91,7 +67,7 @@
         </li>
       {/each}
     </ul>
-  {/if}
+  </Popover>
 </div>
 
 <style>
@@ -123,23 +99,9 @@
   .caret.flip { transform: rotate(180deg); }
 
   .menu {
-    position: fixed;
     max-height: 320px; overflow-y: auto;
-    margin: 0; padding: 4px;
+    margin: 0; padding: 0;
     list-style: none;
-    background: var(--panel-bg);
-    backdrop-filter: var(--panel-blur);
-    -webkit-backdrop-filter: var(--panel-blur);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    box-shadow: 0 18px 40px -12px rgba(0,0,0,0.45), 0 2px 8px -2px rgba(0,0,0,0.3);
-    z-index: 2000;
-    transform-origin: top center;
-    animation: pop 0.18s var(--ease-out);
-  }
-  @keyframes pop {
-    from { opacity: 0; transform: translateY(-4px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
   }
   .item {
     width: 100%;

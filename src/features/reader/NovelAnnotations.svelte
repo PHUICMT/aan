@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { onMount, onDestroy, tick, untrack } from 'svelte';
-  import { portal } from '../../shared/lib/portal';
+  import { onDestroy, tick, untrack } from 'svelte';
+  import Popover from '../../shared/components/ui/Popover.svelte';
   import { tooltip } from '../../shared/lib/tooltip';
   import {
     addAnnotation,
@@ -192,19 +192,10 @@
     setTimeout(() => openCreateMenu(), 0);
   }
 
-  function onDocMouseDown(e: MouseEvent) {
-    const target = e.target as HTMLElement;
-    if (target.closest('.nv-anno-menu')) return;
-    if (target.closest('span.nv-anno')) return;
-    menuOpen = false;
-  }
-
-  onMount(() => {
-    document.addEventListener('mousedown', onDocMouseDown);
-  });
-  onDestroy(() => {
-    document.removeEventListener('mousedown', onDocMouseDown);
-  });
+  // Highlight clicks open the edit menu — the Popover's outside-click
+  // would otherwise close it immediately when we click the next highlight.
+  // We don't need a doc-level mousedown handler since Popover handles
+  // outside dismissal itself.
 
   // Wire the body listener once bodyEl is known.
   let attachedTo: HTMLElement | null = null;
@@ -219,16 +210,14 @@
   });
 </script>
 
-{#if menuOpen}
-  <div
-    class="nv-anno-menu"
-    style:top="{menuPos.top}px"
-    style:left="{menuPos.left}px"
-    use:portal
-    role="dialog"
-    aria-label="Highlight tools"
-    data-test="anno-menu"
-  >
+<Popover
+  open={menuOpen}
+  at={menuPos}
+  onClose={() => (menuOpen = false)}
+  minWidth={280}
+  testId="anno-menu"
+>
+  <div class="nv-anno-menu">
     <div class="row">
       {#each COLORS as c (c)}
         <button
@@ -256,26 +245,11 @@
       </div>
     {/if}
   </div>
-{/if}
+</Popover>
 
 <style>
   .nv-anno-menu {
-    position: fixed;
-    z-index: 3000;
-    width: 280px;
-    padding: 10px;
     display: flex; flex-direction: column; gap: 8px;
-    background: var(--panel-bg);
-    backdrop-filter: var(--panel-blur);
-    -webkit-backdrop-filter: var(--panel-blur);
-    border: 1px solid var(--glass-border);
-    border-radius: 10px;
-    box-shadow: 0 14px 32px -10px rgba(0,0,0,0.55);
-    animation: pop 0.16s var(--ease-out);
-  }
-  @keyframes pop {
-    from { opacity: 0; transform: translateY(-4px) scale(0.96); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
   }
   .row { display: inline-flex; align-items: center; gap: 6px; }
   .row.end { justify-content: flex-end; }
