@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { fade, scale } from 'svelte/transition';
+  import { scale } from 'svelte/transition';
+  import Modal from '../../shared/components/ui/Modal.svelte';
   import { cubicOut } from 'svelte/easing';
   import { open as openDialog } from '@tauri-apps/plugin-dialog';
   import Icon from '../../shared/components/Icon.svelte';
@@ -317,71 +318,67 @@
   {/if}
 </div>
 
-{#if progress && busy}
-  <div class="overlay" transition:fade={{ duration: 140 }} use:portal>
-    <div class="card" transition:scale={{ duration: 200, start: 0.95, easing: cubicOut }} data-test="import-progress">
-      <h3>{t('library.import.busy_title')}</h3>
-      <div class="bar">
-        <div class="bar-fill" style:width="{(progress.done / Math.max(progress.total, 1)) * 100}%"></div>
-      </div>
-      <p class="count">{progress.done} / {progress.total}</p>
-      {#if progress.current}
-        <p class="cur">{progress.current}</p>
-      {/if}
+<Modal
+  open={!!(progress && busy)}
+  onClose={() => {}}
+  title={t('library.import.busy_title')}
+  size="sm"
+  hideClose
+  closeOnScrim={false}
+  closeOnEsc={false}
+  testId="import-progress"
+>
+  {#if progress}
+    <div class="bar">
+      <div class="bar-fill" style:width="{(progress.done / Math.max(progress.total, 1)) * 100}%"></div>
     </div>
-  </div>
-{/if}
+    <p class="count">{progress.done} / {progress.total}</p>
+    {#if progress.current}
+      <p class="cur">{progress.current}</p>
+    {/if}
+  {/if}
+</Modal>
 
-{#if showSummary && summary}
-  <div
-    class="overlay"
-    transition:fade={{ duration: 140 }}
-    onclick={() => (showSummary = false)}
-    use:portal
-    role="presentation"
-  >
-    <div
-      class="card"
-      role="dialog"
-      aria-modal="true"
-      tabindex="-1"
-      transition:scale={{ duration: 200, start: 0.95, easing: cubicOut }}
-      onclick={(e) => e.stopPropagation()}
-      onkeydown={(e) => { if (e.key === 'Escape') showSummary = false; }}
-      data-test="import-summary"
-    >
-      <h3>{t('library.import.done_title')}</h3>
-      <p class="ok">
-        {summary.imported.length} {t('library.import.imported_suffix')}
+<Modal
+  open={showSummary && !!summary}
+  onClose={() => (showSummary = false)}
+  title={t('library.import.done_title')}
+  size="sm"
+  testId="import-summary"
+>
+  {#if summary}
+    <p class="ok">
+      {summary.imported.length} {t('library.import.imported_suffix')}
+    </p>
+    {#if summary.duplicates.length > 0}
+      <p class="dup">
+        {summary.duplicates.length} {t('library.import.duplicate_suffix')}
       </p>
-      {#if summary.duplicates.length > 0}
-        <p class="dup">
-          {summary.duplicates.length} {t('library.import.duplicate_suffix')}
-        </p>
-        <ul class="dup-list" data-test="import-summary-dup">
-          {#each summary.duplicates as d (d.file)}
-            <li><strong>{d.file}</strong></li>
-          {/each}
-        </ul>
-      {/if}
-      {#if summary.errors.length > 0}
-        <p class="err">
-          {summary.errors.length} {t('library.import.failed_suffix')}
-        </p>
-        <ul class="err-list" data-test="import-summary-err">
-          {#each summary.errors as e (e.file)}
-            <li><strong>{e.file}</strong> — {e.error}</li>
-          {/each}
-        </ul>
-      {/if}
-      <div class="actions">
-        <button type="button" class="ok-btn" onclick={() => (showSummary = false)} data-test="import-summary-close">
-          {t('common.close')}
-        </button>
-      </div>
+      <ul class="dup-list" data-test="import-summary-dup">
+        {#each summary.duplicates as d (d.file)}
+          <li><strong>{d.file}</strong></li>
+        {/each}
+      </ul>
+    {/if}
+    {#if summary.errors.length > 0}
+      <p class="err">
+        {summary.errors.length} {t('library.import.failed_suffix')}
+      </p>
+      <ul class="err-list" data-test="import-summary-err">
+        {#each summary.errors as e (e.file)}
+          <li><strong>{e.file}</strong> — {e.error}</li>
+        {/each}
+      </ul>
+    {/if}
+  {/if}
+  {#snippet footer()}
+    <div class="actions">
+      <button type="button" class="ok-btn" onclick={() => (showSummary = false)} data-test="import-summary-close">
+        {t('common.close')}
+      </button>
     </div>
-  </div>
-{/if}
+  {/snippet}
+</Modal>
 
 <style>
   .wrap { position: relative; display: inline-block; }
@@ -672,25 +669,6 @@
     transform: scale(1.08);
   }
 
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: var(--scrim-bg);
-    display: grid;
-    place-items: center;
-    z-index: 1000;
-  }
-  .card {
-    width: min(420px, 92vw);
-    padding: 24px;
-    background: var(--panel-bg);
-    backdrop-filter: var(--panel-blur);
-    -webkit-backdrop-filter: var(--panel-blur);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    box-shadow: var(--panel-shadow);
-  }
-  h3 { margin: 0 0 12px; font-size: 16px; color: var(--text, #fff); }
   .bar {
     width: 100%;
     height: 6px;

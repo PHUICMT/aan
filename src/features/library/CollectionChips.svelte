@@ -1,9 +1,7 @@
 <script lang="ts">
-  import { fade, scale } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
+  import Modal from '../../shared/components/ui/Modal.svelte';
   import Icon from '../../shared/components/Icon.svelte';
   import { tooltip } from '../../shared/lib/tooltip';
-  import { portal } from '../../shared/lib/portal';
   import { t } from '../../shared/lib/i18n.svelte';
   import {
     listCollections, createCollection, deleteCollection,
@@ -118,38 +116,32 @@
   {/if}
 </div>
 
-{#if saveOpen}
-  <div class="cc-modal-bg" transition:fade={{ duration: 140 }} onclick={() => (saveOpen = false)} use:portal role="presentation">
-    <div
-      class="cc-modal"
-      transition:scale={{ duration: 200, start: 0.95, easing: cubicOut }}
-      onclick={(e) => e.stopPropagation()}
-      onkeydown={(e) => { if (e.key === 'Escape') saveOpen = false; }}
-      role="dialog"
-      aria-modal="true"
-      tabindex="-1"
-      data-test="collection-save-modal"
-    >
-      <h3>{t('library.collections.save_title')}</h3>
-      <p class="hint">{t('library.collections.save_hint')}</p>
-      <!-- svelte-ignore a11y_autofocus — modal is opened by deliberate user action, autofocus is the expected UX -->
-      <input
-        type="text"
-        class="cc-input"
-        bind:value={saveName}
-        placeholder={t('library.collections.name_placeholder')}
-        autofocus
-        data-test="collection-save-input"
-      />
-      <div class="cc-actions">
-        <button class="ghost" type="button" onclick={() => (saveOpen = false)}>{t('common.cancel')}</button>
-        <button class="primary" type="button" onclick={commitSave} disabled={saving || !saveName.trim()} data-test="collection-save-confirm">
-          {saving ? '…' : t('library.collections.save_confirm')}
-        </button>
-      </div>
+<Modal
+  open={saveOpen}
+  onClose={() => (saveOpen = false)}
+  title={t('library.collections.save_title')}
+  size="sm"
+  testId="collection-save-modal"
+>
+  <p class="hint">{t('library.collections.save_hint')}</p>
+  <!-- svelte-ignore a11y_autofocus — modal is opened by deliberate user action, autofocus is the expected UX -->
+  <input
+    type="text"
+    class="cc-input"
+    bind:value={saveName}
+    placeholder={t('library.collections.name_placeholder')}
+    autofocus
+    data-test="collection-save-input"
+  />
+  {#snippet footer()}
+    <div class="cc-actions">
+      <button class="ghost" type="button" onclick={() => (saveOpen = false)}>{t('common.cancel')}</button>
+      <button class="primary" type="button" onclick={commitSave} disabled={saving || !saveName.trim()} data-test="collection-save-confirm">
+        {saving ? '…' : t('library.collections.save_confirm')}
+      </button>
     </div>
-  </div>
-{/if}
+  {/snippet}
+</Modal>
 
 <style>
   .cc-row {
@@ -221,24 +213,7 @@
     transform: translateY(-1px);
   }
 
-  .cc-modal-bg {
-    position: fixed; inset: 0;
-    background: var(--scrim-bg);
-    display: grid; place-items: center;
-    z-index: 2000;
-  }
-  .cc-modal {
-    width: min(360px, 90vw);
-    padding: 22px;
-    background: var(--panel-bg);
-    backdrop-filter: var(--panel-blur);
-    -webkit-backdrop-filter: var(--panel-blur);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    box-shadow: var(--panel-shadow);
-  }
-  .cc-modal h3 { margin: 0 0 6px; font-size: 16px; color: var(--text); }
-  .cc-modal .hint { margin: 0 0 14px; font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .hint { margin: 0 0 14px; font-size: 12px; color: var(--text2); line-height: 1.5; }
   .cc-input {
     width: 100%; padding: 9px 12px;
     background: rgba(127,127,127,0.08);
