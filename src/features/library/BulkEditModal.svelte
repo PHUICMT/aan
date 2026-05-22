@@ -1,11 +1,9 @@
 <script lang="ts">
-  import { fade, scale } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
-  import { portal } from '../../shared/lib/portal';
   import { t } from '../../shared/lib/i18n.svelte';
   import { bulkUpdateSeries, bulkDeleteSeries } from '../../shared/lib/api';
   import { bumpSeriesMutation } from '../../shared/lib/store.svelte';
   import Icon from '../../shared/components/Icon.svelte';
+  import Modal from '../../shared/components/ui/Modal.svelte';
 
   type Props = {
     pids: number[];
@@ -63,21 +61,13 @@
   }
 </script>
 
-<div class="bm-bg" transition:fade={{ duration: 140 }} onclick={onClose} use:portal role="presentation">
-  <div
-    class="bm-card"
-    transition:scale={{ duration: 200, start: 0.95, easing: cubicOut }}
-    onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => { if (e.key === 'Escape') onClose(); }}
-    role="dialog"
-    aria-modal="true"
-    tabindex="-1"
-    data-test="bulk-edit-modal"
-  >
-    <header class="bm-head">
-      <h3 data-test="bulk-edit-title">{t('library.bulk.title').replace('{n}', String(pids.length))}</h3>
-      <button class="bm-close" type="button" onclick={onClose} aria-label="Close">×</button>
-    </header>
+<Modal
+  open
+  onClose={onClose}
+  title={t('library.bulk.title').replace('{n}', String(pids.length))}
+  size="md"
+  testId="bulk-edit-modal"
+>
     <p class="bm-hint">{t('library.bulk.hint')}</p>
 
     <div class="bm-grid">
@@ -134,35 +124,9 @@
         {busy ? '…' : t('library.bulk.apply')}
       </button>
     </footer>
-  </div>
-</div>
+</Modal>
 
 <style>
-  .bm-bg {
-    position: fixed; inset: 0;
-    background: var(--scrim-bg);
-    display: grid; place-items: center;
-    z-index: 2000;
-  }
-  .bm-card {
-    width: min(560px, 92vw);
-    padding: 24px 26px 22px;
-    background: var(--panel-bg);
-    backdrop-filter: var(--panel-blur);
-    -webkit-backdrop-filter: var(--panel-blur);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    box-shadow: var(--panel-shadow);
-  }
-  .bm-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-  .bm-head h3 { margin: 0; font-size: 16px; color: var(--text); }
-  .bm-close {
-    width: 26px; height: 26px; border-radius: 9999px;
-    background: rgba(255,255,255,0.06); color: var(--text2);
-    font-size: 16px; line-height: 1; font-weight: 700;
-    transition: background 0.12s var(--ease-out), color 0.12s var(--ease-out);
-  }
-  .bm-close:hover { background: rgba(255,255,255,0.16); color: var(--text); }
   .bm-hint { margin: 0 0 14px; font-size: 12px; color: var(--text2); line-height: 1.5; }
   .bm-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px;

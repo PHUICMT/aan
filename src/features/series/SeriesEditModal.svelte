@@ -1,9 +1,8 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { fade, scale } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
   import { open as openDialog } from '@tauri-apps/plugin-dialog';
   import Icon from '../../shared/components/Icon.svelte';
+  import Modal from '../../shared/components/ui/Modal.svelte';
   import {
     updateSeries,
     deleteSeriesForce,
@@ -13,7 +12,6 @@
   import type { SeriesDetail } from '../../shared/lib/types';
   import { t } from '../../shared/lib/i18n.svelte';
   import { invalidateCover } from '../../shared/lib/covers';
-  import { portal } from '../../shared/lib/portal';
 
   type Props = {
     series: SeriesDetail;
@@ -92,24 +90,7 @@
   }
 </script>
 
-<div
-  class="overlay"
-  transition:fade={{ duration: 140 }}
-  onclick={onClose}
-  use:portal
-  role="presentation"
->
-  <div
-    class="card"
-    role="dialog"
-    aria-modal="true"
-    tabindex="-1"
-    transition:scale={{ duration: 200, start: 0.95, easing: cubicOut }}
-    onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => { if (e.key === 'Escape') onClose(); }}
-  >
-    <h2>{t('series.edit.title')}</h2>
-
+<Modal open onClose={onClose} title={t('series.edit.title')} size="md" testId="series-edit-modal">
     {#if errorMsg}
       <p class="err">{errorMsg}</p>
     {/if}
@@ -173,31 +154,9 @@
         </button>
       </div>
     {/if}
-  </div>
-</div>
+</Modal>
 
 <style>
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: var(--scrim-bg);
-    display: grid;
-    place-items: center;
-    z-index: 1000;
-  }
-  .card {
-    width: min(540px, 92vw);
-    max-height: 88vh;
-    overflow-y: auto;
-    padding: 24px;
-    background: var(--panel-bg);
-    backdrop-filter: var(--panel-blur);
-    -webkit-backdrop-filter: var(--panel-blur);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    box-shadow: var(--panel-shadow);
-  }
-  h2 { margin: 0 0 16px; font-size: 18px; color: var(--text, #fff); }
   .err {
     background: rgba(248,113,113,0.12);
     border: 1px solid rgba(248,113,113,0.4);
