@@ -3,6 +3,7 @@
   import { slide, fade } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import Icon from '../../../shared/components/Icon.svelte';
+  import IconButton from '../../../shared/components/ui/IconButton.svelte';
   import { t } from '../../../shared/lib/i18n.svelte';
   import { tooltip } from '../../../shared/lib/tooltip';
   import { listTags, renameTag, deleteTag, mergeTags } from '../../../shared/lib/api';
@@ -190,12 +191,8 @@
                   data-test="tag-edit-input"
                 />
                 <div class="edit-actions">
-                  <button class="btn-icon ok" onclick={saveEdit} disabled={busy} aria-label={t('settings.tags.save')} use:tooltip={t('settings.tags.save')} data-test="tag-edit-save">
-                    <Icon name="check" size={12} />
-                  </button>
-                  <button class="btn-icon" onclick={cancelEdit} aria-label={t('common.cancel')} use:tooltip={t('common.cancel')} data-test="tag-edit-cancel">
-                    <Icon name="x" size={11} />
-                  </button>
+                  <IconButton icon="check" variant="ok" onclick={saveEdit} disabled={busy} tooltip={t('settings.tags.save')} testId="tag-edit-save" />
+                  <IconButton icon="x" onclick={cancelEdit} tooltip={t('common.cancel')} testId="tag-edit-cancel" />
                 </div>
               {:else}
                 <button
@@ -209,21 +206,13 @@
                     {#if confirmDelete === tg.name}
                       <div class="action confirm" in:fade={{ duration: 140 }}>
                         <span class="confirm-label">{t('settings.tags.delete_confirm')}</span>
-                        <button class="btn-icon danger" onclick={() => doDelete(tg.name)} disabled={busy} data-test="tag-delete-confirm">
-                          <Icon name="check" size={12} />
-                        </button>
-                        <button class="btn-icon" onclick={() => (confirmDelete = null)} data-test="tag-delete-cancel">
-                          <Icon name="x" size={11} />
-                        </button>
+                        <IconButton icon="check" variant="danger" onclick={() => doDelete(tg.name)} disabled={busy} testId="tag-delete-confirm" />
+                        <IconButton icon="x" onclick={() => (confirmDelete = null)} testId="tag-delete-cancel" />
                       </div>
                     {:else}
                       <div class="action default" in:fade={{ duration: 140 }}>
-                        <button class="btn-icon edit" onclick={() => startEdit(tg.name)} aria-label={t('settings.tags.rename')} use:tooltip={t('settings.tags.rename')} data-test="tag-rename">
-                          <Icon name="pencil" size={11} />
-                        </button>
-                        <button class="btn-icon trash" onclick={() => (confirmDelete = tg.name)} aria-label={t('settings.tags.delete')} use:tooltip={t('settings.tags.delete')} data-test="tag-delete">
-                          <Icon name="trash" size={11} />
-                        </button>
+                        <IconButton icon="pencil" onclick={() => startEdit(tg.name)} tooltip={t('settings.tags.rename')} testId="tag-rename" />
+                        <IconButton icon="trash" variant="danger" onclick={() => (confirmDelete = tg.name)} tooltip={t('settings.tags.delete')} testId="tag-delete" />
                       </div>
                     {/if}
                   {/if}
@@ -363,24 +352,6 @@
     outline: none;
   }
   .edit-actions { display: inline-flex; gap: 4px; }
-  .btn-icon {
-    width: 26px; height: 26px;
-    display: grid; place-items: center;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text2);
-    cursor: pointer;
-    transition: background 140ms, color 140ms, border-color 140ms;
-  }
-  .btn-icon:hover:not(:disabled) { background: var(--accent-dim); color: var(--text); border-color: var(--accent); }
-  .btn-icon.ok { color: #86efac; }
-  .btn-icon.ok:hover { background: rgba(74,222,128,0.14); border-color: #4ade80; }
-  .btn-icon.danger { color: #f87171; border-color: rgba(248,113,113,0.4); }
-  .btn-icon.danger:hover { background: rgba(248,113,113,0.16); }
-  .btn-icon.trash { color: #f87171; }
-  .btn-icon.trash:hover { background: rgba(248,113,113,0.14); border-color: rgba(248,113,113,0.5); }
-  .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
 
   /* Count + actions pinned to the right; count hugs the buttons and
      pops a little when confirm prompt appears. */

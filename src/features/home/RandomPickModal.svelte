@@ -2,6 +2,7 @@
   import { fade, scale, fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import Icon from '../../shared/components/Icon.svelte';
+  import IconButton from '../../shared/components/ui/IconButton.svelte';
   import { TYPE_CHIP } from '../../shared/lib/constants';
   import { t } from '../../shared/lib/i18n.svelte';
   import { portal } from '../../shared/lib/portal';
@@ -46,9 +47,9 @@
     in:scale={{ duration: 220, start: 0.94, opacity: 0, easing: cubicOut }}
     out:scale={{ duration: 160, start: 0.96, opacity: 0, easing: cubicOut }}
   >
-    <button class="pick-close" type="button" onclick={onCancel} aria-label={t('common.cancel')} data-test="random-cancel">
-      <Icon name="x" size={12} />
-    </button>
+    <div class="pick-close-wrap">
+      <IconButton icon="x" variant="ghost" size="sm" onclick={onCancel} ariaLabel={t('common.cancel')} testId="random-cancel" />
+    </div>
     <div class="pick-head">
       <Icon name="sync" size={14} />
       <span>{t('home.random.title')}</span>
@@ -109,14 +110,7 @@
     padding: 20px;
     box-shadow: var(--panel-shadow);
   }
-  .pick-close {
-    position: absolute; top: 10px; right: 10px;
-    width: 24px; height: 24px; border-radius: 6px;
-    display: grid; place-items: center;
-    background: transparent; color: var(--text3);
-    transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
-  }
-  .pick-close:hover { background: var(--hover-bg); color: var(--text); }
+  .pick-close-wrap { position: absolute; top: 10px; right: 10px; }
   .pick-head {
     display: flex; align-items: center; gap: 8px;
     font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
