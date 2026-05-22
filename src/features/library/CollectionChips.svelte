@@ -1,5 +1,6 @@
 <script lang="ts">
   import Modal from '../../shared/components/ui/Modal.svelte';
+  import Button from '../../shared/components/ui/Button.svelte';
   import Icon from '../../shared/components/Icon.svelte';
   import { tooltip } from '../../shared/lib/tooltip';
   import { t } from '../../shared/lib/i18n.svelte';
@@ -135,10 +136,10 @@
   />
   {#snippet footer()}
     <div class="cc-actions">
-      <button class="ghost" type="button" onclick={() => (saveOpen = false)}>{t('common.cancel')}</button>
-      <button class="primary" type="button" onclick={commitSave} disabled={saving || !saveName.trim()} data-test="collection-save-confirm">
-        {saving ? '…' : t('library.collections.save_confirm')}
-      </button>
+      <Button variant="ghost" onclick={() => (saveOpen = false)}>{t('common.cancel')}</Button>
+      <Button variant="primary" loading={saving} disabled={!saveName.trim()} onclick={commitSave} testId="collection-save-confirm">
+        {t('library.collections.save_confirm')}
+      </Button>
     </div>
   {/snippet}
 </Modal>
@@ -225,16 +226,5 @@
     transition: border-color 0.15s var(--ease-out);
   }
   .cc-input:focus { border-color: var(--accent); }
-  .cc-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
-  .cc-actions .ghost,
-  .cc-actions .primary {
-    padding: 7px 14px; border-radius: 9999px;
-    font-size: 12px; font-weight: 700;
-    transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
-  }
-  .cc-actions .ghost { background: rgba(127,127,127,0.08); color: var(--text); }
-  .cc-actions .ghost:hover { background: var(--hover-bg); }
-  .cc-actions .primary { background: var(--accent); color: #fff; }
-  .cc-actions .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 86%, white 14%); }
-  .cc-actions .primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .cc-actions { display: flex; justify-content: flex-end; gap: 8px; }
 </style>

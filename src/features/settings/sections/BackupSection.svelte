@@ -2,6 +2,7 @@
   import { slide } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import Icon from '../../../shared/components/Icon.svelte';
+  import Button from '../../../shared/components/ui/Button.svelte';
   import { t } from '../../../shared/lib/i18n.svelte';
   import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialog';
   import {
@@ -109,10 +110,9 @@
             <div class="title">{t('settings.backup.create.title')}</div>
             <div class="desc">{t('settings.backup.create.desc')}</div>
           </div>
-          <button class="primary" type="button" onclick={doBackup} disabled={busy !== 'idle'} data-test="backup-create">
-            <Icon name="download" size={12} />
+          <Button variant="primary" icon="download" loading={busy === 'backing-up'} disabled={busy !== 'idle' && busy !== 'backing-up'} onclick={doBackup} testId="backup-create">
             {busy === 'backing-up' ? t('settings.backup.creating') : t('settings.backup.create.cta')}
-          </button>
+          </Button>
         </div>
 
         {#if lastStats}
@@ -126,10 +126,9 @@
             <div class="title">{t('settings.backup.restore.title')}</div>
             <div class="desc warn">{t('settings.backup.restore.desc')}</div>
           </div>
-          <button class="ghost" type="button" onclick={pickRestoreFile} disabled={busy !== 'idle'} data-test="backup-pick-restore">
-            <Icon name="folder_open" size={12} />
+          <Button variant="ghost" icon="folder_open" disabled={busy !== 'idle'} onclick={pickRestoreFile} testId="backup-pick-restore">
             {t('settings.backup.restore.pick')}
-          </button>
+          </Button>
         </div>
 
         {#if preview}
@@ -139,19 +138,18 @@
               {t('settings.backup.preview').replace('{n}', String(preview.meta.files)).replace('{b}', fmtBytes(preview.meta.bytes)).replace('{when}', preview.meta.created_at)}
             </div>
             {#if !confirmRestore}
-              <button class="danger" type="button" onclick={() => (confirmRestore = true)} data-test="backup-restore-arm">
-                <Icon name="alert_triangle" size={12} />
+              <Button variant="danger" icon="alert_triangle" onclick={() => (confirmRestore = true)} testId="backup-restore-arm">
                 {t('settings.backup.restore.arm')}
-              </button>
+              </Button>
             {:else}
               <div class="confirm-row" transition:slide={{ duration: 180, easing: cubicOut }}>
                 <span class="confirm-text">{t('settings.backup.restore.confirm')}</span>
-                <button class="danger" type="button" onclick={doRestore} disabled={busy !== 'idle'} data-test="backup-restore-confirm">
+                <Button variant="danger" loading={busy === 'restoring'} disabled={busy !== 'idle' && busy !== 'restoring'} onclick={doRestore} testId="backup-restore-confirm">
                   {busy === 'restoring' ? t('settings.backup.restoring') : t('settings.backup.restore.confirm_cta')}
-                </button>
-                <button class="ghost" type="button" onclick={() => (confirmRestore = false)} disabled={busy !== 'idle'}>
+                </Button>
+                <Button variant="ghost" disabled={busy !== 'idle'} onclick={() => (confirmRestore = false)}>
                   {t('common.cancel')}
-                </button>
+                </Button>
               </div>
             {/if}
           </div>
@@ -180,19 +178,6 @@
   .desc { font-size: 11px; color: var(--text2); line-height: 1.4; margin-top: 2px; }
   .desc.warn { color: #fbbf24; }
 
-  .primary, .ghost, .danger {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 7px 14px; border-radius: 9999px;
-    font-size: 12px; font-weight: 600;
-    transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out), transform 0.15s var(--ease-out);
-  }
-  .primary { background: var(--accent-dim); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
-  .primary:hover:not(:disabled) { background: var(--accent); color: #fff; }
-  .ghost { background: rgba(127,127,127,0.06); color: var(--text); border: 1px solid var(--border); }
-  .ghost:hover:not(:disabled) { background: var(--hover-bg); }
-  .danger { background: rgba(239,68,68,0.18); color: #fca5a5; border: 1px solid rgba(239,68,68,0.45); }
-  .danger:hover:not(:disabled) { background: #ef4444; color: #fff; }
-  .primary:disabled, .ghost:disabled, .danger:disabled { opacity: 0.45; cursor: not-allowed; }
 
   .status {
     margin-top: 10px; padding: 8px 12px; border-radius: 8px;

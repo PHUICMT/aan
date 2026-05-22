@@ -4,6 +4,7 @@
   import { cubicOut } from 'svelte/easing';
   import Icon from '../../../shared/components/Icon.svelte';
   import IconButton from '../../../shared/components/ui/IconButton.svelte';
+  import Button from '../../../shared/components/ui/Button.svelte';
   import { t } from '../../../shared/lib/i18n.svelte';
   import { tooltip } from '../../../shared/lib/tooltip';
   import { listTags, renameTag, deleteTag, mergeTags } from '../../../shared/lib/api';
@@ -129,14 +130,13 @@
           />
         </div>
         {#if !selectMode}
-          <button class="btn ghost" onclick={() => (selectMode = true)} disabled={tags.length < 2} data-test="tags-select-mode">
-            <Icon name="check" size={12} />
+          <Button variant="ghost" icon="check" disabled={tags.length < 2} onclick={() => (selectMode = true)} testId="tags-select-mode">
             {t('settings.tags.merge_mode')}
-          </button>
+          </Button>
         {:else}
-          <button class="btn ghost" onclick={exitSelectMode} data-test="tags-select-cancel">
+          <Button variant="ghost" onclick={exitSelectMode} testId="tags-select-cancel">
             {t('common.cancel')}
-          </button>
+          </Button>
         {/if}
       </div>
 
@@ -150,12 +150,13 @@
             bind:value={mergeTarget}
             data-test="tags-merge-target"
           />
-          <button
-            class="btn primary"
+          <Button
+            variant="primary"
+            loading={busy}
+            disabled={!mergeTarget.trim() || selected.size === 0}
             onclick={doMerge}
-            disabled={busy || !mergeTarget.trim() || selected.size === 0}
-            data-test="tags-merge-go"
-          >{t('settings.tags.merge')}</button>
+            testId="tags-merge-go"
+          >{t('settings.tags.merge')}</Button>
         </div>
       {/if}
 
@@ -258,21 +259,6 @@
     font-size: 12px;
   }
   .search input::placeholder { color: var(--text3); }
-  .btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 12px; font-weight: 600;
-    cursor: pointer;
-    border: 1px solid var(--border);
-    background: rgba(255,255,255,0.04);
-    color: var(--text);
-    transition: background 140ms var(--ease-out), color 140ms;
-  }
-  .btn:hover:not(:disabled) { background: var(--accent-dim); color: var(--sidebar-hi); }
-  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
-  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .merge-bar {
     display: flex; gap: 8px; align-items: center;

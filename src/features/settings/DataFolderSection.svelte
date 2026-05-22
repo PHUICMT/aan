@@ -4,6 +4,7 @@
   import { open as openDialog } from '@tauri-apps/plugin-dialog';
   import Icon from '../../shared/components/Icon.svelte';
   import Modal from '../../shared/components/ui/Modal.svelte';
+  import Button from '../../shared/components/ui/Button.svelte';
   import { t } from '../../shared/lib/i18n.svelte';
   import {
     getDataFolderInfo,
@@ -214,18 +215,14 @@
       placeholder={t('data_folder.manual.placeholder')}
       bind:value={destInput}
     />
-    <button class="ghost" onclick={pickFolder}>
-      <Icon name="folder" size={12} />
-      {t('data_folder.manual.pick')}
-    </button>
-    <button class="action" disabled={applyingDirect || !destInput.trim()} onclick={onApplyDirect}>
-      <Icon name="check" size={12} />
+    <Button variant="ghost" icon="folder" onclick={pickFolder}>{t('data_folder.manual.pick')}</Button>
+    <Button variant="primary" icon="check" disabled={applyingDirect || !destInput.trim()} onclick={onApplyDirect}>
       {t('data_folder.manual.apply')}
-    </button>
+    </Button>
     {#if info?.is_custom}
-      <button class="action warn" disabled={busy} onclick={onResetDefault}>
+      <Button variant="warn" disabled={busy} onclick={onResetDefault}>
         {t('data_folder.manual.reset')}
-      </button>
+      </Button>
     {/if}
   </div>
 
@@ -248,18 +245,14 @@
             placeholder={t('data_folder.manual.placeholder')}
             bind:value={destInput}
           />
-          <button class="ghost" onclick={pickFolder}>
-            <Icon name="folder" size={12} />
-            {t('data_folder.manual.pick')}
-          </button>
+          <Button variant="ghost" icon="folder" onclick={pickFolder}>{t('data_folder.manual.pick')}</Button>
         </div>
         {#if errMsg}<p class="msg warn">{errMsg}</p>{/if}
         <div class="actions">
-          <button class="action" disabled={!destInput.trim()} onclick={onStartMove}>
-            <Icon name="download" size={12} />
+          <Button variant="primary" icon="download" disabled={!destInput.trim()} onclick={onStartMove}>
             {t('data_folder.modal.start')}
-          </button>
-          <button class="ghost" onclick={() => (showModal = false)}>{t('data_folder.modal.close')}</button>
+          </Button>
+          <Button variant="ghost" onclick={() => (showModal = false)}>{t('data_folder.modal.close')}</Button>
         </div>
       {:else}
         <div class="job-from-to">
@@ -304,38 +297,26 @@
 
         <div class="actions">
           {#if job.status === 'running'}
-            <button class="action warn" onclick={onPause}>
-              <Icon name="square" size={10} />
-              {t('data_folder.pause')}
-            </button>
-            <button class="ghost" onclick={() => (showModal = false)}>{t('data_folder.hide')}</button>
+            <Button variant="warn" icon="square" onclick={onPause}>{t('data_folder.pause')}</Button>
+            <Button variant="ghost" onclick={() => (showModal = false)}>{t('data_folder.hide')}</Button>
           {:else if job.status === 'paused'}
-            <button class="action" onclick={onResume}>
-              <Icon name="chevron_right" size={12} />
-              {t('data_folder.resume')}
-            </button>
+            <Button variant="primary" icon="chevron_right" onclick={onResume}>{t('data_folder.resume')}</Button>
             <label class="chk">
               <input type="checkbox" bind:checked={deletePartial} />
               {t('data_folder.delete_partial')}
             </label>
-            <button class="ghost danger" onclick={onCancel}>{t('data_folder.cancel_job')}</button>
+            <Button variant="danger-ghost" onclick={onCancel}>{t('data_folder.cancel_job')}</Button>
           {:else if job.status === 'failed'}
-            <button class="action" onclick={onResume}>
-              <Icon name="sync" size={12} />
-              {t('data_folder.retry')}
-            </button>
-            <button class="ghost danger" onclick={onCancel}>{t('data_folder.cancel_job')}</button>
+            <Button variant="primary" icon="sync" onclick={onResume}>{t('data_folder.retry')}</Button>
+            <Button variant="danger-ghost" onclick={onCancel}>{t('data_folder.cancel_job')}</Button>
           {:else if job.status === 'done'}
             <label class="chk">
               <input type="checkbox" bind:checked={deleteSource} />
               {t('data_folder.delete_source')}
             </label>
-            <button class="action" onclick={onFinalize}>
-              <Icon name="check" size={12} />
-              {t('data_folder.finalize')}
-            </button>
+            <Button variant="primary" icon="check" onclick={onFinalize}>{t('data_folder.finalize')}</Button>
           {:else}
-            <button class="ghost" onclick={() => (showModal = false)}>{t('data_folder.modal.close')}</button>
+            <Button variant="ghost" onclick={() => (showModal = false)}>{t('data_folder.modal.close')}</Button>
           {/if}
         </div>
       {/if}
@@ -394,32 +375,6 @@
   }
   .input:focus { border-color: var(--accent); }
 
-  .action {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 14px; border-radius: 9999px;
-    background: var(--accent-dim); color: var(--sidebar-hi);
-    border: 1px solid var(--accent);
-    font-size: 11px; font-weight: 600;
-    transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
-    white-space: nowrap;
-  }
-  .action:hover:not(:disabled) { background: var(--accent); color: #fff; }
-  .action:disabled { opacity: 0.6; cursor: progress; }
-  .action.warn {
-    background: rgba(251, 191, 36, 0.12); color: var(--warning);
-    border-color: var(--warning);
-  }
-  .action.warn:hover { background: var(--warning); color: #1f2230; }
-
-  .ghost {
-    padding: 6px 14px; border-radius: 9999px;
-    background: transparent; color: var(--text2);
-    border: 1px solid var(--border);
-    font-size: 11px;
-  }
-  .ghost:hover { color: var(--text); background: var(--hover-bg); }
-  .ghost.danger { color: var(--danger); border-color: var(--danger); }
-  .ghost.danger:hover { background: var(--danger-dim); }
 
   .msg.warn { color: var(--warning); }
   .msg {

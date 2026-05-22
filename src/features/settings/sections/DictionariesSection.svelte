@@ -2,6 +2,7 @@
   import { slide } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import Icon from '../../../shared/components/Icon.svelte';
+  import Button from '../../../shared/components/ui/Button.svelte';
   import { t } from '../../../shared/lib/i18n.svelte';
   import { open as openDialog } from '@tauri-apps/plugin-dialog';
   import {
@@ -82,10 +83,9 @@
             <div class="title">{t('settings.dicts.title')}</div>
             <div class="desc">{t('settings.dicts.desc')}</div>
           </div>
-          <button class="primary" type="button" onclick={pickAndInstall} disabled={busy} data-test="dict-install">
-            <Icon name="plus" size={12} />
+          <Button variant="primary" icon="plus" loading={busy} onclick={pickAndInstall} testId="dict-install">
             {busy ? t('settings.dicts.installing') : t('settings.dicts.install')}
-          </button>
+          </Button>
         </div>
 
         {#if errorMsg}
@@ -129,16 +129,6 @@
   .title { font-size: 13px; font-weight: 600; color: var(--text); }
   .desc { font-size: 11px; color: var(--text2); line-height: 1.4; margin-top: 2px; }
 
-  .primary {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 7px 14px; border-radius: 9999px;
-    background: var(--accent-dim); color: var(--accent);
-    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
-    font-size: 12px; font-weight: 600;
-    transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out), transform 0.15s var(--ease-out);
-  }
-  .primary:hover:not(:disabled) { background: var(--accent); color: #fff; transform: translateY(-1px); }
-  .primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .dict-list {
     list-style: none; margin: 4px 0 8px; padding: 0;
