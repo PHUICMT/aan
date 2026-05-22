@@ -1,8 +1,8 @@
 <script lang="ts">
   import Icon from '../../shared/components/Icon.svelte';
   import SegmentedControl from '../../shared/components/ui/SegmentedControl.svelte';
+  import Popover from '../../shared/components/ui/Popover.svelte';
   import { tooltip } from '../../shared/lib/tooltip';
-  import { portal, anchorBelow } from '../../shared/lib/portal';
   import { t } from '../../shared/lib/i18n.svelte';
   import { cubicOut } from 'svelte/easing';
   import { slide } from 'svelte/transition';
@@ -41,35 +41,8 @@
     { value: 'spread'     as const, label: t('reader.mode.spread'),     testId: 'reader-mode-spread' },
   ]);
 
-  function popMenu(_node: Element, { duration = 180 }: { duration?: number } = {}) {
-    return {
-      duration,
-      easing: cubicOut,
-      css: (t: number) => {
-        const offset = (1 - t) * -4;
-        const sc = 0.96 + t * 0.04;
-        return `opacity: ${t}; transform: translateY(${offset}px) scale(${sc}); transform-origin: top right;`;
-      },
-    };
-  }
-
   let settingsOpen = $state(false);
   let settingsToggleEl = $state<HTMLButtonElement | null>(null);
-  let settingsPos = $state({ top: 0, right: 16 });
-  $effect(() => {
-    if (!settingsOpen || !settingsToggleEl) return;
-    settingsPos = anchorBelow(settingsToggleEl, { gap: 6 });
-  });
-  function closeSettingsOnOutside(node: HTMLElement, onOutside: () => void) {
-    function handler(e: MouseEvent) {
-      const target = e.target as Node;
-      if (node.contains(target)) return;
-      if (settingsToggleEl && settingsToggleEl.contains(target)) return;
-      onOutside();
-    }
-    setTimeout(() => document.addEventListener('mousedown', handler), 0);
-    return { destroy() { document.removeEventListener('mousedown', handler); } };
-  }
 </script>
 
 <div class="set-wrap">
@@ -84,20 +57,13 @@
   >
     <Icon name="settings" size={13} />
   </button>
-  {#if settingsOpen}
-    <div
-      class="set-scrim"
-      use:portal
-      aria-hidden="true"
-    ></div>
-    <div
-      class="set-menu"
-      role="menu"
-      style:top="{settingsPos.top}px"
-      style:right="{settingsPos.right}px"
-      transition:popMenu
-      use:portal
-      use:closeSettingsOnOutside={() => (settingsOpen = false)}
+  <Popover
+    open={settingsOpen}
+    anchor={settingsToggleEl}
+    onClose={() => (settingsOpen = false)}
+    gap={6}
+    minWidth={320}
+    testId="reader-settings-menu"
     >
       <div class="set-row layout-row">
         <div class="set-icon"><Icon name={view === 'continuous' ? 'scroll' : view === 'spread' ? 'book_open' : 'file_text'} size={14} /></div>
@@ -180,8 +146,7 @@
       <div class="set-row brightness-row">
         <BrightnessControls />
       </div>
-    </div>
-  {/if}
+  </Popover>
 </div>
 
 <style>
@@ -199,30 +164,6 @@
   :global(.reader-root.bg-light) .mode { background: rgba(0,0,0,0.04); color: #4b5263; }
   :global(.reader-root.bg-light) .mode:hover { background: rgba(124,58,237,0.14); color: #1f2233; }
   :global(.reader-root.bg-light) .set-toggle.on { background: rgba(124,58,237,0.18); color: #5b21b6; }
-  .set-scrim {
-    position: fixed; inset: 0;
-    background: var(--scrim-bg);
-    z-index: 1999;
-    pointer-events: none;
-    animation: rs-fade 180ms var(--ease-out) both;
-  }
-  @keyframes rs-fade { from { opacity: 0; } to { opacity: 1; } }
-  .set-menu {
-    position: fixed;
-    min-width: 320px;
-    padding: 4px;
-    background: var(--panel-bg);
-    backdrop-filter: var(--panel-blur);
-    -webkit-backdrop-filter: var(--panel-blur);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    box-shadow: var(--panel-shadow);
-    z-index: 2000;
-    display: flex; flex-direction: column; gap: 1px;
-  }
-  @supports not (backdrop-filter: blur(1px)) {
-    .set-menu { background: var(--menu-bg); }
-  }
   .set-row {
     display: grid;
     grid-template-columns: 22px 1fr auto;
@@ -265,10 +206,6 @@
   .set-value.on { background: var(--accent); color: #fff; }
   .set-row.layout-row { cursor: default; }
   .set-row.layout-row:hover { background: transparent; }
-  :global(.reader-root.bg-light) .set-menu {
-    background: rgba(255, 255, 255, 0.92);
-    border-color: rgba(0,0,0,0.10);
-  }
   :global(.reader-root.bg-light) .set-title { color: #1f2233; }
   :global(.reader-root.bg-light) .set-desc { color: #6b7280; }
   :global(.reader-root.bg-light) .set-value { background: rgba(0,0,0,0.06); color: #4b5263; }

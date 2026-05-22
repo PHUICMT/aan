@@ -2,7 +2,7 @@
   import Icon from '../../shared/components/Icon.svelte';
   import SegmentedControl from '../../shared/components/ui/SegmentedControl.svelte';
   import { tooltip } from '../../shared/lib/tooltip';
-  import { portal, anchorBelow } from '../../shared/lib/portal';
+  import Popover from '../../shared/components/ui/Popover.svelte';
   import { t } from '../../shared/lib/i18n.svelte';
   import { cubicOut } from 'svelte/easing';
   import { slide } from 'svelte/transition';
@@ -31,18 +31,6 @@
   ]);
   const canOverride = $derived(app.readerChapter?.pid != null);
 
-  function popMenu(_node: Element, { duration = 180 }: { duration?: number } = {}) {
-    return {
-      duration,
-      easing: cubicOut,
-      css: (t: number) => {
-        const offset = (1 - t) * -4;
-        const sc = 0.96 + t * 0.04;
-        return `opacity: ${t}; transform: translateY(${offset}px) scale(${sc}); transform-origin: top right;`;
-      },
-    };
-  }
-
   const THEMES: { id: NovelTheme; labelKey: string; swatch: string }[] = [
     { id: 'light', labelKey: 'novel.theme.light', swatch: '#f3f1ea' },
     { id: 'sepia', labelKey: 'novel.theme.sepia', swatch: '#f1e7d0' },
@@ -52,21 +40,6 @@
 
   let open = $state(false);
   let toggleEl = $state<HTMLButtonElement | null>(null);
-  let pos = $state({ top: 0, right: 16 });
-  $effect(() => {
-    if (!open || !toggleEl) return;
-    pos = anchorBelow(toggleEl, { gap: 6 });
-  });
-  function closeOnOutside(node: HTMLElement, onOutside: () => void) {
-    function handler(e: MouseEvent) {
-      const target = e.target as Node;
-      if (node.contains(target)) return;
-      if (toggleEl && toggleEl.contains(target)) return;
-      onOutside();
-    }
-    setTimeout(() => document.addEventListener('mousedown', handler), 0);
-    return { destroy() { document.removeEventListener('mousedown', handler); } };
-  }
 </script>
 
 <div class="set-wrap">
@@ -81,22 +54,14 @@
   >
     <Icon name="settings" size={13} />
   </button>
-  {#if open}
-    <div
-      class="set-scrim"
-      use:portal
-      aria-hidden="true"
-    ></div>
-    <div
-      class="set-menu"
-      role="menu"
-      style:top="{pos.top}px"
-      style:right="{pos.right}px"
-      transition:popMenu
-      use:portal
-      use:closeOnOutside={() => (open = false)}
-      data-test="novel-settings-menu"
-    >
+  <Popover
+    {open}
+    anchor={toggleEl}
+    onClose={() => (open = false)}
+    gap={6}
+    minWidth={320}
+    testId="novel-settings-menu"
+  >
       <!-- Layout -->
       <div class="set-row layout-row">
         <div class="set-icon"><Icon name={app.novelLayout === 'paged' ? 'file_text' : 'scroll'} size={14} /></div>
@@ -210,8 +175,7 @@
           {/if}
         </div>
       {/if}
-    </div>
-  {/if}
+  </Popover>
 </div>
 
 <style>
@@ -227,29 +191,6 @@
   :global(.novel-root.bg-light) .set-toggle { background: rgba(0,0,0,0.04); color: #4b5263; }
   :global(.novel-root.bg-light) .set-toggle:hover { background: rgba(124,58,237,0.14); color: #1f2233; }
 
-  .set-scrim {
-    position: fixed; inset: 0;
-    background: var(--scrim-bg);
-    z-index: 1999;
-    /* Visual-only — clicks pass through; closeOnOutside already handles
-       outside dismiss via document-level mousedown. */
-    pointer-events: none;
-    animation: setScrimIn 180ms var(--ease-out) both;
-  }
-  @keyframes setScrimIn { from { opacity: 0; } to { opacity: 1; } }
-  .set-menu {
-    position: fixed;
-    min-width: 340px;
-    padding: 4px;
-    background: var(--panel-bg);
-    backdrop-filter: var(--panel-blur);
-    -webkit-backdrop-filter: var(--panel-blur);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    box-shadow: var(--panel-shadow);
-    z-index: 2000;
-    display: flex; flex-direction: column; gap: 1px;
-  }
   .set-row {
     display: grid;
     grid-template-columns: 22px 1fr auto;
@@ -326,10 +267,6 @@
   .ov-reset { background: rgba(239,68,68,0.14); color: #fca5a5; }
   .ov-reset:hover { background: rgba(239,68,68,0.32); color: #fff; }
 
-  :global(.novel-root.bg-light) .set-menu {
-    background: rgba(255, 255, 255, 0.92);
-    border-color: rgba(0,0,0,0.10);
-  }
   :global(.novel-root.bg-light) .set-title { color: #1f2233; }
   :global(.novel-root.bg-light) .set-desc { color: #6b7280; }
   :global(.novel-root.bg-light) .step-ctl button { background: rgba(0,0,0,0.06); color: #4b5263; }

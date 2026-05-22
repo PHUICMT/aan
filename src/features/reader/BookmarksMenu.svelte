@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from '../../shared/components/Icon.svelte';
+  import Popover from '../../shared/components/ui/Popover.svelte';
   import { tooltip } from '../../shared/lib/tooltip';
-  import { portal, anchorBelow } from '../../shared/lib/portal';
   import type { Bookmark } from '../../shared/lib/types';
 
   type Props = {
@@ -16,21 +16,6 @@
 
   let bookmarksOpen = $state(false);
   let bmListToggleEl = $state<HTMLButtonElement | null>(null);
-  let bmPos = $state({ top: 0, right: 16 });
-  $effect(() => {
-    if (!bookmarksOpen || !bmListToggleEl) return;
-    bmPos = anchorBelow(bmListToggleEl, { gap: 6 });
-  });
-  function closeBmOnOutside(node: HTMLElement, onOutside: () => void) {
-    function handler(e: MouseEvent) {
-      const target = e.target as Node;
-      if (node.contains(target)) return;
-      if (bmListToggleEl && bmListToggleEl.contains(target)) return;
-      onOutside();
-    }
-    setTimeout(() => document.addEventListener('mousedown', handler), 0);
-    return { destroy() { document.removeEventListener('mousedown', handler); } };
-  }
 </script>
 
 <div class="bm-wrap">
@@ -55,20 +40,14 @@
       <Icon name="chevron_down" size={10} />
     </button>
   {/if}
-  {#if bookmarksOpen && bookmarks.length > 0}
-    <div
-      class="bm-scrim"
-      use:portal
-      aria-hidden="true"
-    ></div>
-    <ul
-      class="bm-menu"
-      role="listbox"
-      style:top="{bmPos.top}px"
-      style:right="{bmPos.right}px"
-      use:portal
-      use:closeBmOnOutside={() => (bookmarksOpen = false)}
-    >
+  <Popover
+    open={bookmarksOpen && bookmarks.length > 0}
+    anchor={bmListToggleEl}
+    onClose={() => (bookmarksOpen = false)}
+    gap={6}
+    minWidth={220}
+  >
+    <ul class="bm-menu" role="listbox">
       {#each bookmarks as bm (bm.id)}
         <li>
           <button
@@ -94,7 +73,7 @@
         </li>
       {/each}
     </ul>
-  {/if}
+  </Popover>
 </div>
 
 <style>
@@ -115,31 +94,10 @@
     display: inline-flex; align-items: center; gap: 4px;
     font-family: var(--font-mono); font-size: 10px;
   }
-  .bm-scrim {
-    position: fixed; inset: 0;
-    background: var(--scrim-bg);
-    z-index: 1999;
-    pointer-events: none;
-    animation: bm-fade 180ms var(--ease-out) both;
-  }
-  @keyframes bm-fade { from { opacity: 0; } to { opacity: 1; } }
   .bm-menu {
-    position: fixed;
-    min-width: 220px; max-height: 320px; overflow-y: auto;
-    margin: 0; padding: 4px;
+    max-height: 320px; overflow-y: auto;
+    margin: 0; padding: 0;
     list-style: none;
-    background: var(--panel-bg);
-    backdrop-filter: var(--panel-blur);
-    -webkit-backdrop-filter: var(--panel-blur);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    box-shadow: var(--panel-shadow);
-    z-index: 2000;
-    animation: bm-pop 0.18s var(--ease-out);
-  }
-  @keyframes bm-pop {
-    from { opacity: 0; transform: translateY(-4px) scale(0.96); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
   }
   .bm-menu li { display: flex; align-items: center; gap: 4px; }
   .bm-item {

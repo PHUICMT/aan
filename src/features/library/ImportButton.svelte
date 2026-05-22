@@ -8,7 +8,7 @@
   import { t } from '../../shared/lib/i18n.svelte';
   import { bumpSeriesMutation } from '../../shared/lib/store.svelte';
   import { importFiles, importFolders, type ImportProgress, type ImportKinds } from './import-flow';
-  import { portal, anchorBelow } from '../../shared/lib/portal';
+  import Popover from '../../shared/components/ui/Popover.svelte';
   import { KIND_OPTIONS, isVisualKind } from '../../shared/lib/constants';
   import { listTags } from '../../shared/lib/api';
   import type { TagCount } from '../../shared/lib/types';
@@ -41,12 +41,6 @@
   let summary = $state<ImportProgress | null>(null);
   let menuOpen = $state(false);
   let triggerEl: HTMLButtonElement | undefined = $state();
-  let menuPos = $state({ top: 0, right: 16 });
-  $effect(() => {
-    if (menuOpen && triggerEl) {
-      menuPos = anchorBelow(triggerEl, { gap: 8 });
-    }
-  });
 
   //───── Tag picker ─────
   function loadImportTags(): string[] {
@@ -169,17 +163,6 @@
     await runImport(() => importFolders(paths, (p) => { progress = { ...p }; }, kinds, selectedTags), paths.length);
   }
 
-  function closeMenuOnOutside(node: HTMLElement) {
-    function handle(e: MouseEvent) {
-      const tgt = e.target as Node | null;
-      if (!tgt) return;
-      if (node.contains(tgt)) return;
-      if (triggerEl && triggerEl.contains(tgt)) return;
-      menuOpen = false;
-    }
-    setTimeout(() => document.addEventListener('mousedown', handle), 0);
-    return { destroy() { document.removeEventListener('mousedown', handle); } };
-  }
 </script>
 
 <div class="wrap">
@@ -210,17 +193,7 @@
     {/if}
   </button>
 
-  {#if menuOpen}
-    <div
-      class="menu"
-      role="menu"
-      transition:scale={{ duration: 140, start: 0.94, easing: cubicOut }}
-      use:portal
-      use:closeMenuOnOutside
-      style:top="{menuPos.top}px"
-      style:right="{menuPos.right}px"
-      data-test="import-menu"
-    >
+  <Popover open={menuOpen} anchor={triggerEl} onClose={() => (menuOpen = false)} minWidth={280} testId="import-menu">
       <div class="kind-group" style:--i={0} data-test="import-kind-visual">
         <div class="kind-label">{t('library.import.kind_visual')}</div>
         <div class="chips">
@@ -314,8 +287,7 @@
           </button>
         </li>
       </ul>
-    </div>
-  {/if}
+  </Popover>
 </div>
 
 <Modal
@@ -497,28 +469,11 @@
     .busy-ring { animation: none; }
   }
 
-  /* Menu polish: glassy backdrop, larger hit area, stagger entrance.
-     Portaled to body (style:top/right set by anchorBelow) so the panel
-     escapes parent transforms that would otherwise kill backdrop-filter. */
-  .menu {
-    position: fixed;
-    z-index: 100;
-    list-style: none;
-    margin: 0;
-    padding: 6px;
-    min-width: 280px;
-    background: var(--panel-bg);
-    backdrop-filter: var(--panel-blur);
-    -webkit-backdrop-filter: var(--panel-blur);
-    border: 1px solid var(--glass-border, var(--border));
-    border-radius: 12px;
-    box-shadow:
-      0 18px 40px -10px rgba(0,0,0,0.55),
-      0 0 0 1px rgba(255,255,255,0.04) inset;
-    transform-origin: top right;
-  }
   .menu-list { list-style: none; margin: 0; padding: 0; }
-  .menu li, .menu .kind-group, .menu .tag-group, .menu .sep {
+  :global([data-test="import-menu"]) li,
+  :global([data-test="import-menu"]) .kind-group,
+  :global([data-test="import-menu"]) .tag-group,
+  :global([data-test="import-menu"]) .sep {
     margin: 0;
     opacity: 0;
     transform: translateY(-6px);
@@ -529,7 +484,10 @@
     to { opacity: 1; transform: translateY(0); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .menu li, .menu .kind-group, .menu .tag-group, .menu .sep { opacity: 1; transform: none; animation: none; }
+    :global([data-test="import-menu"]) li,
+    :global([data-test="import-menu"]) .kind-group,
+    :global([data-test="import-menu"]) .tag-group,
+    :global([data-test="import-menu"]) .sep { opacity: 1; transform: none; animation: none; }
   }
   .kind-group { padding: 8px 10px 4px; }
   .kind-label {
