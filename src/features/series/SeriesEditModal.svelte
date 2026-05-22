@@ -1,8 +1,8 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { open as openDialog } from '@tauri-apps/plugin-dialog';
-  import Icon from '../../shared/components/Icon.svelte';
   import Modal from '../../shared/components/ui/Modal.svelte';
+  import Button from '../../shared/components/ui/Button.svelte';
   import {
     updateSeries,
     deleteSeriesForce,
@@ -100,12 +100,8 @@
         <p>{t('series.edit.delete_confirm')}</p>
         <p class="muted">{t('series.edit.delete_warning')}</p>
         <div class="actions">
-          <button type="button" class="btn ghost" onclick={() => (confirmDelete = false)} data-test="series-edit-delete-cancel">
-            {t('common.cancel')}
-          </button>
-          <button type="button" class="btn danger" disabled={saving} onclick={doDelete} data-test="series-edit-delete-confirm">
-            {t('series.edit.delete_now')}
-          </button>
+          <Button variant="ghost" onclick={() => (confirmDelete = false)} testId="series-edit-delete-cancel">{t('common.cancel')}</Button>
+          <Button variant="danger" disabled={saving} onclick={doDelete} testId="series-edit-delete-confirm">{t('series.edit.delete_now')}</Button>
         </div>
       </div>
     {:else}
@@ -131,27 +127,19 @@
         <span>{t('series.edit.info')}</span>
         <textarea bind:value={info} rows="5" data-test="series-edit-info"></textarea>
       </label>
-      <button type="button" class="btn ghost" onclick={pickCover} disabled={pickingCover} data-test="series-edit-replace-cover">
-        <Icon name="pencil" size={12} />
+      <Button variant="ghost" icon="pencil" onclick={pickCover} disabled={pickingCover} testId="series-edit-replace-cover">
         {pickingCover ? t('series.edit.replacing_cover') : t('series.edit.replace_cover')}
-      </button>
+      </Button>
 
       <div class="actions">
-        <button type="button" class="btn danger ghost" onclick={() => (confirmDelete = true)} data-test="series-edit-delete-arm">
-          <Icon name="trash" size={12} />
+        <Button variant="danger-ghost" icon="trash" onclick={() => (confirmDelete = true)} testId="series-edit-delete-arm">
           {t('series.edit.delete')}
-        </button>
+        </Button>
         <div class="spacer"></div>
-        <button type="button" class="btn ghost" onclick={onClose}>{t('common.cancel')}</button>
-        <button
-          type="button"
-          class="btn primary"
-          onclick={save}
-          disabled={saving}
-          data-test="series-edit-save"
-        >
+        <Button variant="ghost" onclick={onClose}>{t('common.cancel')}</Button>
+        <Button variant="primary" loading={saving} onclick={save} testId="series-edit-save">
           {saving ? t('series.edit.saving') : t('series.edit.save')}
-        </button>
+        </Button>
       </div>
     {/if}
 </Modal>
@@ -185,29 +173,6 @@
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
   .spacer { flex: 1; }
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    cursor: pointer;
-    font-size: 12.5px;
-    font-weight: 600;
-    transition: transform 140ms var(--ease-out, ease-out), background 140ms;
-  }
-  .btn:hover:not(:disabled) { transform: translateY(-1px); }
-  .btn.primary { background: var(--accent, #7c5cff); color: #fff; }
-  .btn.ghost {
-    background: transparent;
-    color: var(--text, #fff);
-    border-color: var(--border, rgba(255,255,255,0.18));
-  }
-  .btn.ghost:hover { background: rgba(255,255,255,0.05); }
-  .btn.danger { background: #ef4444; color: #fff; }
-  .btn.danger.ghost { background: transparent; color: #f87171; border-color: rgba(248,113,113,0.3); }
-  .btn:disabled { opacity: 0.55; cursor: not-allowed; }
   .danger-zone { padding: 16px; background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.3); border-radius: 10px; }
   .danger-zone p { margin: 0 0 6px; color: var(--text, #fff); font-size: 13px; }
   .danger-zone .muted { color: var(--muted, rgba(255,255,255,0.6)); font-size: 11.5px; margin-bottom: 12px; }

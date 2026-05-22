@@ -2,8 +2,8 @@
   import { t } from '../../shared/lib/i18n.svelte';
   import { bulkUpdateSeries, bulkDeleteSeries } from '../../shared/lib/api';
   import { bumpSeriesMutation } from '../../shared/lib/store.svelte';
-  import Icon from '../../shared/components/Icon.svelte';
   import Modal from '../../shared/components/ui/Modal.svelte';
+  import Button from '../../shared/components/ui/Button.svelte';
 
   type Props = {
     pids: number[];
@@ -107,22 +107,21 @@
 
     <footer class="bm-foot">
       {#if !confirmDelete}
-        <button class="danger" type="button" onclick={() => (confirmDelete = true)} disabled={busy} data-test="bulk-delete-arm">
-          <Icon name="trash" size={12} />
+        <Button variant="danger" icon="trash" onclick={() => (confirmDelete = true)} disabled={busy} testId="bulk-delete-arm">
           {t('library.bulk.delete')}
-        </button>
+        </Button>
       {:else}
         <span class="confirm-text">{t('library.bulk.delete_confirm').replace('{n}', String(pids.length))}</span>
-        <button class="danger" type="button" onclick={doDelete} disabled={busy} data-test="bulk-delete-confirm">
-          {busy ? '…' : t('library.bulk.delete_confirm_cta')}
-        </button>
-        <button class="ghost" type="button" onclick={() => (confirmDelete = false)} disabled={busy} data-test="bulk-cancel-inline">{t('common.cancel')}</button>
+        <Button variant="danger" loading={busy} onclick={doDelete} testId="bulk-delete-confirm">
+          {t('library.bulk.delete_confirm_cta')}
+        </Button>
+        <Button variant="ghost" onclick={() => (confirmDelete = false)} disabled={busy} testId="bulk-cancel-inline">{t('common.cancel')}</Button>
       {/if}
       <div class="spacer"></div>
-      <button class="ghost" type="button" onclick={onClose} disabled={busy} data-test="bulk-cancel-footer">{t('common.cancel')}</button>
-      <button class="primary" type="button" onclick={apply} disabled={busy} data-test="bulk-apply">
-        {busy ? '…' : t('library.bulk.apply')}
-      </button>
+      <Button variant="ghost" onclick={onClose} disabled={busy} testId="bulk-cancel-footer">{t('common.cancel')}</Button>
+      <Button variant="primary" loading={busy} onclick={apply} testId="bulk-apply">
+        {t('library.bulk.apply')}
+      </Button>
     </footer>
 </Modal>
 
@@ -158,18 +157,5 @@
     flex-wrap: wrap;
   }
   .spacer { flex: 1; }
-  .ghost, .primary, .danger {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 7px 14px; border-radius: 9999px;
-    font-size: 12px; font-weight: 700;
-    transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
-  }
-  .ghost { background: rgba(127,127,127,0.08); color: var(--text); }
-  .ghost:hover:not(:disabled) { background: var(--hover-bg); }
-  .primary { background: var(--accent); color: #fff; }
-  .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 86%, white 14%); }
-  .danger { background: rgba(239,68,68,0.16); color: #fca5a5; border: 1px solid rgba(239,68,68,0.36); }
-  .danger:hover:not(:disabled) { background: #ef4444; color: #fff; }
-  .ghost:disabled, .primary:disabled, .danger:disabled { opacity: 0.5; cursor: not-allowed; }
-  .confirm-text { font-size: 11px; color: #fbbf24; }
+  .confirm-text { font-size: 11px; color: var(--warning); }
 </style>
